@@ -1,43 +1,107 @@
 "use client";
 
-import { getCurrentUser, User } from "@/lib/api";
+import { Customer, getCustomers } from "@/lib/api/customer.api";
+import { getTickets, Ticket } from "@/lib/api/ticket.api";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function DashboardPage() {
-  const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const fetchCurrentUser = async () => {
+    const fetchDashboardData = async () => {
+      setIsLoading(true);
       try {
-        const userData = await getCurrentUser();
-        setUser(userData);
-      } catch (error) {
-        console.error("Failed to fetch user:", error);
-        // Redirect to login if not authenticated
-        router.push("/login");
+        // Get tickets data
+        const ticketsResponse = await getTickets();
+        if (ticketsResponse.data) {
+          setTickets(ticketsResponse.data);
+        }
+
+        // Get customers data
+        const customersResponse = await getCustomers();
+        if (customersResponse.data) {
+          setCustomers(customersResponse.data);
+        }
+      } catch (err) {
+        console.error("Error fetching dashboard data:", err);
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Failed to load dashboard data. Please try again."
+        );
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchCurrentUser();
-  }, [router]);
+    fetchDashboardData();
+  }, []);
 
-  const handleLogout = () => {
-    // Implement logout functionality here
-    router.push("/login");
+  // Filter active tickets (not completed or cancelled)
+  const activeTickets = tickets.filter(
+    (ticket) => !["completed", "cancelled"].includes(ticket.status)
+  );
+
+  // Get low stock items count (placeholder for now)
+  const lowStockItems = 5;
+
+  // Calculate monthly revenue (placeholder for now)
+  const monthlyRevenue = "$8,732";
+
+  // Format date
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (diffInSeconds < 60) {
+      return `${diffInSeconds} seconds ago`;
+    }
+
+    const diffInMinutes = Math.floor(diffInSeconds / 60);
+    if (diffInMinutes < 60) {
+      return `${diffInMinutes} minute${diffInMinutes === 1 ? "" : "s"} ago`;
+    }
+
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) {
+      return `${diffInHours} hour${diffInHours === 1 ? "" : "s"} ago`;
+    }
+
+    const diffInDays = Math.floor(diffInHours / 24);
+    return `${diffInDays} day${diffInDays === 1 ? "" : "s"} ago`;
+  };
+
+  // Get status color class
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "new":
+        return "bg-blue-100 text-blue-800";
+      case "assigned":
+        return "bg-purple-100 text-purple-800";
+      case "in_progress":
+        return "bg-yellow-100 text-yellow-800";
+      case "on_hold":
+        return "bg-orange-100 text-orange-800";
+      case "completed":
+        return "bg-green-100 text-green-800";
+      case "cancelled":
+        return "bg-gray-100 text-gray-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
   };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
+          <p className="mt-2 text-gray-700">Loading dashboard data...</p>
         </div>
       </div>
     );
@@ -45,67 +109,6 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <nav className="bg-white shadow-sm">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 justify-between">
-            <div className="flex">
-              <div className="flex flex-shrink-0 items-center">
-                <span className="text-xl font-semibold text-blue-700">
-                  RepairManager
-                </span>
-              </div>
-              <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-                <Link
-                  href="/dashboard"
-                  className="inline-flex items-center border-b-2 border-blue-500 px-1 pt-1 text-sm font-medium text-gray-900"
-                >
-                  Dashboard
-                </Link>
-                <Link
-                  href="/tickets"
-                  className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                >
-                  Tickets
-                </Link>
-                <Link
-                  href="/dashboard/customers"
-                  className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                >
-                  Customers
-                </Link>
-                <Link
-                  href="/dashboard/inventory"
-                  className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                >
-                  Inventory
-                </Link>
-                <Link
-                  href="/dashboard/invoices"
-                  className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                >
-                  Invoices
-                </Link>
-              </div>
-            </div>
-            <div className="hidden sm:ml-6 sm:flex sm:items-center">
-              <div className="relative ml-3">
-                <div className="flex items-center gap-3">
-                  <span className="text-sm text-gray-700">
-                    {user?.firstName} {user?.lastName}
-                  </span>
-                  <button
-                    onClick={handleLogout}
-                    className="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
-                  >
-                    Sign out
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </nav>
-
       <main className="py-10">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mb-8">
@@ -114,6 +117,12 @@ export default function DashboardPage() {
               Overview of your repair business
             </p>
           </div>
+
+          {error && (
+            <div className="mb-6 p-3 bg-red-50 text-red-700 rounded-md border border-red-200">
+              {error}
+            </div>
+          )}
 
           {/* Dashboard Content */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -143,7 +152,7 @@ export default function DashboardPage() {
                       </dt>
                       <dd>
                         <div className="text-lg font-medium text-gray-900">
-                          12
+                          {activeTickets.length}
                         </div>
                       </dd>
                     </dl>
@@ -153,7 +162,7 @@ export default function DashboardPage() {
               <div className="bg-gray-50 px-4 py-4 sm:px-6">
                 <div className="text-sm">
                   <Link
-                    href="/dashboard/tickets"
+                    href="/tickets"
                     className="font-medium text-blue-600 hover:text-blue-500"
                   >
                     View all<span className="sr-only"> tickets</span>
@@ -188,7 +197,7 @@ export default function DashboardPage() {
                       </dt>
                       <dd>
                         <div className="text-lg font-medium text-gray-900">
-                          243
+                          {customers.length}
                         </div>
                       </dd>
                     </dl>
@@ -198,7 +207,7 @@ export default function DashboardPage() {
               <div className="bg-gray-50 px-4 py-4 sm:px-6">
                 <div className="text-sm">
                   <Link
-                    href="/dashboard/customers"
+                    href="/customers"
                     className="font-medium text-blue-600 hover:text-blue-500"
                   >
                     View all<span className="sr-only"> customers</span>
@@ -233,7 +242,7 @@ export default function DashboardPage() {
                       </dt>
                       <dd>
                         <div className="text-lg font-medium text-gray-900">
-                          5
+                          {lowStockItems}
                         </div>
                       </dd>
                     </dl>
@@ -243,7 +252,7 @@ export default function DashboardPage() {
               <div className="bg-gray-50 px-4 py-4 sm:px-6">
                 <div className="text-sm">
                   <Link
-                    href="/dashboard/inventory"
+                    href="/inventory"
                     className="font-medium text-blue-600 hover:text-blue-500"
                   >
                     View all<span className="sr-only"> inventory</span>
@@ -278,7 +287,7 @@ export default function DashboardPage() {
                       </dt>
                       <dd>
                         <div className="text-lg font-medium text-gray-900">
-                          $8,732
+                          {monthlyRevenue}
                         </div>
                       </dd>
                     </dl>
@@ -288,7 +297,7 @@ export default function DashboardPage() {
               <div className="bg-gray-50 px-4 py-4 sm:px-6">
                 <div className="text-sm">
                   <Link
-                    href="/dashboard/invoices"
+                    href="/invoices"
                     className="font-medium text-blue-600 hover:text-blue-500"
                   >
                     View all<span className="sr-only"> invoices</span>
@@ -304,41 +313,69 @@ export default function DashboardPage() {
               Recent Activity
             </h2>
             <div className="mt-4 bg-white shadow overflow-hidden sm:rounded-md">
-              <ul role="list" className="divide-y divide-gray-200">
-                {[1, 2, 3, 4, 5].map((item) => (
-                  <li key={item}>
-                    <div className="px-4 py-4 sm:px-6">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium text-blue-600 truncate">
-                          Ticket #{Math.floor(Math.random() * 1000) + 1000}
-                        </p>
-                        <div className="ml-2 flex-shrink-0 flex">
-                          <p className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                            {
-                              ["New", "In Progress", "Completed"][
-                                Math.floor(Math.random() * 3)
-                              ]
-                            }
-                          </p>
-                        </div>
-                      </div>
-                      <div className="mt-2 sm:flex sm:justify-between">
-                        <div className="sm:flex">
-                          <p className="flex items-center text-sm text-gray-500">
-                            iPhone 12 Screen Repair
-                          </p>
-                        </div>
-                        <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
-                          <p>
-                            Updated {Math.floor(Math.random() * 24) + 1} hours
-                            ago
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+              {tickets.length === 0 ? (
+                <div className="p-6 text-center text-gray-500">
+                  No tickets found in the system.
+                </div>
+              ) : (
+                <ul role="list" className="divide-y divide-gray-200">
+                  {tickets
+                    .sort(
+                      (a, b) =>
+                        new Date(b.updatedAt).getTime() -
+                        new Date(a.updatedAt).getTime()
+                    )
+                    .slice(0, 5)
+                    .map((ticket) => (
+                      <li key={ticket.id}>
+                        <Link href={`/tickets/${ticket.id}`}>
+                          <div className="px-4 py-4 sm:px-6 hover:bg-gray-50">
+                            <div className="flex items-center justify-between">
+                              <p className="text-sm font-medium text-blue-600 truncate">
+                                {ticket.ticketNumber}
+                              </p>
+                              <div className="ml-2 flex-shrink-0 flex">
+                                <p
+                                  className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(
+                                    ticket.status
+                                  )}`}
+                                >
+                                  {ticket.status
+                                    .replace("_", " ")
+                                    .charAt(0)
+                                    .toUpperCase() +
+                                    ticket.status.replace("_", " ").slice(1)}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="mt-2 sm:flex sm:justify-between">
+                              <div className="sm:flex">
+                                <p className="flex items-center text-sm text-gray-500">
+                                  {ticket.deviceType}{" "}
+                                  {ticket.deviceBrand && ticket.deviceModel
+                                    ? `${ticket.deviceBrand} ${ticket.deviceModel}`
+                                    : ticket.deviceBrand ||
+                                      ticket.deviceModel ||
+                                      ""}
+                                </p>
+                              </div>
+                              <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
+                                <p>Updated {formatTimeAgo(ticket.updatedAt)}</p>
+                              </div>
+                            </div>
+                            <div className="mt-2">
+                              <p className="text-sm text-gray-500 truncate">
+                                {ticket.customer
+                                  ? `${ticket.customer.firstName} ${ticket.customer.lastName}`
+                                  : "Unknown Customer"}
+                              </p>
+                            </div>
+                          </div>
+                        </Link>
+                      </li>
+                    ))}
+                </ul>
+              )}
             </div>
           </div>
         </div>

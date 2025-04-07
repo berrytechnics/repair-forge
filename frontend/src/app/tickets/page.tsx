@@ -1,6 +1,6 @@
 "use client";
 
-import { getTickets } from "@/lib/api";
+import { getTickets } from "@/lib/api/ticket.api";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -50,7 +50,7 @@ export default function TicketsListPage() {
         if (filterPriority) params.append("priority", filterPriority);
 
         const response = await getTickets(params);
-        setTickets(response.data);
+        setTickets(response.data ?? []);
       } catch (err) {
         console.error("Error fetching tickets:", err);
         setError(

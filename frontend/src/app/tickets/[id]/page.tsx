@@ -1,15 +1,14 @@
 "use client";
 
+import { getTechnicians, Technician } from "@/lib/api/api";
 import {
-  Technician,
-  Ticket,
   addDiagnosticNote,
   addRepairNote,
   assignTechnician,
-  getTechnicians,
   getTicketById,
+  Ticket,
   updateTicketStatus,
-} from "@/lib/api";
+} from "@/lib/api/ticket.api";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 

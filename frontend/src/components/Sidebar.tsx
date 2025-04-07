@@ -124,7 +124,7 @@ export default function Sidebar() {
                 href={item.href}
                 icon={item.icon}
                 label={item.label}
-                active={pathname === item.href}
+                active={pathname.includes(item.href)}
               />
             ))}
           </nav>

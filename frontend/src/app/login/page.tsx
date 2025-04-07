@@ -1,6 +1,6 @@
 "use client";
 
-import { login } from "@/lib/api";
+import { login } from "@/lib/api/api";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
