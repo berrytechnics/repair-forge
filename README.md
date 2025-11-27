@@ -11,16 +11,28 @@ A comprehensive management system for electronics repair businesses with ticketi
 - **Frontend**: Next.js 14 with TypeScript and React
 - **Database**: PostgreSQL
 - **Containerization**: Docker
-- **ORM**: Sequelize
+- **ORM**: Kysely (type-safe SQL query builder)
+- **Authentication**: JWT tokens with bcrypt password hashing
 
 ## Features
 
-- **Ticketing System**: Create, assign, track, and manage repair tickets
+### Implemented Features
+
+- **Customer Management**: Full CRUD operations for customer profiles with search functionality
+- **Ticketing System**: Complete ticket management with automated ticket numbering, status tracking, and technician assignment
+- **Invoicing**: Invoice generation with automated invoice numbering, tax calculation, and payment tracking
+- **User Authentication**: JWT-based authentication with secure password hashing
+- **API Routes**: RESTful API endpoints for customers, tickets, invoices, and users
+- **Frontend UI**: Complete Next.js frontend with pages for customers, tickets, invoices, and dashboard
+
+### Planned Features
+
 - **Inventory Management**: Track parts, supplies, and set reorder thresholds
-- **Customer Management**: Store customer information and repair history
-- **Invoicing**: Generate professional invoices from repair tickets
-- **User Management**: Role-based access control (admin, technician, frontdesk)
+- **Role-Based Access Control**: Enforce permissions for admin, manager, technician, and receptionist roles
+- **Diagnostic System**: Standardized diagnostic templates and checklists
+- **Communication Tools**: Email and SMS notifications for status updates
 - **Reporting**: Business analytics and performance reports
+- **Payment Processing**: Stripe integration for payment processing
 
 ## Getting Started
 
@@ -63,7 +75,7 @@ This will start the PostgreSQL database, backend API, and frontend web applicati
 
 - Frontend: http://localhost:3000
 - Backend API: http://localhost:4000
-- API Documentation: http://localhost:4000/api-docs
+- Health Check: http://localhost:4000/health
 
 ### Default Admin Login
 
@@ -80,36 +92,43 @@ After initialization, you can log in with the default admin account:
 circuit-sage/
 ├── backend/                # Express TypeScript backend
 │   ├── src/
-│   │   ├── config/         # Configuration files
-│   │   ├── controllers/    # Request handlers
-│   │   ├── middlewares/    # Express middlewares
-│   │   ├── models/         # Database models
-│   │   ├── routes/         # API routes
-│   │   ├── services/       # Business logic
-│   │   ├── types/          # TypeScript types and interfaces
-│   │   ├── utils/          # Utility functions
-│   │   └── app.ts          # Express app
+│   │   ├── __tests__/      # Test files
+│   │   ├── config/         # Configuration files (database, errors, logger, types)
+│   │   ├── middlewares/    # Express middlewares (auth, validation)
+│   │   ├── routes/         # API routes (customer, ticket, invoice, user)
+│   │   ├── services/       # Business logic layer
+│   │   ├── utils/          # Utility functions (asyncHandler, auth)
+│   │   ├── validators/     # Request validation schemas
+│   │   ├── app.ts          # Express app configuration
+│   │   └── server.ts        # Server entry point
 │   ├── Dockerfile          # Backend Docker configuration
 │   ├── Dockerfile.dev      # Development Docker configuration
 │   ├── package.json        # Backend dependencies and scripts
 │   ├── tsconfig.json       # TypeScript configuration
-│   └── ...
+│   └── jest.config.js      # Jest test configuration
 ├── frontend/               # Next.js TypeScript frontend
 │   ├── src/
-│   │   ├── app/            # Next.js App Router
+│   │   ├── app/            # Next.js App Router pages
+│   │   │   ├── customers/  # Customer management pages
+│   │   │   ├── tickets/    # Ticket management pages
+│   │   │   ├── invoices/   # Invoice management pages
+│   │   │   ├── dashboard/  # Dashboard page
+│   │   │   └── login/      # Authentication pages
 │   │   ├── components/     # Reusable React components
-│   │   ├── hooks/          # Custom React hooks
-│   │   ├── lib/            # Utility functions
-│   │   ├── styles/         # CSS and styling files
-│   │   └── types/          # TypeScript types and interfaces
+│   │   ├── lib/            # Utility functions and API clients
+│   │   └── styles/         # CSS and styling files
 │   ├── Dockerfile          # Frontend Docker configuration
 │   ├── Dockerfile.dev      # Development Docker configuration
 │   ├── package.json        # Frontend dependencies and scripts
 │   ├── tsconfig.json       # TypeScript configuration
-│   └── ...
+│   └── tailwind.config.js  # Tailwind CSS configuration
 ├── database/
 │   ├── init/               # Database initialization scripts
 │   └── migrations/         # Database migration files
+├── planning/               # Project planning documents
+│   ├── MVP.md              # MVP specification
+│   ├── PLAN.md             # Development roadmap
+│   └── progress/           # Progress reports
 ├── docker-compose.yml      # Docker composition
 ├── cli.js                  # CircuitSage CLI tool
 ├── package.json            # Root package.json with CLI commands
@@ -131,12 +150,15 @@ From the project root directory:
 npm install
 
 # Link CLI for global use (optional)
+# After linking, you can use 'circuit-sage' command globally
 npm run link
 ```
 
+**Note**: After linking globally, you can use `circuit-sage --help` instead of `node cli.js --help`. However, using npm scripts (like `npm run dev`) is the recommended approach.
+
 #### Available Commands
 
-Run `circuit --help` to see all available commands, or use the npm scripts:
+You can run the CLI directly with `node cli.js --help` to see all available commands, or use the npm scripts (recommended):
 
 ```bash
 # Development Commands
@@ -152,29 +174,49 @@ npm run stop -- -r    # Stop and remove containers
 npm run cleanup       # Clean up Docker resources completely
 
 # Database Commands
-npm run db:migrate          # Run database migrations
+npm run db:migrate          # Run database migrations (via Sequelize CLI)
 npm run db:migrate:undo     # Undo the last database migration
 npm run db:migrate:reset    # Reset database (undo all migrations, then migrate)
 npm run db:migrate:undo:all # Undo all migrations
 npm run db:seed             # Seed the database with initial data
 npm run db:seed:undo        # Undo all database seeds
+
+# CI/CD Commands
+npm run ci:backend          # Run backend CI checks (lint, typecheck, test)
+npm run ci:frontend         # Run frontend CI checks (lint, typecheck, build)
+npm run ci:all              # Run all CI checks
 ```
 
 ### Backend Development
 
 ```bash
 cd backend
-npm install
-npm run dev
+npm install  # or yarn install
+npm run dev   # or yarn dev
 ```
+
+The backend includes:
+- TypeScript with strict type checking
+- Kysely ORM for type-safe database queries
+- JWT authentication middleware
+- Request validation middleware
+- Comprehensive error handling
+- Test suite with Jest
 
 ### Frontend Development
 
 ```bash
 cd frontend
-npm install
-npm run dev
+npm install  # or yarn install
+npm run dev   # or yarn dev
 ```
+
+The frontend includes:
+- Next.js 14 with App Router
+- TypeScript for type safety
+- Tailwind CSS for styling
+- React Hook Form for form management
+- API client functions for backend integration
 
 ### Docker Development
 
@@ -182,6 +224,28 @@ The project includes optimized Docker configurations for both development and pr
 
 - Development containers include hot reloading, source mapping, and development dependencies
 - Production containers are optimized for performance and security
+
+## Testing
+
+The project includes comprehensive test coverage:
+
+### Backend Tests
+
+```bash
+cd backend
+npm test              # Run all tests
+npm run test:watch    # Run tests in watch mode
+npm run test:coverage # Generate coverage report
+```
+
+Test files are located in `backend/src/__tests__/` and include:
+- Route integration tests for customers, tickets, invoices, and users
+- Service layer tests
+- Authentication and validation tests
+
+### Frontend Tests
+
+Frontend testing setup is in progress.
 
 ## Build Optimizations
 
@@ -199,9 +263,65 @@ cd frontend
 npm run analyze
 ```
 
-## API Documentation
+## API Endpoints
 
-The API documentation is available at http://localhost:4000/api-docs when running the application.
+### Authentication
+- `POST /user/register` - Register a new user
+- `POST /user/login` - Login and receive JWT token
+
+### Customers
+- `GET /customer` - List all customers (with optional search query)
+- `GET /customer/search` - Search customers
+- `GET /customer/:id` - Get customer by ID
+- `POST /customer` - Create new customer
+- `PUT /customer/:id` - Update customer
+- `DELETE /customer/:id` - Delete customer (soft delete)
+- `GET /customer/:id/tickets` - Get customer's tickets
+
+### Tickets
+- `GET /ticket` - List all tickets (with optional filters: customerId, status)
+- `GET /ticket/:id` - Get ticket by ID
+- `POST /ticket` - Create new ticket
+- `PUT /ticket/:id` - Update ticket
+- `DELETE /ticket/:id` - Delete ticket (soft delete)
+
+### Invoices
+- `GET /invoice` - List all invoices (with optional filters: customerId, status)
+- `GET /invoice/:id` - Get invoice by ID
+- `POST /invoice` - Create new invoice
+- `PUT /invoice/:id` - Update invoice
+- `DELETE /invoice/:id` - Delete invoice (soft delete)
+
+### Health Check
+- `GET /health` - Health check endpoint
+
+All endpoints (except `/user/register`, `/user/login`, and `/health`) require authentication via JWT token in the `Authorization` header: `Bearer <token>`
+
+## Project Status
+
+**Current Progress: ~40% Complete**
+
+### Completed
+- ✅ Database schema for all core entities
+- ✅ Backend services and routes (customers, tickets, invoices, users)
+- ✅ JWT authentication system
+- ✅ Frontend UI components and pages
+- ✅ API client functions
+- ✅ Request validation
+- ✅ Test suite for backend routes
+
+### In Progress
+- 🟡 Role-based access control enforcement
+- 🟡 Frontend-backend integration testing
+- 🟡 Inventory management system
+
+### Planned
+- ⏳ Diagnostic checklist system
+- ⏳ Communication tools (email/SMS)
+- ⏳ Payment processing integration
+- ⏳ Reporting and analytics
+
+See `planning/progress/` for detailed progress reports.
 
 ## Contributing
 
@@ -210,5 +330,9 @@ The API documentation is available at http://localhost:4000/api-docs when runnin
 3. Commit your changes (`git commit -m 'Add some amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
+
+## License
+
+This project is proprietary software. All rights reserved.
 
 ![CircuitSage Logo](./frontend/public/logo.svg)
