@@ -9,7 +9,12 @@ jest.mock("../../utils/auth");
 
 const mockedInvoiceService = invoiceService as jest.Mocked<
   typeof invoiceService
->;
+> & {
+  createInvoiceItem: jest.MockedFunction<any>;
+  updateInvoiceItem: jest.MockedFunction<any>;
+  deleteInvoiceItem: jest.MockedFunction<any>;
+  markInvoiceAsPaid: jest.MockedFunction<any>;
+};
 const mockedVerifyJWTToken = verifyJWTToken as jest.MockedFunction<
   typeof verifyJWTToken
 >;
@@ -404,6 +409,299 @@ describe("Invoice Routes", () => {
       expect(response.status).toBe(404);
       expect(response.body.success).toBe(false);
       expect(response.body.error.message).toBe("Invoice not found");
+    });
+  });
+
+  describe("POST /api/invoices/:id/items", () => {
+    const ITEM_ID_1 = "550e8400-e29b-41d4-a716-446655440030";
+
+    it("should add invoice item successfully", async () => {
+      const itemData = {
+        description: "Repair Service",
+        quantity: 1,
+        unitPrice: 100.0,
+        discountPercent: 10,
+        type: "service" as const,
+      };
+
+      const mockItem = {
+        id: ITEM_ID_1,
+        invoiceId: INVOICE_ID_1,
+        inventoryItemId: null,
+        ...itemData,
+        discountAmount: 10.0,
+        subtotal: 90.0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      mockedInvoiceService.createInvoiceItem.mockResolvedValue(mockItem);
+
+      const response = await request(app)
+        .post(`/api/invoices/${INVOICE_ID_1}/items`)
+        .set("Authorization", "Bearer valid-token")
+        .send(itemData);
+
+      expect(response.status).toBe(201);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.description).toBe("Repair Service");
+      expect(mockedInvoiceService.createInvoiceItem).toHaveBeenCalledWith({
+        invoiceId: INVOICE_ID_1,
+        ...itemData,
+      });
+    });
+
+    it("should return 400 for missing required fields", async () => {
+      const response = await request(app)
+        .post(`/api/invoices/${INVOICE_ID_1}/items`)
+        .set("Authorization", "Bearer valid-token")
+        .send({
+          quantity: 1,
+          // missing description
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.message).toBe("Validation failed");
+    });
+
+    it("should return 404 when invoice not found", async () => {
+      mockedInvoiceService.createInvoiceItem.mockRejectedValue(
+        new Error("Invoice not found")
+      );
+
+      const response = await request(app)
+        .post("/api/invoices/non-existent-id/items")
+        .set("Authorization", "Bearer valid-token")
+        .send({
+          description: "Test Item",
+          quantity: 1,
+          unitPrice: 50.0,
+          type: "service",
+        });
+
+      expect(response.status).toBe(500);
+      expect(response.body.success).toBe(false);
+    });
+  });
+
+  describe("PUT /api/invoices/:id/items/:itemId", () => {
+    const ITEM_ID_1 = "550e8400-e29b-41d4-a716-446655440030";
+
+    it("should update invoice item successfully", async () => {
+      const updateData = {
+        quantity: 2,
+        unitPrice: 150.0,
+      };
+
+      const mockUpdatedItem = {
+        id: ITEM_ID_1,
+        invoiceId: INVOICE_ID_1,
+        inventoryItemId: null,
+        description: "Repair Service",
+        quantity: 2,
+        unitPrice: 150.0,
+        discountPercent: 10,
+        discountAmount: 30.0,
+        subtotal: 270.0,
+        type: "service" as const,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      mockedInvoiceService.updateInvoiceItem.mockResolvedValue(mockUpdatedItem);
+
+      const response = await request(app)
+        .put(`/api/invoices/${INVOICE_ID_1}/items/${ITEM_ID_1}`)
+        .set("Authorization", "Bearer valid-token")
+        .send(updateData);
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.quantity).toBe(2);
+      expect(response.body.data.unitPrice).toBe(150.0);
+      expect(mockedInvoiceService.updateInvoiceItem).toHaveBeenCalledWith(
+        INVOICE_ID_1,
+        ITEM_ID_1,
+        updateData
+      );
+    });
+
+    it("should return 404 when invoice item not found", async () => {
+      mockedInvoiceService.updateInvoiceItem.mockResolvedValue(null);
+
+      const response = await request(app)
+        .put(`/api/invoices/${INVOICE_ID_1}/items/non-existent-id`)
+        .set("Authorization", "Bearer valid-token")
+        .send({ quantity: 2 });
+
+      expect(response.status).toBe(404);
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.message).toBe("Invoice item not found");
+    });
+
+    it("should return 400 for invalid data", async () => {
+      const response = await request(app)
+        .put(`/api/invoices/${INVOICE_ID_1}/items/${ITEM_ID_1}`)
+        .set("Authorization", "Bearer valid-token")
+        .send({
+          quantity: -1, // invalid
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+    });
+  });
+
+  describe("DELETE /api/invoices/:id/items/:itemId", () => {
+    const ITEM_ID_1 = "550e8400-e29b-41d4-a716-446655440030";
+
+    it("should delete invoice item successfully", async () => {
+      mockedInvoiceService.deleteInvoiceItem.mockResolvedValue(true);
+
+      const response = await request(app)
+        .delete(`/api/invoices/${INVOICE_ID_1}/items/${ITEM_ID_1}`)
+        .set("Authorization", "Bearer valid-token");
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.message).toBe("Invoice item deleted successfully");
+      expect(mockedInvoiceService.deleteInvoiceItem).toHaveBeenCalledWith(
+        INVOICE_ID_1,
+        ITEM_ID_1
+      );
+    });
+
+    it("should return 404 when invoice item not found", async () => {
+      mockedInvoiceService.deleteInvoiceItem.mockResolvedValue(false);
+
+      const response = await request(app)
+        .delete(`/api/invoices/${INVOICE_ID_1}/items/non-existent-id`)
+        .set("Authorization", "Bearer valid-token");
+
+      expect(response.status).toBe(404);
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.message).toBe("Invoice item not found");
+    });
+  });
+
+  describe("POST /api/invoices/:id/paid", () => {
+    it("should mark invoice as paid successfully", async () => {
+      const paymentData = {
+        paymentMethod: "credit_card",
+        paymentReference: "REF123",
+        paidDate: new Date().toISOString(),
+        notes: "Payment received",
+      };
+
+      const mockPaidInvoice = {
+        id: INVOICE_ID_1,
+        invoiceNumber: "INV-202412-123456",
+        customerId: CUSTOMER_ID_1,
+        ticketId: TICKET_ID_1,
+        status: "paid" as const,
+        issueDate: new Date(),
+        dueDate: new Date(),
+        paidDate: new Date(),
+        subtotal: 100.0,
+        taxRate: 8.5,
+        taxAmount: 8.5,
+        discountAmount: 0,
+        totalAmount: 108.5,
+        notes: "Payment received",
+        paymentMethod: "credit_card",
+        paymentReference: "REF123",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      mockedInvoiceService.markInvoiceAsPaid.mockResolvedValue(mockPaidInvoice);
+
+      const response = await request(app)
+        .post(`/api/invoices/${INVOICE_ID_1}/paid`)
+        .set("Authorization", "Bearer valid-token")
+        .send(paymentData);
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.status).toBe("paid");
+      expect(response.body.data.paymentMethod).toBe("credit_card");
+      expect(response.body.data.paymentReference).toBe("REF123");
+      expect(mockedInvoiceService.markInvoiceAsPaid).toHaveBeenCalledWith(
+        INVOICE_ID_1,
+        paymentData
+      );
+    });
+
+    it("should return 400 for missing payment method", async () => {
+      const response = await request(app)
+        .post(`/api/invoices/${INVOICE_ID_1}/paid`)
+        .set("Authorization", "Bearer valid-token")
+        .send({
+          paymentReference: "REF123",
+          // missing paymentMethod
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.message).toBe("Validation failed");
+    });
+
+    it("should return 404 when invoice not found", async () => {
+      mockedInvoiceService.markInvoiceAsPaid.mockResolvedValue(null);
+
+      const response = await request(app)
+        .post("/api/invoices/non-existent-id/paid")
+        .set("Authorization", "Bearer valid-token")
+        .send({
+          paymentMethod: "credit_card",
+        });
+
+      expect(response.status).toBe(404);
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.message).toBe("Invoice not found");
+    });
+
+    it("should use current date if paidDate not provided", async () => {
+      const paymentData = {
+        paymentMethod: "cash",
+      };
+
+      const mockPaidInvoice = {
+        id: INVOICE_ID_1,
+        invoiceNumber: "INV-202412-123456",
+        customerId: CUSTOMER_ID_1,
+        ticketId: null,
+        status: "paid" as const,
+        issueDate: new Date(),
+        dueDate: null,
+        paidDate: new Date(),
+        subtotal: 100.0,
+        taxRate: 8.5,
+        taxAmount: 8.5,
+        discountAmount: 0,
+        totalAmount: 108.5,
+        notes: null,
+        paymentMethod: "cash",
+        paymentReference: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      mockedInvoiceService.markInvoiceAsPaid.mockResolvedValue(mockPaidInvoice);
+
+      const response = await request(app)
+        .post(`/api/invoices/${INVOICE_ID_1}/paid`)
+        .set("Authorization", "Bearer valid-token")
+        .send(paymentData);
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.status).toBe("paid");
+      expect(mockedInvoiceService.markInvoiceAsPaid).toHaveBeenCalledWith(
+        INVOICE_ID_1,
+        paymentData
+      );
     });
   });
 });

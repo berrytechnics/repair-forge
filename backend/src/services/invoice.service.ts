@@ -2,7 +2,7 @@
 import { sql } from "kysely";
 import { v4 as uuidv4 } from "uuid";
 import { db } from "../config/connection";
-import { InvoiceStatus, InvoiceTable } from "../config/types";
+import { InvoiceStatus, InvoiceTable, InvoiceItemTable } from "../config/types";
 
 // Input DTOs
 export interface CreateInvoiceDto {
@@ -75,6 +75,86 @@ export type Invoice = Omit<
   createdAt: Date;
   updatedAt: Date;
 };
+
+// Invoice Item DTOs
+export interface CreateInvoiceItemDto {
+  invoiceId: string;
+  inventoryItemId?: string | null;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  discountPercent?: number;
+  type: "part" | "service" | "other";
+}
+
+export interface UpdateInvoiceItemDto {
+  inventoryItemId?: string | null;
+  description?: string;
+  quantity?: number;
+  unitPrice?: number;
+  discountPercent?: number;
+  type?: "part" | "service" | "other";
+}
+
+export interface MarkInvoicePaidDto {
+  paymentMethod: string;
+  paymentReference?: string | null;
+  paidDate?: string | null;
+  notes?: string | null;
+}
+
+// Invoice Item output type
+export type InvoiceItem = Omit<
+  InvoiceItemTable,
+  | "id"
+  | "invoice_id"
+  | "inventory_item_id"
+  | "unit_price"
+  | "discount_percent"
+  | "discount_amount"
+  | "created_at"
+  | "updated_at"
+> & {
+  id: string;
+  invoiceId: string;
+  inventoryItemId: string | null;
+  unitPrice: number;
+  discountPercent: number;
+  discountAmount: number;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+// Helper function to convert DB row to Invoice Item (snake_case to camelCase)
+function toInvoiceItem(item: {
+  id: string;
+  invoice_id: string;
+  inventory_item_id: string | null;
+  description: string;
+  quantity: number;
+  unit_price: number;
+  discount_percent: number;
+  discount_amount: number;
+  subtotal: number;
+  type: "part" | "service" | "other";
+  created_at: Date;
+  updated_at: Date;
+}): InvoiceItem {
+  return {
+    id: item.id,
+    invoiceId: item.invoice_id,
+    inventoryItemId: item.inventory_item_id,
+    description: item.description,
+    quantity: item.quantity,
+    unitPrice: item.unit_price,
+    discountPercent: item.discount_percent,
+    discountAmount: item.discount_amount,
+    subtotal: item.subtotal,
+    type: item.type,
+    createdAt: item.created_at,
+    updatedAt: item.updated_at,
+  };
+}
 
 // Helper function to convert DB row to Invoice (snake_case to camelCase)
 function toInvoice(invoice: {
@@ -288,6 +368,234 @@ export class InvoiceService {
       .executeTakeFirst();
 
     return !!result;
+  }
+
+  // Recalculate invoice totals based on items
+  async recalculateInvoiceTotals(invoiceId: string): Promise<void> {
+    // Get all invoice items
+    const items = await db
+      .selectFrom("invoice_items")
+      .selectAll()
+      .where("invoice_id", "=", invoiceId)
+      .execute();
+
+    // Calculate subtotal from items
+    const subtotal = items.reduce((sum, item) => sum + Number(item.subtotal), 0);
+
+    // Get invoice to get tax rate and discount
+    const invoice = await db
+      .selectFrom("invoices")
+      .select(["tax_rate", "discount_amount"])
+      .where("id", "=", invoiceId)
+      .where("deleted_at", "is", null)
+      .executeTakeFirst();
+
+    if (!invoice) {
+      throw new Error("Invoice not found");
+    }
+
+    const taxRate = Number(invoice.tax_rate);
+    const discountAmount = Number(invoice.discount_amount);
+    const taxAmount = subtotal * (taxRate / 100);
+    const totalAmount = subtotal + taxAmount - discountAmount;
+
+    // Update invoice totals
+    await db
+      .updateTable("invoices")
+      .set({
+        subtotal: subtotal,
+        tax_amount: taxAmount,
+        total_amount: totalAmount,
+        updated_at: sql`now()`,
+      })
+      .where("id", "=", invoiceId)
+      .where("deleted_at", "is", null)
+      .execute();
+  }
+
+  // Create invoice item
+  async createInvoiceItem(data: CreateInvoiceItemDto): Promise<InvoiceItem> {
+    // Validate invoice exists
+    const invoice = await this.findById(data.invoiceId);
+    if (!invoice) {
+      throw new Error("Invoice not found");
+    }
+
+    // Calculate item subtotal
+    const discountPercent = data.discountPercent ?? 0;
+    const itemSubtotal = data.quantity * data.unitPrice;
+    const discountAmount = itemSubtotal * (discountPercent / 100);
+    const finalSubtotal = itemSubtotal - discountAmount;
+
+    // Insert invoice item
+    const item = await db
+      .insertInto("invoice_items")
+      .values({
+        id: uuidv4(),
+        invoice_id: data.invoiceId,
+        inventory_item_id: data.inventoryItemId || null,
+        description: data.description,
+        quantity: data.quantity,
+        unit_price: data.unitPrice,
+        discount_percent: discountPercent,
+        discount_amount: discountAmount,
+        subtotal: finalSubtotal,
+        type: data.type,
+        created_at: sql`now()`,
+        updated_at: sql`now()`,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    // Recalculate invoice totals
+    await this.recalculateInvoiceTotals(data.invoiceId);
+
+    return toInvoiceItem(item);
+  }
+
+  // Update invoice item
+  async updateInvoiceItem(
+    invoiceId: string,
+    itemId: string,
+    data: UpdateInvoiceItemDto
+  ): Promise<InvoiceItem | null> {
+    // Validate invoice exists
+    const invoice = await this.findById(invoiceId);
+    if (!invoice) {
+      throw new Error("Invoice not found");
+    }
+
+    // Validate item exists
+    const existingItem = await db
+      .selectFrom("invoice_items")
+      .selectAll()
+      .where("id", "=", itemId)
+      .where("invoice_id", "=", invoiceId)
+      .executeTakeFirst();
+
+    if (!existingItem) {
+      throw new Error("Invoice item not found");
+    }
+
+    // Build update query
+    let updateQuery = db
+      .updateTable("invoice_items")
+      .set({
+        updated_at: sql`now()`,
+      })
+      .where("id", "=", itemId)
+      .where("invoice_id", "=", invoiceId);
+
+    // Update fields if provided
+    const description = data.description ?? existingItem.description;
+    const quantity = data.quantity ?? existingItem.quantity;
+    const unitPrice = data.unitPrice ?? Number(existingItem.unit_price);
+    const discountPercent = data.discountPercent ?? Number(existingItem.discount_percent);
+    const type = data.type ?? existingItem.type;
+    const inventoryItemId = data.inventoryItemId !== undefined ? data.inventoryItemId : existingItem.inventory_item_id;
+
+    // Recalculate item subtotal
+    const itemSubtotal = quantity * unitPrice;
+    const discountAmount = itemSubtotal * (discountPercent / 100);
+    const finalSubtotal = itemSubtotal - discountAmount;
+
+    updateQuery = updateQuery.set({
+      description: description,
+      quantity: quantity,
+      unit_price: unitPrice,
+      discount_percent: discountPercent,
+      discount_amount: discountAmount,
+      subtotal: finalSubtotal,
+      type: type,
+      inventory_item_id: inventoryItemId,
+    });
+
+    const updated = await updateQuery.returningAll().executeTakeFirst();
+
+    if (!updated) {
+      return null;
+    }
+
+    // Recalculate invoice totals
+    await this.recalculateInvoiceTotals(invoiceId);
+
+    return toInvoiceItem(updated);
+  }
+
+  // Delete invoice item
+  async deleteInvoiceItem(invoiceId: string, itemId: string): Promise<boolean> {
+    // Validate invoice exists
+    const invoice = await this.findById(invoiceId);
+    if (!invoice) {
+      throw new Error("Invoice not found");
+    }
+
+    // Validate item exists
+    const existingItem = await db
+      .selectFrom("invoice_items")
+      .select("id")
+      .where("id", "=", itemId)
+      .where("invoice_id", "=", invoiceId)
+      .executeTakeFirst();
+
+    if (!existingItem) {
+      throw new Error("Invoice item not found");
+    }
+
+    // Delete item
+    const result = await db
+      .deleteFrom("invoice_items")
+      .where("id", "=", itemId)
+      .where("invoice_id", "=", invoiceId)
+      .executeTakeFirst();
+
+    // Recalculate invoice totals
+    await this.recalculateInvoiceTotals(invoiceId);
+
+    return !!result;
+  }
+
+  // Mark invoice as paid
+  async markInvoiceAsPaid(
+    invoiceId: string,
+    data: MarkInvoicePaidDto
+  ): Promise<Invoice | null> {
+    // Validate invoice exists
+    const invoice = await this.findById(invoiceId);
+    if (!invoice) {
+      throw new Error("Invoice not found");
+    }
+
+    // Update invoice
+    const paidDate = data.paidDate ? new Date(data.paidDate).toISOString() : new Date().toISOString();
+
+    const updated = await db
+      .updateTable("invoices")
+      .set({
+        status: "paid",
+        paid_date: paidDate,
+        payment_method: data.paymentMethod,
+        payment_reference: data.paymentReference || null,
+        notes: data.notes || invoice.notes || null,
+        updated_at: sql`now()`,
+      })
+      .where("id", "=", invoiceId)
+      .where("deleted_at", "is", null)
+      .returningAll()
+      .executeTakeFirst();
+
+    return updated ? toInvoice(updated) : null;
+  }
+
+  // Get invoice items
+  async getInvoiceItems(invoiceId: string): Promise<InvoiceItem[]> {
+    const items = await db
+      .selectFrom("invoice_items")
+      .selectAll()
+      .where("invoice_id", "=", invoiceId)
+      .execute();
+
+    return items.map(toInvoiceItem);
   }
 }
 

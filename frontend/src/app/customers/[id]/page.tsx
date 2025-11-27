@@ -6,6 +6,7 @@ import {
   getCustomerById,
   getCustomerTickets,
 } from "@/lib/api/customer.api";
+import { Invoice, getInvoicesByCustomer } from "@/lib/api/invoice.api";
 import { Ticket } from "@/lib/api/ticket.api";
 import { formatStatus, getStatusColor } from "@/lib/utils/ticketUtils";
 import Link from "next/link";
@@ -20,6 +21,7 @@ export default function CustomerDetailPage({
   const router = useRouter();
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -65,6 +67,24 @@ export default function CustomerDetailPage({
     };
 
     fetchTickets();
+  }, [customer]);
+
+  // Fetch customer invoices
+  useEffect(() => {
+    const fetchInvoices = async () => {
+      if (!customer) return;
+
+      try {
+        const response = await getInvoicesByCustomer(customer.id);
+        if (response.data) {
+          setInvoices(response.data);
+        }
+      } catch (err) {
+        console.error("Error fetching customer invoices:", err);
+      }
+    };
+
+    fetchInvoices();
   }, [customer]);
 
   // Handle customer deletion
@@ -226,7 +246,8 @@ export default function CustomerDetailPage({
         {/* Main content */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Left column - Customer info */}
-          <div className="md:col-span-2 bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-lg">
+          <div className="md:col-span-2 space-y-6">
+            <div className="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-lg">
             <div className="px-4 py-5 sm:px-6 border-b border-gray-200 dark:border-gray-700">
               <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-gray-100">
                 Customer Information
@@ -379,6 +400,93 @@ export default function CustomerDetailPage({
                   </a>
                 )}
               </div>
+            </div>
+            </div>
+
+            {/* Customer Invoices Section */}
+            <div className="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-lg">
+              <div className="px-4 py-5 sm:px-6 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-gray-100">
+                  Customer Invoices
+                </h3>
+                <p className="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">
+                  {invoices.length === 0
+                    ? "No invoices found for this customer"
+                    : `${invoices.length} invoice${
+                        invoices.length === 1 ? "" : "s"
+                      } found`}
+                </p>
+              </div>
+              {invoices.length > 0 ? (
+                <ul className="divide-y divide-gray-200 dark:divide-gray-700 max-h-96 overflow-y-auto">
+                  {invoices.map((invoice) => (
+                    <li key={invoice.id}>
+                      <Link href={`/invoices/${invoice.id}`}>
+                        <div className="block hover:bg-gray-50 dark:hover:bg-gray-700/50 px-4 py-4 cursor-pointer">
+                          <div className="flex items-center justify-between">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-medium text-blue-600 dark:text-blue-400 truncate">
+                                {invoice.invoiceNumber}
+                              </p>
+                              <div className="mt-2 flex items-center space-x-4">
+                                <p className="text-sm text-gray-600 dark:text-gray-300">
+                                  ${Number(invoice.totalAmount || 0).toFixed(2)}
+                                </p>
+                                <span
+                                  className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                    invoice.status === "paid"
+                                      ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+                                      : invoice.status === "issued"
+                                      ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"
+                                      : invoice.status === "overdue"
+                                      ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
+                                      : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
+                                  }`}
+                                >
+                                  {invoice.status.charAt(0).toUpperCase() +
+                                    invoice.status.slice(1)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="mt-2 flex justify-between text-sm text-gray-500 dark:text-gray-400">
+                            <p>Created: {formatDate(invoice.createdAt)}</p>
+                            {invoice.dueDate && (
+                              <p>Due: {formatDate(invoice.dueDate)}</p>
+                            )}
+                          </div>
+                        </div>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="px-4 py-5 sm:p-6 text-center">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    No invoices for this customer yet
+                  </p>
+                  <button
+                    onClick={() =>
+                      router.push(`/invoices/new?customerId=${customer.id}`)
+                    }
+                    className="mt-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800 focus:ring-blue-500"
+                  >
+                    Create First Invoice
+                  </button>
+                </div>
+              )}
+              {invoices.length > 0 && (
+                <div className="px-4 py-3 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-200 dark:border-gray-700 text-right sm:px-6">
+                  <button
+                    onClick={() =>
+                      router.push(`/invoices/new?customerId=${customer.id}`)
+                    }
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800 focus:ring-blue-500"
+                  >
+                    Create New Invoice
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 

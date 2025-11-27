@@ -67,6 +67,98 @@ export const createInvoiceValidation = [
 ];
 
 /**
+ * Validation rules for creating an invoice item
+ */
+export const createInvoiceItemValidation = [
+  body("description")
+    .exists()
+    .withMessage("Description is required")
+    .trim()
+    .isLength({ min: 1, max: 255 })
+    .withMessage("Description must be between 1 and 255 characters"),
+  body("quantity")
+    .exists()
+    .withMessage("Quantity is required")
+    .isInt({ min: 1 })
+    .withMessage("Quantity must be a positive integer"),
+  body("unitPrice")
+    .exists()
+    .withMessage("Unit price is required")
+    .isFloat({ min: 0 })
+    .withMessage("Unit price must be a non-negative number"),
+  body("discountPercent")
+    .optional()
+    .isFloat({ min: 0, max: 100 })
+    .withMessage("Discount percent must be between 0 and 100"),
+  body("type")
+    .exists()
+    .withMessage("Type is required")
+    .isIn(["part", "service", "other"])
+    .withMessage("Type must be one of: part, service, other"),
+  body("inventoryItemId")
+    .optional()
+    .isUUID()
+    .withMessage("Inventory item ID must be a valid UUID"),
+];
+
+/**
+ * Validation rules for updating an invoice item
+ */
+export const updateInvoiceItemValidation = [
+  body("description")
+    .optional()
+    .trim()
+    .isLength({ min: 1, max: 255 })
+    .withMessage("Description must be between 1 and 255 characters"),
+  body("quantity")
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage("Quantity must be a positive integer"),
+  body("unitPrice")
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage("Unit price must be a non-negative number"),
+  body("discountPercent")
+    .optional()
+    .isFloat({ min: 0, max: 100 })
+    .withMessage("Discount percent must be between 0 and 100"),
+  body("type")
+    .optional()
+    .isIn(["part", "service", "other"])
+    .withMessage("Type must be one of: part, service, other"),
+  body("inventoryItemId")
+    .optional()
+    .isUUID()
+    .withMessage("Inventory item ID must be a valid UUID"),
+];
+
+/**
+ * Validation rules for marking an invoice as paid
+ */
+export const markInvoicePaidValidation = [
+  body("paymentMethod")
+    .exists()
+    .withMessage("Payment method is required")
+    .trim()
+    .isLength({ min: 1, max: 50 })
+    .withMessage("Payment method must be between 1 and 50 characters"),
+  body("paymentReference")
+    .optional()
+    .trim()
+    .isLength({ max: 100 })
+    .withMessage("Payment reference must not exceed 100 characters"),
+  body("paidDate")
+    .optional()
+    .isISO8601()
+    .withMessage("Paid date must be a valid ISO 8601 date"),
+  body("notes")
+    .optional()
+    .trim()
+    .isLength({ max: 10000 })
+    .withMessage("Notes must not exceed 10000 characters"),
+];
+
+/**
  * Validation rules for updating an invoice
  */
 export const updateInvoiceValidation = [
@@ -130,4 +222,3 @@ export const updateInvoiceValidation = [
     .isLength({ max: 100 })
     .withMessage("Payment reference must not exceed 100 characters"),
 ];
-

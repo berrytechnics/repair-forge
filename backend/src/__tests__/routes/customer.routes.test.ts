@@ -1,12 +1,14 @@
 import request from "supertest";
 import app from "../../app";
 import customerService from "../../services/customer.service";
+import invoiceService from "../../services/invoice.service";
 import ticketService from "../../services/ticket.service";
 import { verifyJWTToken } from "../../utils/auth";
 
-// Mock the customer service, ticket service, and auth
+// Mock the customer service, ticket service, invoice service, and auth
 jest.mock("../../services/customer.service");
 jest.mock("../../services/ticket.service");
+jest.mock("../../services/invoice.service");
 jest.mock("../../utils/auth");
 
 const mockedCustomerService = customerService as jest.Mocked<
@@ -14,6 +16,9 @@ const mockedCustomerService = customerService as jest.Mocked<
 >;
 const mockedTicketService = ticketService as jest.Mocked<
   typeof ticketService
+>;
+const mockedInvoiceService = invoiceService as jest.Mocked<
+  typeof invoiceService
 >;
 const mockedVerifyJWTToken = verifyJWTToken as jest.MockedFunction<
   typeof verifyJWTToken
@@ -366,6 +371,58 @@ describe("Customer Routes", () => {
       expect(response.body.success).toBe(true);
       expect(response.body.data).toEqual([]);
       expect(mockedTicketService.findAll).toHaveBeenCalledWith("customer-1");
+    });
+  });
+
+  describe("GET /api/customers/:id/invoices", () => {
+    it("should return customer invoices", async () => {
+      const mockInvoices = [
+        {
+          id: "invoice-1",
+          invoiceNumber: "INV-202412-123456",
+          customerId: "customer-1",
+          ticketId: null,
+          status: "issued" as const,
+          issueDate: new Date(),
+          dueDate: null,
+          paidDate: null,
+          subtotal: 100.0,
+          taxRate: 8.5,
+          taxAmount: 8.5,
+          discountAmount: 0,
+          totalAmount: 108.5,
+          notes: null,
+          paymentMethod: null,
+          paymentReference: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ];
+
+      mockedInvoiceService.findAll.mockResolvedValue(mockInvoices);
+
+      const response = await request(app)
+        .get("/api/customers/customer-1/invoices")
+        .set("Authorization", "Bearer valid-token");
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toHaveLength(1);
+      expect(response.body.data[0].invoiceNumber).toBe("INV-202412-123456");
+      expect(mockedInvoiceService.findAll).toHaveBeenCalledWith("customer-1", undefined);
+    });
+
+    it("should return empty array for customer with no invoices", async () => {
+      mockedInvoiceService.findAll.mockResolvedValue([]);
+
+      const response = await request(app)
+        .get("/api/customers/customer-1/invoices")
+        .set("Authorization", "Bearer valid-token");
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toEqual([]);
+      expect(mockedInvoiceService.findAll).toHaveBeenCalledWith("customer-1", undefined);
     });
   });
 });

@@ -6,6 +6,7 @@ import {
 import { validateRequest } from "../middlewares/auth.middleware";
 import { validate } from "../middlewares/validation.middleware";
 import customerService from "../services/customer.service";
+import invoiceService from "../services/invoice.service";
 import ticketService from "../services/ticket.service";
 import { asyncHandler } from "../utils/asyncHandler";
 import {
@@ -101,6 +102,16 @@ router.get(
     const { id } = req.params;
     const tickets = await ticketService.findAll(id);
     res.json({ success: true, data: tickets });
+  })
+);
+
+// GET /customers/:id/invoices - Get customer invoices
+router.get(
+  "/:id/invoices",
+  asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const invoices = await invoiceService.findAll(id, undefined);
+    res.json({ success: true, data: invoices });
   })
 );
 

@@ -1,11 +1,739 @@
 "use client";
 
-import InvoiceForm from "@/components/InvoiceForm";
+import {
+  Invoice,
+  addInvoiceItem,
+  getInvoiceById,
+  markInvoiceAsPaid,
+  removeInvoiceItem,
+} from "@/lib/api/invoice.api";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
-export default function EditInvoicePage({
+export default function InvoiceDetailPage({
   params,
 }: {
   params: { id: string };
 }) {
-  return <InvoiceForm invoiceId={params.id} />;
+  const router = useRouter();
+  const [invoice, setInvoice] = useState<Invoice | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [isAddingItem, setIsAddingItem] = useState(false);
+  const [showMarkPaidModal, setShowMarkPaidModal] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  // New item form state
+  const [newItem, setNewItem] = useState({
+    description: "",
+    quantity: 1,
+    unitPrice: 0,
+    discountPercent: 0,
+    type: "service" as "part" | "service" | "other",
+    inventoryItemId: "",
+  });
+
+  // Fetch invoice data
+  useEffect(() => {
+    const fetchInvoice = async () => {
+      setIsLoading(true);
+      try {
+        const response = await getInvoiceById(params.id);
+        if (response.data) {
+          setInvoice(response.data);
+        }
+      } catch (err) {
+        console.error("Error fetching invoice:", err);
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Failed to load invoice. Please try again."
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchInvoice();
+  }, [params.id]);
+
+  // Refresh invoice data
+  const refreshInvoice = async () => {
+    try {
+      const response = await getInvoiceById(params.id);
+      if (response.data) {
+        setInvoice(response.data);
+      }
+    } catch (err) {
+      console.error("Error refreshing invoice:", err);
+    }
+  };
+
+  // Handle add item
+  const handleAddItem = async () => {
+    if (!invoice) return;
+
+    if (!newItem.description.trim()) {
+      alert("Description is required");
+      return;
+    }
+
+    if (newItem.quantity <= 0) {
+      alert("Quantity must be greater than 0");
+      return;
+    }
+
+    if (newItem.unitPrice < 0) {
+      alert("Unit price cannot be negative");
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      await addInvoiceItem(invoice.id, {
+        description: newItem.description,
+        quantity: newItem.quantity,
+        unitPrice: newItem.unitPrice,
+        discountPercent: newItem.discountPercent || undefined,
+        type: newItem.type,
+        inventoryItemId: newItem.inventoryItemId || undefined,
+      });
+      await refreshInvoice();
+      setNewItem({
+        description: "",
+        quantity: 1,
+        unitPrice: 0,
+        discountPercent: 0,
+        type: "service",
+        inventoryItemId: "",
+      });
+      setIsAddingItem(false);
+    } catch (err) {
+      console.error("Error adding item:", err);
+      alert(
+        err instanceof Error ? err.message : "Failed to add item. Please try again."
+      );
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Handle delete item
+  const handleDeleteItem = async (itemId: string) => {
+    if (!invoice) return;
+
+    if (!confirm("Are you sure you want to delete this item?")) {
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      await removeInvoiceItem(invoice.id, itemId);
+      await refreshInvoice();
+    } catch (err) {
+      console.error("Error deleting item:", err);
+      alert(
+        err instanceof Error ? err.message : "Failed to delete item. Please try again."
+      );
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Handle mark as paid
+  const handleMarkAsPaid = async (paymentData: {
+    paymentMethod: string;
+    paymentReference?: string;
+    paidDate?: string;
+    notes?: string;
+  }) => {
+    if (!invoice) return;
+
+    setIsProcessing(true);
+    try {
+      await markInvoiceAsPaid(invoice.id, paymentData);
+      await refreshInvoice();
+      setShowMarkPaidModal(false);
+    } catch (err) {
+      console.error("Error marking invoice as paid:", err);
+      alert(
+        err instanceof Error
+          ? err.message
+          : "Failed to mark invoice as paid. Please try again."
+      );
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Format date
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
+
+  // Get status color
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "draft":
+        return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300";
+      case "issued":
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
+      case "paid":
+        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
+      case "overdue":
+        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300";
+      case "cancelled":
+        return "bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-500";
+      default:
+        return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300";
+    }
+  };
+
+  // Check if invoice can be edited
+  const canEdit = invoice && (invoice.status === "draft" || invoice.status === "issued");
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
+          <p className="mt-2 text-gray-700 dark:text-gray-300">Loading invoice details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4">
+        <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+          <h1 className="text-xl font-bold text-red-600 dark:text-red-400">Error</h1>
+          <p className="mt-2 text-gray-700 dark:text-gray-300">{error}</p>
+          <button
+            onClick={() => router.push("/invoices")}
+            className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800 focus:ring-blue-500"
+          >
+            Back to Invoices
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!invoice) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4">
+        <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+            Invoice Not Found
+          </h1>
+          <p className="mt-2 text-gray-700 dark:text-gray-300">
+            The requested invoice could not be found.
+          </p>
+          <button
+            onClick={() => router.push("/invoices")}
+            className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800 focus:ring-blue-500"
+          >
+            Back to Invoices
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              Invoice {invoice.invoiceNumber}
+            </h1>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Created {formatDate(invoice.createdAt)}
+            </p>
+          </div>
+          <div className="mt-4 sm:mt-0 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+            <button
+              onClick={() => router.push("/invoices")}
+              className="inline-flex items-center justify-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+            >
+              Back to List
+            </button>
+            {canEdit && (
+              <button
+                onClick={() => router.push(`/invoices/${invoice.id}/edit`)}
+                className="inline-flex items-center justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+              >
+                Edit Invoice
+              </button>
+            )}
+            {invoice.status !== "paid" && invoice.status !== "cancelled" && (
+              <button
+                onClick={() => setShowMarkPaidModal(true)}
+                disabled={isProcessing}
+                className="inline-flex items-center justify-center rounded-md border border-transparent bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50"
+              >
+                Mark as Paid
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Invoice Info */}
+        <div className="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-lg mb-6">
+          <div className="px-4 py-5 sm:px-6 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-gray-100">
+              Invoice Information
+            </h3>
+          </div>
+          <div className="border-t border-gray-200 dark:border-gray-700 px-4 py-5 sm:p-6">
+            <dl className="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
+              <div className="sm:col-span-1">
+                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  Status
+                </dt>
+                <dd className="mt-1">
+                  <span
+                    className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(
+                      invoice.status
+                    )}`}
+                  >
+                    {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
+                  </span>
+                </dd>
+              </div>
+              <div className="sm:col-span-1">
+                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  Customer
+                </dt>
+                <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                  {invoice.customer ? (
+                    <Link
+                      href={`/customers/${invoice.customerId}`}
+                      className="text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300"
+                    >
+                      {invoice.customer.firstName} {invoice.customer.lastName}
+                    </Link>
+                  ) : (
+                    invoice.customerId
+                  )}
+                </dd>
+              </div>
+              <div className="sm:col-span-1">
+                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  Issue Date
+                </dt>
+                <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                  {formatDate(invoice.issueDate)}
+                </dd>
+              </div>
+              <div className="sm:col-span-1">
+                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  Due Date
+                </dt>
+                <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                  {formatDate(invoice.dueDate)}
+                </dd>
+              </div>
+              {invoice.paidDate && (
+                <div className="sm:col-span-1">
+                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                    Paid Date
+                  </dt>
+                  <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                    {formatDate(invoice.paidDate)}
+                  </dd>
+                </div>
+              )}
+              {invoice.paymentMethod && (
+                <div className="sm:col-span-1">
+                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                    Payment Method
+                  </dt>
+                  <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                    {invoice.paymentMethod}
+                  </dd>
+                </div>
+              )}
+            </dl>
+          </div>
+        </div>
+
+        {/* Invoice Items */}
+        <div className="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-lg mb-6">
+          <div className="px-4 py-5 sm:px-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+            <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-gray-100">
+              Invoice Items
+            </h3>
+            {canEdit && (
+              <button
+                onClick={() => setIsAddingItem(!isAddingItem)}
+                className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                {isAddingItem ? "Cancel" : "Add Item"}
+              </button>
+            )}
+          </div>
+
+          {/* Add Item Form */}
+          {isAddingItem && canEdit && (
+            <div className="px-4 py-5 sm:px-6 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-6">
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Description *
+                  </label>
+                  <input
+                    type="text"
+                    value={newItem.description}
+                    onChange={(e) =>
+                      setNewItem({ ...newItem, description: e.target.value })
+                    }
+                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                    placeholder="Item description"
+                  />
+                </div>
+                <div className="sm:col-span-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Quantity *
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={newItem.quantity}
+                    onChange={(e) =>
+                      setNewItem({ ...newItem, quantity: Number(e.target.value) })
+                    }
+                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  />
+                </div>
+                <div className="sm:col-span-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Unit Price *
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={newItem.unitPrice}
+                    onChange={(e) =>
+                      setNewItem({ ...newItem, unitPrice: Number(e.target.value) })
+                    }
+                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  />
+                </div>
+                <div className="sm:col-span-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Type *
+                  </label>
+                  <select
+                    value={newItem.type}
+                    onChange={(e) =>
+                      setNewItem({
+                        ...newItem,
+                        type: e.target.value as "part" | "service" | "other",
+                      })
+                    }
+                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  >
+                    <option value="service">Service</option>
+                    <option value="part">Part</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div className="sm:col-span-1 flex items-end">
+                  <button
+                    onClick={handleAddItem}
+                    disabled={isProcessing}
+                    className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                  >
+                    {isProcessing ? "Adding..." : "Add"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Items Table */}
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Description
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Quantity
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Unit Price
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Discount
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Subtotal
+                  </th>
+                  {canEdit && (
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  )}
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                {invoice.invoiceItems && invoice.invoiceItems.length > 0 ? (
+                  invoice.invoiceItems.map((item) => (
+                    <tr key={item.id}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                        {item.description}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        {item.quantity}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        ${Number(item.unitPrice).toFixed(2)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        {item.discountPercent ? `${item.discountPercent}%` : "-"}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                        ${(Number(item.quantity) * Number(item.unitPrice) * (1 - (Number(item.discountPercent) || 0) / 100)).toFixed(2)}
+                      </td>
+                      {canEdit && (
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <button
+                            onClick={() => handleDeleteItem(item.id)}
+                            disabled={isProcessing}
+                            className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 disabled:opacity-50"
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      )}
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td
+                      colSpan={canEdit ? 6 : 5}
+                      className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400"
+                    >
+                      No items found
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Financial Summary */}
+        <div className="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-lg mb-6">
+          <div className="px-4 py-5 sm:px-6 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-gray-100">
+              Financial Summary
+            </h3>
+          </div>
+          <div className="px-4 py-5 sm:p-6">
+            <dl className="space-y-4">
+              <div className="flex justify-between">
+                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  Subtotal
+                </dt>
+                <dd className="text-sm text-gray-900 dark:text-gray-100">
+                  ${Number(invoice.subtotal).toFixed(2)}
+                </dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  Tax ({Number(invoice.taxRate)}%)
+                </dt>
+                <dd className="text-sm text-gray-900 dark:text-gray-100">
+                  ${Number(invoice.taxAmount).toFixed(2)}
+                </dd>
+              </div>
+              {Number(invoice.discountAmount) > 0 && (
+                <div className="flex justify-between">
+                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                    Discount
+                  </dt>
+                  <dd className="text-sm text-gray-900 dark:text-gray-100">
+                    -${Number(invoice.discountAmount).toFixed(2)}
+                  </dd>
+                </div>
+              )}
+              <div className="flex justify-between border-t border-gray-200 dark:border-gray-700 pt-4">
+                <dt className="text-base font-medium text-gray-900 dark:text-gray-100">
+                  Total
+                </dt>
+                <dd className="text-base font-medium text-gray-900 dark:text-gray-100">
+                  ${Number(invoice.totalAmount).toFixed(2)}
+                </dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+
+        {/* Notes */}
+        {invoice.notes && (
+          <div className="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-lg">
+            <div className="px-4 py-5 sm:px-6 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-gray-100">
+                Notes
+              </h3>
+            </div>
+            <div className="px-4 py-5 sm:p-6">
+              <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line">
+                {invoice.notes}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Mark as Paid Modal */}
+        {showMarkPaidModal && (
+          <MarkInvoicePaidModal
+            onClose={() => setShowMarkPaidModal(false)}
+            onConfirm={handleMarkAsPaid}
+            isProcessing={isProcessing}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Mark Invoice Paid Modal Component
+function MarkInvoicePaidModal({
+  onClose,
+  onConfirm,
+  isProcessing,
+}: {
+  onClose: () => void;
+  onConfirm: (data: {
+    paymentMethod: string;
+    paymentReference?: string;
+    paidDate?: string;
+    notes?: string;
+  }) => void;
+  isProcessing: boolean;
+}) {
+  const [formData, setFormData] = useState({
+    paymentMethod: "",
+    paymentReference: "",
+    paidDate: new Date().toISOString().split("T")[0],
+    notes: "",
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.paymentMethod.trim()) {
+      alert("Payment method is required");
+      return;
+    }
+    onConfirm({
+      paymentMethod: formData.paymentMethod,
+      paymentReference: formData.paymentReference || undefined,
+      paidDate: formData.paidDate || undefined,
+      notes: formData.notes || undefined,
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 overflow-y-auto z-50 flex items-center justify-center">
+      <div className="fixed inset-0 bg-black opacity-30" onClick={onClose}></div>
+      <div className="relative bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6 shadow-xl">
+        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+          Mark Invoice as Paid
+        </h3>
+        <form onSubmit={handleSubmit}>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Payment Method *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.paymentMethod}
+                onChange={(e) =>
+                  setFormData({ ...formData, paymentMethod: e.target.value })
+                }
+                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                placeholder="e.g., Credit Card, Cash, Check"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Payment Reference
+              </label>
+              <input
+                type="text"
+                value={formData.paymentReference}
+                onChange={(e) =>
+                  setFormData({ ...formData, paymentReference: e.target.value })
+                }
+                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                placeholder="Optional reference number"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Paid Date
+              </label>
+              <input
+                type="date"
+                value={formData.paidDate}
+                onChange={(e) =>
+                  setFormData({ ...formData, paidDate: e.target.value })
+                }
+                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Notes
+              </label>
+              <textarea
+                value={formData.notes}
+                onChange={(e) =>
+                  setFormData({ ...formData, notes: e.target.value })
+                }
+                rows={3}
+                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                placeholder="Optional notes"
+              />
+            </div>
+          </div>
+          <div className="mt-6 flex justify-end space-x-3">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isProcessing}
+              className="inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isProcessing}
+              className="inline-flex justify-center rounded-md border border-transparent bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
+            >
+              {isProcessing ? "Processing..." : "Mark as Paid"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
 }

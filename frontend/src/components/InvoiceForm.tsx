@@ -12,6 +12,9 @@ import {
   createInvoice,
   getInvoiceById,
   updateInvoice,
+  addInvoiceItem,
+  removeInvoiceItem,
+  InvoiceItem,
 } from "@/lib/api/invoice.api";
 
 // Types for form state and validation
@@ -62,10 +65,11 @@ export default function InvoiceForm({ invoiceId }: InvoiceFormProps) {
   const [submitError, setSubmitError] = useState("");
 
   // New item state
-  const [newItem, setNewItem] = useState<InvoiceItem>({
+  const [newItem, setNewItem] = useState<Omit<InvoiceItem, "id" | "invoiceId" | "createdAt" | "updatedAt"> & { discountPercent?: number }>({
     description: "",
     quantity: 1,
     unitPrice: 0,
+    discountPercent: 0,
     type: "service",
   });
 
@@ -176,7 +180,7 @@ export default function InvoiceForm({ invoiceId }: InvoiceFormProps) {
   };
 
   // Add invoice item
-  const addInvoiceItem = () => {
+  const handleAddInvoiceItem = async () => {
     // Validate new item
     const itemErrors: Record<string, string> = {};
 
@@ -197,27 +201,87 @@ export default function InvoiceForm({ invoiceId }: InvoiceFormProps) {
       return;
     }
 
-    // Add item to invoice items
-    setFormData((prevState) => ({
-      ...prevState,
-      invoiceItems: [...prevState.invoiceItems, newItem],
-    }));
+    // In edit mode, use API to add item
+    if (isEditMode && invoiceId) {
+      setIsSubmitting(true);
+      try {
+        await addInvoiceItem(invoiceId, {
+          description: newItem.description,
+          quantity: newItem.quantity,
+          unitPrice: newItem.unitPrice,
+          discountPercent: newItem.discountPercent || undefined,
+          type: newItem.type,
+        });
+        // Refresh invoice data
+        const response = await getInvoiceById(invoiceId);
+        if (response.data) {
+          setFormData((prevState) => ({
+            ...prevState,
+            invoiceItems: response.data.invoiceItems || [],
+            subtotal: response.data.subtotal,
+            taxRate: response.data.taxRate,
+            discountAmount: response.data.discountAmount,
+          }));
+        }
+      } catch (error) {
+        console.error("Error adding item:", error);
+        setSubmitError(
+          error instanceof Error ? error.message : "Failed to add item"
+        );
+      } finally {
+        setIsSubmitting(false);
+      }
+    } else {
+      // In create mode, add to local state
+      setFormData((prevState) => ({
+        ...prevState,
+        invoiceItems: [...prevState.invoiceItems, newItem],
+      }));
+    }
 
     // Reset new item form
     setNewItem({
       description: "",
       quantity: 1,
       unitPrice: 0,
+      discountPercent: 0,
       type: "service",
     });
   };
 
   // Remove invoice item
-  const removeInvoiceItem = (index: number) => {
-    setFormData((prevState) => ({
-      ...prevState,
-      invoiceItems: prevState.invoiceItems.filter((_, i) => i !== index),
-    }));
+  const handleRemoveInvoiceItem = async (index: number, itemId?: string) => {
+    // In edit mode, use API to remove item
+    if (isEditMode && invoiceId && itemId) {
+      setIsSubmitting(true);
+      try {
+        await removeInvoiceItem(invoiceId, itemId);
+        // Refresh invoice data
+        const response = await getInvoiceById(invoiceId);
+        if (response.data) {
+          setFormData((prevState) => ({
+            ...prevState,
+            invoiceItems: response.data.invoiceItems || [],
+            subtotal: response.data.subtotal,
+            taxRate: response.data.taxRate,
+            discountAmount: response.data.discountAmount,
+          }));
+        }
+      } catch (error) {
+        console.error("Error removing item:", error);
+        setSubmitError(
+          error instanceof Error ? error.message : "Failed to remove item"
+        );
+      } finally {
+        setIsSubmitting(false);
+      }
+    } else {
+      // In create mode, remove from local state
+      setFormData((prevState) => ({
+        ...prevState,
+        invoiceItems: prevState.invoiceItems.filter((_, i) => i !== index),
+      }));
+    }
   };
 
   // Validate form before submission
@@ -369,26 +433,33 @@ export default function InvoiceForm({ invoiceId }: InvoiceFormProps) {
           <h3 className="text-lg font-medium mb-4 text-gray-900 dark:text-gray-100">Invoice Items</h3>
 
           {/* Existing Items List */}
-          {formData.invoiceItems.map((item, index) => (
-            <div
-              key={index}
-              className="flex justify-between items-center bg-gray-100 dark:bg-gray-700/50 p-3 rounded mb-2"
-            >
-              <div>
-                <p className="text-gray-900 dark:text-gray-100">{item.description}</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {item.quantity} × ${item.unitPrice.toFixed(2)} ({item.type})
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => removeInvoiceItem(index)}
-                className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
+          {formData.invoiceItems.map((item, index) => {
+            const itemId = (item as InvoiceItem).id;
+            return (
+              <div
+                key={itemId || index}
+                className="flex justify-between items-center bg-gray-100 dark:bg-gray-700/50 p-3 rounded mb-2"
               >
-                Remove
-              </button>
-            </div>
-          ))}
+                <div>
+                  <p className="text-gray-900 dark:text-gray-100">{item.description}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {item.quantity} × ${item.unitPrice.toFixed(2)} ({item.type})
+                    {item.discountPercent && item.discountPercent > 0 && (
+                      <span className="ml-2">- {item.discountPercent}%</span>
+                    )}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveInvoiceItem(index, itemId)}
+                  disabled={isSubmitting}
+                  className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 disabled:opacity-50"
+                >
+                  Remove
+                </button>
+              </div>
+            );
+          })}
 
           {/* New Item Input */}
           <div className="grid grid-cols-4 gap-4">
@@ -430,10 +501,11 @@ export default function InvoiceForm({ invoiceId }: InvoiceFormProps) {
             />
             <button
               type="button"
-              onClick={addInvoiceItem}
-              className="bg-blue-500 dark:bg-blue-700 text-white rounded p-2 hover:bg-blue-600 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+              onClick={handleAddInvoiceItem}
+              disabled={isSubmitting}
+              className="bg-blue-500 dark:bg-blue-700 text-white rounded p-2 hover:bg-blue-600 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500 disabled:opacity-50"
             >
-              Add Item
+              {isSubmitting ? "Adding..." : "Add Item"}
             </button>
           </div>
           {errors.invoiceItems && (
