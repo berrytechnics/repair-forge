@@ -7,6 +7,7 @@ import {
   getCustomerTickets,
 } from "@/lib/api/customer.api";
 import { Ticket } from "@/lib/api/ticket.api";
+import { formatStatus, getStatusColor } from "@/lib/utils/ticketUtils";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -98,25 +99,6 @@ export default function CustomerDetailPage({
     });
   };
 
-  // Function to get status color class
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "new":
-        return "bg-blue-100 text-blue-800";
-      case "assigned":
-        return "bg-purple-100 text-purple-800";
-      case "in_progress":
-        return "bg-yellow-100 text-yellow-800";
-      case "on_hold":
-        return "bg-orange-100 text-orange-800";
-      case "completed":
-        return "bg-green-100 text-green-800";
-      case "cancelled":
-        return "bg-gray-100 text-gray-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
 
   if (isLoading) {
     return (
@@ -428,13 +410,9 @@ export default function CustomerDetailPage({
                             <p
                               className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(
                                 ticket.status
-                              )} dark:opacity-90`}
+                              )}`}
                             >
-                              {ticket.status
-                                .replace("_", " ")
-                                .charAt(0)
-                                .toUpperCase() +
-                                ticket.status.replace("_", " ").slice(1)}
+                              {formatStatus(ticket.status)}
                             </p>
                           </div>
                         </div>

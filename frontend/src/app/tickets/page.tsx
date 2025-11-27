@@ -1,6 +1,7 @@
 "use client";
 
 import { getTickets } from "@/lib/api/ticket.api";
+import { formatPriority, formatStatus, getPriorityColor, getStatusColor } from "@/lib/utils/ticketUtils";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -66,41 +67,6 @@ export default function TicketsListPage() {
     fetchTickets();
   }, [filterStatus, filterPriority]);
 
-  // Function to get status color class
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "new":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300";
-      case "assigned":
-        return "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300";
-      case "in_progress":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300";
-      case "on_hold":
-        return "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300";
-      case "completed":
-        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300";
-      case "cancelled":
-        return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300";
-      default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300";
-    }
-  };
-
-  // Function to get priority color class
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "low":
-        return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300";
-      case "medium":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300";
-      case "high":
-        return "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300";
-      case "urgent":
-        return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300";
-      default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300";
-    }
-  };
 
   // Function to format date
   const formatDate = (dateString: string) => {
@@ -225,19 +191,14 @@ export default function TicketsListPage() {
                               ticket.status
                             )}`}
                           >
-                            {ticket.status
-                              .replace("_", " ")
-                              .charAt(0)
-                              .toUpperCase() +
-                              ticket.status.replace("_", " ").slice(1)}
+                            {formatStatus(ticket.status)}
                           </p>
                           <p
                             className={`ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getPriorityColor(
                               ticket.priority
                             )}`}
                           >
-                            {ticket.priority.charAt(0).toUpperCase() +
-                              ticket.priority.slice(1)}
+                            {formatPriority(ticket.priority)}
                           </p>
                         </div>
                       </div>
