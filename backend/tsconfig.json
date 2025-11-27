@@ -13,16 +13,8 @@
     "resolveJsonModule": true,
     "removeComments": true,
     "sourceMap": true,
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["src/*"]
-    }
+    "baseUrl": "."
   },
-  "include": [
-    "src/**/*",
-    "database/**/*.ts",
-    "database/config.ts",
-    "src/sequelize-config.ts"
-  ],
+  "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "**/*.test.ts"]
 }

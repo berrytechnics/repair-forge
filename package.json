@@ -7,9 +7,18 @@
     "circuit-sage": "./cli.js"
   },
   "scripts": {
-    "link": "chmod +x cli.js && npm link # Link CLI globally to use 'repair-manager' command",
-    "unlink": "npm uninstall -g $(node -e \"console.log(require('./package.json').name)\") # Remove global link",
-    "reinstall": "npm run unlink && npm run link # Unlink and relink the CLI"
+    "link": "chmod +x cli.js && npm link",
+    "unlink": "npm uninstall -g $(node -e \"console.log(require('./package.json').name)\")",
+    "reinstall": "npm run unlink && npm run link",
+    "ci:backend": "cd backend && yarn lint && npx tsc --noEmit && yarn test",
+    "ci:frontend": "cd frontend && yarn lint && npx tsc --noEmit && yarn build",
+    "ci:all": "npm run ci:backend && npm run ci:frontend",
+    "ci:backend:lint": "cd backend && yarn lint",
+    "ci:backend:typecheck": "cd backend && npx tsc --noEmit",
+    "ci:backend:test": "cd backend && yarn test",
+    "ci:frontend:lint": "cd frontend && yarn lint",
+    "ci:frontend:typecheck": "cd frontend && npx tsc --noEmit",
+    "ci:frontend:build": "cd frontend && yarn build"
   },
   "keywords": [
     "repair",

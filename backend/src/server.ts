@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 import app from "./app";
-import { sequelize } from "./models";
-import logger from "./utils/logger";
+import { closeConnection, testConnection } from "./config/connection";
+import logger from "./config/logger";
 
 // Load environment variables
 dotenv.config();
@@ -9,13 +9,12 @@ dotenv.config();
 const PORT = process.env.PORT || 4000;
 
 async function assertDatabaseConnection(): Promise<void> {
-  try {
-    await sequelize.authenticate();
-    logger.info("Database connection has been established successfully.");
-  } catch (error) {
-    logger.error("Unable to connect to the database:", error);
+  const isConnected = await testConnection();
+  if (!isConnected) {
+    logger.error("Unable to connect to the database");
     process.exit(1);
   }
+  logger.info("Database connection has been established successfully.");
 }
 
 async function startServer(): Promise<void> {
@@ -36,12 +35,12 @@ startServer();
 // Handle graceful shutdown
 process.on("SIGINT", async () => {
   logger.info("SIGINT signal received: closing HTTP server");
-  await sequelize.close();
+  await closeConnection();
   process.exit(0);
 });
 
 process.on("SIGTERM", async () => {
   logger.info("SIGTERM signal received: closing HTTP server");
-  await sequelize.close();
+  await closeConnection();
   process.exit(0);
 });

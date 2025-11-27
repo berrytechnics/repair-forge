@@ -2,14 +2,11 @@ import cors from "cors";
 import express, { Express, Request, Response } from "express";
 import helmet from "helmet";
 import morgan from "morgan";
-import { HttpError } from "./types/errors";
+import { HttpError } from "./config/errors";
+import customerRoutes from "./routes/customer.routes";
+import userRoutes from "./routes/user.routes";
 
 // Import routes
-import authRoutes from "./routes/auth.routes";
-import customerRoutes from "./routes/customer.routes";
-import inventoryRoutes from "./routes/inventory.routes";
-import invoiceRoutes from "./routes/invoice.routes";
-import ticketRoutes from "./routes/ticket.routes";
 
 const app: Express = express();
 
@@ -20,11 +17,8 @@ app.use(express.json());
 app.use(morgan("dev"));
 
 // Routes
-app.use("/auth", authRoutes);
-app.use("/tickets", ticketRoutes);
-app.use("/inventory", inventoryRoutes);
-app.use("/customers", customerRoutes);
-app.use("/invoices", invoiceRoutes);
+app.use("/user", userRoutes);
+app.use("/customer", customerRoutes);
 
 // Health check endpoint
 app.get("/health", (req: Request, res: Response) => {

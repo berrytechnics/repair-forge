@@ -1,5 +1,8 @@
 # CircuitSage: Electronics Repair Business Management System
 
+![Backend CI](https://github.com/berrytechnics/circuit-sage/actions/workflows/backend-ci.yml/badge.svg)
+![Frontend CI](https://github.com/berrytechnics/circuit-sage/actions/workflows/frontend-ci.yml/badge.svg)
+
 A comprehensive management system for electronics repair businesses with ticketing, inventory management, invoicing, and customer management features.
 
 ## Technology Stack
