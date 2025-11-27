@@ -125,7 +125,7 @@ export default function CustomersListPage() {
               />
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
                 <svg
-                  className="h-5 w-5 text-gray-400"
+                  className="h-5 w-5 text-gray-400 dark:text-gray-500"
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 20 20"
                   fill="currentColor"
@@ -154,27 +154,27 @@ export default function CustomersListPage() {
 
       {/* Error Message */}
       {error && (
-        <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-md border border-red-200">
+        <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-md border border-red-200 dark:border-red-800">
           {error}
         </div>
       )}
 
       {/* Customers List */}
-      <div className="bg-white shadow overflow-hidden sm:rounded-md">
+      <div className="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-md">
         {isLoading ? (
-          <div className="p-6 text-center text-gray-500">
+          <div className="p-6 text-center text-gray-500 dark:text-gray-400">
             <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent mb-3"></div>
             <p>Loading customers...</p>
           </div>
         ) : customers.length === 0 ? (
-          <div className="p-6 text-center text-gray-500">
+          <div className="p-6 text-center text-gray-500 dark:text-gray-400">
             {searchQuery ? (
               <p>
                 No customers found matching &quot;{searchQuery}&quot;. Try a
                 different search or{" "}
                 <button
                   onClick={handleClearSearch}
-                  className="text-blue-600 hover:text-blue-500"
+                  className="text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300"
                 >
                   view all customers
                 </button>
@@ -185,7 +185,7 @@ export default function CustomersListPage() {
                 <p>No customers found in the system.</p>
                 <button
                   onClick={() => router.push("/customers/new")}
-                  className="mt-4 inline-flex items-center justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                  className="mt-4 inline-flex items-center justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
                 >
                   Add Your First Customer
                 </button>
@@ -193,29 +193,29 @@ export default function CustomersListPage() {
             )}
           </div>
         ) : (
-          <ul className="divide-y divide-gray-200">
+          <ul className="divide-y divide-gray-200 dark:divide-gray-700">
             {customers.map((customer) => (
               <li key={customer.id}>
                 <Link href={`/customers/${customer.id}`}>
-                  <div className="block hover:bg-gray-50 px-4 py-4 sm:px-6">
+                  <div className="block hover:bg-gray-50 dark:hover:bg-gray-700/50 px-4 py-4 sm:px-6">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center min-w-0">
-                        <div className="flex-shrink-0 h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                          <span className="text-lg font-medium text-gray-500">
+                        <div className="flex-shrink-0 h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                          <span className="text-lg font-medium text-gray-500 dark:text-gray-300">
                             {customer.firstName.charAt(0)}
                             {customer.lastName.charAt(0)}
                           </span>
                         </div>
                         <div className="min-w-0 flex-1 px-4">
-                          <p className="text-sm font-medium text-blue-600 truncate">
+                          <p className="text-sm font-medium text-blue-600 dark:text-blue-400 truncate">
                             {customer.firstName} {customer.lastName}
                           </p>
-                          <p className="mt-1 text-sm text-gray-500 truncate">
+                          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 truncate">
                             {customer.email}
                           </p>
                         </div>
                       </div>
-                      <div className="ml-2 flex flex-col sm:flex-row sm:items-end text-sm text-gray-500">
+                      <div className="ml-2 flex flex-col sm:flex-row sm:items-end text-sm text-gray-500 dark:text-gray-400">
                         {customer.phone && (
                           <p className="sm:mr-4">{customer.phone}</p>
                         )}
@@ -226,7 +226,7 @@ export default function CustomersListPage() {
                     </div>
                     {(customer.address || customer.city || customer.state) && (
                       <div className="mt-2">
-                        <p className="text-sm text-gray-500 truncate">
+                        <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
                           {[
                             customer.address,
                             customer.city,
