@@ -123,15 +123,25 @@ jobs:
         run: |
           # Install psql client for running migrations
           sudo apt-get update && sudo apt-get install -y postgresql-client
+          
           # Enable UUID extension (required for migrations)
           echo "Enabling UUID extension..."
-          psql -h localhost -U ${{ env.DB_USER }} -d ${{ env.DB_NAME }} -c "CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";"
+          psql -h localhost -U ${{ env.DB_USER }} -d ${{ env.DB_NAME }} -c "CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";" || exit 1
+          echo "UUID extension enabled"
+          
+          # List migration files
+          echo "Looking for migration files..."
+          ls -la database/migrations/*.sql || echo "No migration files found"
+          
           # Run all SQL migrations in order
           echo "Running migrations..."
-          for migration in $(ls database/migrations/*.sql | sort); do
+          cd ${{ github.workspace }}
+          for migration in $(ls database/migrations/*.sql 2>/dev/null | sort); do
+            echo "========================================="
             echo "Running migration: $migration"
-            if psql -h localhost -U ${{ env.DB_USER }} -d ${{ env.DB_NAME }} -f "$migration"; then
-              echo "✓ Migration $migration completed"
+            echo "========================================="
+            if psql -h localhost -U ${{ env.DB_USER }} -d ${{ env.DB_NAME }} -f "$migration" -v ON_ERROR_STOP=1; then
+              echo "✓ Migration $migration completed successfully"
             else
               echo "✗ Migration $migration failed"
               exit 1
@@ -144,9 +154,16 @@ jobs:
           PGPASSWORD: ${{ env.DB_PASSWORD }}
         run: |
           echo "Verifying database tables exist..."
-          psql -h localhost -U ${{ env.DB_USER }} -d ${{ env.DB_NAME }} -c "\dt" || echo "Warning: Could not list tables"
+          psql -h localhost -U ${{ env.DB_USER }} -d ${{ env.DB_NAME }} -c "\dt" || exit 1
           # Verify key tables exist
-          psql -h localhost -U ${{ env.DB_USER }} -d ${{ env.DB_NAME }} -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('companies', 'users', 'customers', 'tickets', 'invoices', 'role_permissions');" || exit 1
+          echo "Checking for required tables..."
+          TABLE_COUNT=$(psql -h localhost -U ${{ env.DB_USER }} -d ${{ env.DB_NAME }} -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('companies', 'users', 'customers', 'tickets', 'invoices', 'role_permissions');")
+          echo "Found $TABLE_COUNT required tables"
+          if [ "$TABLE_COUNT" -lt 6 ]; then
+            echo "ERROR: Not all required tables exist!"
+            exit 1
+          fi
+          echo "✓ All required tables exist"
 
       - name: Run tests
         run: yarn test
