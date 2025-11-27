@@ -19,11 +19,11 @@ app.use(cors());
 app.use(express.json());
 app.use(morgan("dev"));
 
-// Routes
-app.use("/user", userRoutes);
-app.use("/customer", customerRoutes);
-app.use("/ticket", ticketRoutes);
-app.use("/invoice", invoiceRoutes);
+// Routes - all routes are prefixed with /api
+app.use("/api/auth", userRoutes);
+app.use("/api/customers", customerRoutes);
+app.use("/api/tickets", ticketRoutes);
+app.use("/api/invoices", invoiceRoutes);
 
 // Health check endpoint
 app.get("/health", (req: Request, res: Response) => {

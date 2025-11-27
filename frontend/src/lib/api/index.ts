@@ -1,8 +1,17 @@
 import axios, { AxiosError, AxiosRequestConfig } from "axios";
 
+// Get base URL and ensure it ends with /api
+const getBaseURL = () => {
+  const envUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+  // Remove trailing slash if present
+  const baseUrl = envUrl.replace(/\/$/, "");
+  // Ensure /api is included
+  return baseUrl.endsWith("/api") ? baseUrl : `${baseUrl}/api`;
+};
+
 // Create axios instance
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api",
+  baseURL: getBaseURL(),
   headers: {
     "Content-Type": "application/json",
   },
@@ -76,7 +85,7 @@ api.interceptors.response.use(
         // Attempt to refresh token
         const response = await axios.post<
           ApiResponse<{ accessToken: string; refreshToken: string }>
-        >(`${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`, { refreshToken });
+        >(`${getBaseURL()}/auth/refresh`, { refreshToken });
 
         if (response.data.success && response.data.data) {
           // Update tokens
@@ -115,6 +124,7 @@ export const login = async (
   if (response.data.success && response.data.data) {
     const { accessToken: token, refreshToken } = response.data.data;
     accessToken = token;
+    localStorage.setItem("accessToken", token);
     localStorage.setItem("refreshToken", refreshToken);
     return response.data.data;
   }
@@ -137,6 +147,7 @@ export const register = async (
   if (response.data.success && response.data.data) {
     const { accessToken: token, refreshToken } = response.data.data;
     accessToken = token;
+    localStorage.setItem("accessToken", token);
     localStorage.setItem("refreshToken", refreshToken);
     return response.data.data;
   }
@@ -156,6 +167,7 @@ export const getCurrentUser = async (): Promise<User> => {
 
 export const logout = (): void => {
   accessToken = null;
+  localStorage.removeItem("accessToken");
   localStorage.removeItem("refreshToken");
   // Redirect to login or handle in UI
 };
