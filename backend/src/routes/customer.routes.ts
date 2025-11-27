@@ -10,7 +10,7 @@ router.get("/", validateRequest, async (req: Request, res: Response) => {
 export default router;
 
 async function validateRequest(req: Request, res: Response, next: Function) {
-  const token = req.headers.authorization?.slice(7, -1);
+  const token = req.headers.authorization?.slice(7);
   if (!token) {
     return res.status(401).json({ message: "Invalid token" });
   }
