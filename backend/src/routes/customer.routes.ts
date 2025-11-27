@@ -6,6 +6,7 @@ import {
 import { validateRequest } from "../middlewares/auth.middleware";
 import { validate } from "../middlewares/validation.middleware";
 import customerService from "../services/customer.service";
+import ticketService from "../services/ticket.service";
 import { asyncHandler } from "../utils/asyncHandler";
 import {
   createCustomerValidation,
@@ -97,10 +98,9 @@ router.delete(
 router.get(
   "/:id/tickets",
   asyncHandler(async (req: Request, res: Response) => {
-    const { id: _id } = req.params;
-    // TODO: Implement ticket service and fetch customer tickets
-    // For now, return empty array
-    res.json({ success: true, data: [] });
+    const { id } = req.params;
+    const tickets = await ticketService.findAll(id);
+    res.json({ success: true, data: tickets });
   })
 );
 

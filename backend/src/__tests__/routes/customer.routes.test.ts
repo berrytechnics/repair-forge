@@ -1,14 +1,19 @@
 import request from "supertest";
 import app from "../../app";
 import customerService from "../../services/customer.service";
+import ticketService from "../../services/ticket.service";
 import { verifyJWTToken } from "../../utils/auth";
 
-// Mock the customer service and auth
+// Mock the customer service, ticket service, and auth
 jest.mock("../../services/customer.service");
+jest.mock("../../services/ticket.service");
 jest.mock("../../utils/auth");
 
 const mockedCustomerService = customerService as jest.Mocked<
   typeof customerService
+>;
+const mockedTicketService = ticketService as jest.Mocked<
+  typeof ticketService
 >;
 const mockedVerifyJWTToken = verifyJWTToken as jest.MockedFunction<
   typeof verifyJWTToken
@@ -350,7 +355,9 @@ describe("Customer Routes", () => {
   });
 
   describe("GET /customer/:id/tickets", () => {
-    it("should return customer tickets (placeholder)", async () => {
+    it("should return customer tickets", async () => {
+      mockedTicketService.findAll.mockResolvedValue([]);
+
       const response = await request(app)
         .get("/customer/customer-1/tickets")
         .set("Authorization", "Bearer valid-token");
@@ -358,6 +365,7 @@ describe("Customer Routes", () => {
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
       expect(response.body.data).toEqual([]);
+      expect(mockedTicketService.findAll).toHaveBeenCalledWith("customer-1");
     });
   });
 });
