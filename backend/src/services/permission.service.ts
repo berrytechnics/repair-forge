@@ -125,7 +125,7 @@ class PermissionService {
       await sql`SELECT initialize_company_permissions(${companyId})`.execute(db);
     } catch {
       // If function doesn't exist, manually insert from config
-      const { ROLE_PERMISSIONS } = await import("../config/permissions");
+      const { ROLE_PERMISSIONS } = await import("../config/permissions.js");
       
       // Insert all default permissions for this company
       const inserts: Array<{ id: string; company_id: string; role: string; permission: string }> = [];
