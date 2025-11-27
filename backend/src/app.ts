@@ -33,12 +33,15 @@ app.use((req: Request, res: Response) => {
 // Error handling middleware
 app.use((err: HttpError, req: Request, res: Response, next: NextFunction) => {
   console.error(err.stack);
-  if (next) {
-    next();
-  }
-  res.status(err.statusCode || 500).json({
-    message: err.message || "Internal Server Error",
-    ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
+  const statusCode = err.statusCode || 500;
+  const message = err.message || "Internal Server Error";
+  
+  res.status(statusCode).json({
+    success: false,
+    error: {
+      message,
+      ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
+    },
   });
 });
 
