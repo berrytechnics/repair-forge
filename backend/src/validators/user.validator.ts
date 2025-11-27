@@ -65,8 +65,8 @@ export const registerValidation = [
     ),
   body("role")
     .optional()
-    .isIn(["admin", "technician", "frontdesk"])
-    .withMessage("Role must be one of: admin, technician, frontdesk"),
+    .isIn(["admin", "manager", "technician", "frontdesk"])
+    .withMessage("Role must be one of: admin, manager, technician, frontdesk"),
   body("active")
     .optional()
     .isBoolean()

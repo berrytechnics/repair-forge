@@ -4,6 +4,7 @@ import {
 } from "../config/errors";
 import { InvoiceStatus } from "../config/types";
 import { validateRequest } from "../middlewares/auth.middleware";
+import { requireAdmin, requireRole } from "../middlewares/rbac.middleware";
 import { requireTenantContext } from "../middlewares/tenant.middleware";
 import { validate } from "../middlewares/validation.middleware";
 import invoiceService from "../services/invoice.service";
@@ -25,6 +26,7 @@ router.use(requireTenantContext);
 // GET /invoice - List all invoices (with optional filters)
 router.get(
   "/",
+  requireRole(["admin", "manager", "technician"]),
   asyncHandler(async (req: Request, res: Response) => {
     const companyId = req.companyId!;
     const customerId = req.query.customerId as string | undefined;
@@ -41,6 +43,7 @@ router.get(
 // GET /invoice/:id - Get invoice by ID
 router.get(
   "/:id",
+  requireRole(["admin", "manager", "technician"]),
   asyncHandler(async (req: Request, res: Response) => {
     const companyId = req.companyId!;
     const { id } = req.params;
@@ -56,6 +59,7 @@ router.get(
 router.post(
   "/",
   validate(createInvoiceValidation),
+  requireRole(["admin", "manager"]),
   asyncHandler(async (req: Request, res: Response) => {
     const companyId = req.companyId!;
     const invoice = await invoiceService.create(req.body, companyId);
@@ -67,6 +71,7 @@ router.post(
 router.put(
   "/:id",
   validate(updateInvoiceValidation),
+  requireRole(["admin", "manager"]),
   asyncHandler(async (req: Request, res: Response) => {
     const companyId = req.companyId!;
     const { id } = req.params;
@@ -81,6 +86,7 @@ router.put(
 // DELETE /invoice/:id - Delete invoice (soft delete)
 router.delete(
   "/:id",
+  requireAdmin(),
   asyncHandler(async (req: Request, res: Response) => {
     const companyId = req.companyId!;
     const { id } = req.params;
@@ -99,6 +105,7 @@ router.delete(
 router.post(
   "/:id/items",
   validate(createInvoiceItemValidation),
+  requireRole(["admin", "manager"]),
   asyncHandler(async (req: Request, res: Response) => {
     const companyId = req.companyId!;
     const { id } = req.params;
@@ -114,6 +121,7 @@ router.post(
 router.put(
   "/:id/items/:itemId",
   validate(updateInvoiceItemValidation),
+  requireRole(["admin", "manager"]),
   asyncHandler(async (req: Request, res: Response) => {
     const companyId = req.companyId!;
     const { id, itemId } = req.params;
@@ -128,6 +136,7 @@ router.put(
 // DELETE /invoice/:id/items/:itemId - Remove invoice item
 router.delete(
   "/:id/items/:itemId",
+  requireRole(["admin", "manager"]),
   asyncHandler(async (req: Request, res: Response) => {
     const companyId = req.companyId!;
     const { id, itemId } = req.params;
@@ -146,6 +155,7 @@ router.delete(
 router.post(
   "/:id/paid",
   validate(markInvoicePaidValidation),
+  requireRole(["admin", "manager"]),
   asyncHandler(async (req: Request, res: Response) => {
     const companyId = req.companyId!;
     const { id } = req.params;

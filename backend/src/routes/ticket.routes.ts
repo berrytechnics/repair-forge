@@ -5,6 +5,7 @@ import {
 } from "../config/errors";
 import { TicketStatus } from "../config/types";
 import { validateRequest } from "../middlewares/auth.middleware";
+import { requireAdmin, requireRole } from "../middlewares/rbac.middleware";
 import { requireTenantContext } from "../middlewares/tenant.middleware";
 import { validate } from "../middlewares/validation.middleware";
 import ticketService from "../services/ticket.service";
@@ -146,6 +147,7 @@ router.get(
 router.post(
   "/",
   validate(createTicketValidation),
+  requireRole(["admin", "technician", "frontdesk"]),
   asyncHandler(async (req: Request, res: Response) => {
     const companyId = req.companyId!;
     const ticket = await ticketService.create(req.body, companyId);
@@ -157,6 +159,7 @@ router.post(
 router.put(
   "/:id",
   validate(updateTicketValidation),
+  requireRole(["admin", "technician"]),
   asyncHandler(async (req: Request, res: Response) => {
     const companyId = req.companyId!;
     const { id } = req.params;
@@ -172,6 +175,7 @@ router.put(
 router.post(
   "/:id/assign",
   validate(assignTechnicianValidation),
+  requireRole(["admin", "manager"]),
   asyncHandler(async (req: Request, res: Response) => {
     const companyId = req.companyId!;
     const { id } = req.params;
@@ -225,6 +229,7 @@ router.post(
 router.post(
   "/:id/status",
   validate(updateStatusValidation),
+  requireRole(["admin", "technician", "manager"]),
   asyncHandler(async (req: Request, res: Response) => {
     const companyId = req.companyId!;
     const { id } = req.params;
@@ -246,6 +251,7 @@ router.post(
 router.post(
   "/:id/diagnostic-notes",
   validate(addDiagnosticNotesValidation),
+  requireRole(["admin", "technician"]),
   asyncHandler(async (req: Request, res: Response) => {
     const companyId = req.companyId!;
     const { id } = req.params;
@@ -267,6 +273,7 @@ router.post(
 router.post(
   "/:id/repair-notes",
   validate(addRepairNotesValidation),
+  requireRole(["admin", "technician"]),
   asyncHandler(async (req: Request, res: Response) => {
     const companyId = req.companyId!;
     const { id } = req.params;
@@ -287,6 +294,7 @@ router.post(
 // DELETE /ticket/:id - Delete ticket (soft delete)
 router.delete(
   "/:id",
+  requireAdmin(),
   asyncHandler(async (req: Request, res: Response) => {
     const companyId = req.companyId!;
     const { id } = req.params;

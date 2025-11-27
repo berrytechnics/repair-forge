@@ -4,6 +4,7 @@ import {
   NotFoundError,
 } from "../config/errors";
 import { validateRequest } from "../middlewares/auth.middleware";
+import { requireAdmin, requireRole } from "../middlewares/rbac.middleware";
 import { requireTenantContext } from "../middlewares/tenant.middleware";
 import { validate } from "../middlewares/validation.middleware";
 import customerService from "../services/customer.service";
@@ -64,6 +65,7 @@ router.get(
 router.post(
   "/",
   validate(createCustomerValidation),
+  requireRole(["admin", "frontdesk"]),
   asyncHandler(async (req: Request, res: Response) => {
     const companyId = req.companyId!;
     const customer = await customerService.create(req.body, companyId);
@@ -75,6 +77,7 @@ router.post(
 router.put(
   "/:id",
   validate(updateCustomerValidation),
+  requireRole(["admin", "frontdesk"]),
   asyncHandler(async (req: Request, res: Response) => {
     const companyId = req.companyId!;
     const { id } = req.params;
@@ -89,6 +92,7 @@ router.put(
 // DELETE /customers/:id - Delete customer (soft delete)
 router.delete(
   "/:id",
+  requireAdmin(),
   asyncHandler(async (req: Request, res: Response) => {
     const companyId = req.companyId!;
     const { id } = req.params;

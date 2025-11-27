@@ -38,6 +38,16 @@ const mockUser = {
   updatedAt: new Date(),
 };
 
+const mockAdminUser = {
+  ...mockUser,
+  role: "admin" as const,
+};
+
+const mockFrontdeskUser = {
+  ...mockUser,
+  role: "frontdesk" as const,
+};
+
 describe("Customer Routes", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -247,6 +257,7 @@ describe("Customer Routes", () => {
       };
 
       mockedCustomerService.create.mockResolvedValue(mockCreatedCustomer);
+      mockedVerifyJWTToken.mockResolvedValue(mockFrontdeskUser);
 
       const response = await request(app)
         .post("/api/customers")
@@ -266,6 +277,7 @@ describe("Customer Routes", () => {
       mockedCustomerService.create.mockRejectedValue(
         new Error("Database error")
       );
+      mockedVerifyJWTToken.mockResolvedValue(mockFrontdeskUser);
 
       const response = await request(app)
         .post("/api/customers")
@@ -305,6 +317,7 @@ describe("Customer Routes", () => {
       };
 
       mockedCustomerService.update.mockResolvedValue(mockUpdatedCustomer);
+      mockedVerifyJWTToken.mockResolvedValue(mockFrontdeskUser);
 
       const response = await request(app)
         .put("/api/customers/customer-1")
@@ -324,6 +337,7 @@ describe("Customer Routes", () => {
 
     it("should return 404 when customer not found for update", async () => {
       mockedCustomerService.update.mockResolvedValue(null);
+      mockedVerifyJWTToken.mockResolvedValue(mockFrontdeskUser);
 
       const response = await request(app)
         .put("/api/customers/non-existent-id")
@@ -339,6 +353,7 @@ describe("Customer Routes", () => {
   describe("DELETE /api/customers/:id", () => {
     it("should delete customer successfully", async () => {
       mockedCustomerService.delete.mockResolvedValue(true);
+      mockedVerifyJWTToken.mockResolvedValue(mockAdminUser);
 
       const response = await request(app)
         .delete("/api/customers/customer-1")
@@ -352,6 +367,7 @@ describe("Customer Routes", () => {
 
     it("should return 404 when customer not found for deletion", async () => {
       mockedCustomerService.delete.mockResolvedValue(false);
+      mockedVerifyJWTToken.mockResolvedValue(mockAdminUser);
 
       const response = await request(app)
         .delete("/api/customers/non-existent-id")

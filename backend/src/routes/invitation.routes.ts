@@ -1,6 +1,7 @@
 import express, { Request, Response } from "express";
-import { BadRequestError, ForbiddenError, NotFoundError } from "../config/errors";
+import { BadRequestError, NotFoundError } from "../config/errors";
 import { validateRequest } from "../middlewares/auth.middleware";
+import { requireAdmin } from "../middlewares/rbac.middleware";
 import { requireTenantContext } from "../middlewares/tenant.middleware";
 import { validate } from "../middlewares/validation.middleware";
 import invitationService from "../services/invitation.service";
@@ -13,21 +14,12 @@ const router = express.Router();
 router.use(validateRequest);
 router.use(requireTenantContext);
 
-// Helper to check if user is admin
-function requireAdmin(req: Request): void {
-  const user = req.user;
-  if (!user || user.role !== "admin") {
-    throw new ForbiddenError("Only admins can manage invitations");
-  }
-}
-
 // POST /api/invitations - Create new invitation
 router.post(
   "/",
   validate(createInvitationValidation),
+  requireAdmin(),
   asyncHandler(async (req: Request, res: Response) => {
-    requireAdmin(req);
-    
     const companyId = req.companyId!;
     const userId = req.user!.id;
     const { email, role, expiresAt } = req.body;
@@ -60,9 +52,8 @@ router.post(
 // GET /api/invitations - List all invitations for company
 router.get(
   "/",
+  requireAdmin(),
   asyncHandler(async (req: Request, res: Response) => {
-    requireAdmin(req);
-    
     const companyId = req.companyId!;
     const invitations = await invitationService.findAll(companyId);
     
@@ -76,9 +67,8 @@ router.get(
 // DELETE /api/invitations/:id - Revoke invitation
 router.delete(
   "/:id",
+  requireAdmin(),
   asyncHandler(async (req: Request, res: Response) => {
-    requireAdmin(req);
-    
     const companyId = req.companyId!;
     const { id } = req.params;
     

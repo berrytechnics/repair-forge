@@ -33,6 +33,16 @@ const mockUser = {
   updatedAt: new Date(),
 };
 
+const mockAdminUser = {
+  ...mockUser,
+  role: "admin" as const,
+};
+
+const mockManagerUser = {
+  ...mockUser,
+  role: "manager" as const,
+};
+
 // Test UUIDs
 const CUSTOMER_ID_1 = "550e8400-e29b-41d4-a716-446655440001";
 const CUSTOMER_ID_2 = "550e8400-e29b-41d4-a716-446655440002";
@@ -280,6 +290,7 @@ describe("Invoice Routes", () => {
       };
 
       mockedInvoiceService.create.mockResolvedValue(mockCreatedInvoice);
+      mockedVerifyJWTToken.mockResolvedValue(mockManagerUser);
 
       const response = await request(app)
         .post("/api/invoices")
@@ -310,6 +321,7 @@ describe("Invoice Routes", () => {
       mockedInvoiceService.create.mockRejectedValue(
         new Error("Database error")
       );
+      mockedVerifyJWTToken.mockResolvedValue(mockManagerUser);
 
       const response = await request(app)
         .post("/api/invoices")
@@ -357,6 +369,7 @@ describe("Invoice Routes", () => {
       };
 
       mockedInvoiceService.update.mockResolvedValue(mockUpdatedInvoice);
+      mockedVerifyJWTToken.mockResolvedValue(mockManagerUser);
 
       const response = await request(app)
         .put(`/api/invoices/${INVOICE_ID_1}`)
@@ -376,6 +389,7 @@ describe("Invoice Routes", () => {
 
     it("should return 404 when invoice not found for update", async () => {
       mockedInvoiceService.update.mockResolvedValue(null);
+      mockedVerifyJWTToken.mockResolvedValue(mockManagerUser);
 
       const response = await request(app)
         .put("/api/invoices/non-existent-id")
@@ -391,6 +405,7 @@ describe("Invoice Routes", () => {
   describe("DELETE /api/invoices/:id", () => {
     it("should delete invoice successfully", async () => {
       mockedInvoiceService.delete.mockResolvedValue(true);
+      mockedVerifyJWTToken.mockResolvedValue(mockAdminUser);
 
       const response = await request(app)
         .delete(`/api/invoices/${INVOICE_ID_1}`)
@@ -404,6 +419,7 @@ describe("Invoice Routes", () => {
 
     it("should return 404 when invoice not found for deletion", async () => {
       mockedInvoiceService.delete.mockResolvedValue(false);
+      mockedVerifyJWTToken.mockResolvedValue(mockAdminUser);
 
       const response = await request(app)
         .delete("/api/invoices/non-existent-id")
@@ -439,6 +455,7 @@ describe("Invoice Routes", () => {
       };
 
       mockedInvoiceService.createInvoiceItem.mockResolvedValue(mockItem);
+      mockedVerifyJWTToken.mockResolvedValue(mockManagerUser);
 
       const response = await request(app)
         .post(`/api/invoices/${INVOICE_ID_1}/items`)
@@ -475,6 +492,7 @@ describe("Invoice Routes", () => {
       mockedInvoiceService.createInvoiceItem.mockRejectedValue(
         new Error("Invoice not found")
       );
+      mockedVerifyJWTToken.mockResolvedValue(mockManagerUser);
 
       const response = await request(app)
         .post("/api/invoices/non-existent-id/items")
@@ -516,6 +534,7 @@ describe("Invoice Routes", () => {
       };
 
       mockedInvoiceService.updateInvoiceItem.mockResolvedValue(mockUpdatedItem);
+      mockedVerifyJWTToken.mockResolvedValue(mockManagerUser);
 
       const response = await request(app)
         .put(`/api/invoices/${INVOICE_ID_1}/items/${ITEM_ID_1}`)
@@ -536,6 +555,7 @@ describe("Invoice Routes", () => {
 
     it("should return 404 when invoice item not found", async () => {
       mockedInvoiceService.updateInvoiceItem.mockResolvedValue(null);
+      mockedVerifyJWTToken.mockResolvedValue(mockManagerUser);
 
       const response = await request(app)
         .put(`/api/invoices/${INVOICE_ID_1}/items/non-existent-id`)
@@ -565,6 +585,7 @@ describe("Invoice Routes", () => {
 
     it("should delete invoice item successfully", async () => {
       mockedInvoiceService.deleteInvoiceItem.mockResolvedValue(true);
+      mockedVerifyJWTToken.mockResolvedValue(mockManagerUser);
 
       const response = await request(app)
         .delete(`/api/invoices/${INVOICE_ID_1}/items/${ITEM_ID_1}`)
@@ -582,6 +603,7 @@ describe("Invoice Routes", () => {
 
     it("should return 404 when invoice item not found", async () => {
       mockedInvoiceService.deleteInvoiceItem.mockResolvedValue(false);
+      mockedVerifyJWTToken.mockResolvedValue(mockManagerUser);
 
       const response = await request(app)
         .delete(`/api/invoices/${INVOICE_ID_1}/items/non-existent-id`)
@@ -624,6 +646,7 @@ describe("Invoice Routes", () => {
       };
 
       mockedInvoiceService.markInvoiceAsPaid.mockResolvedValue(mockPaidInvoice);
+      mockedVerifyJWTToken.mockResolvedValue(mockManagerUser);
 
       const response = await request(app)
         .post(`/api/invoices/${INVOICE_ID_1}/paid`)
@@ -658,6 +681,7 @@ describe("Invoice Routes", () => {
 
     it("should return 404 when invoice not found", async () => {
       mockedInvoiceService.markInvoiceAsPaid.mockResolvedValue(null);
+      mockedVerifyJWTToken.mockResolvedValue(mockManagerUser);
 
       const response = await request(app)
         .post("/api/invoices/non-existent-id/paid")
@@ -698,6 +722,7 @@ describe("Invoice Routes", () => {
       };
 
       mockedInvoiceService.markInvoiceAsPaid.mockResolvedValue(mockPaidInvoice);
+      mockedVerifyJWTToken.mockResolvedValue(mockManagerUser);
 
       const response = await request(app)
         .post(`/api/invoices/${INVOICE_ID_1}/paid`)

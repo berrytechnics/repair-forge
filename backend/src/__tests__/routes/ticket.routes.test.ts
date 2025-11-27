@@ -38,6 +38,16 @@ const mockUser = {
   updatedAt: new Date(),
 };
 
+const mockAdminUser = {
+  ...mockUser,
+  role: "admin" as const,
+};
+
+const mockManagerUser = {
+  ...mockUser,
+  role: "manager" as const,
+};
+
 // Test UUIDs
 const CUSTOMER_ID_1 = "550e8400-e29b-41d4-a716-446655440001";
 const CUSTOMER_ID_2 = "550e8400-e29b-41d4-a716-446655440002";
@@ -539,6 +549,7 @@ describe("Ticket Routes", () => {
   describe("DELETE /api/tickets/:id", () => {
     it("should delete ticket successfully", async () => {
       mockedTicketService.delete.mockResolvedValue(true);
+      mockedVerifyJWTToken.mockResolvedValue(mockAdminUser as any);
 
       const response = await request(app)
         .delete(`/api/tickets/${TICKET_ID_1}`)
@@ -552,6 +563,7 @@ describe("Ticket Routes", () => {
 
     it("should return 404 when ticket not found for deletion", async () => {
       mockedTicketService.delete.mockResolvedValue(false);
+      mockedVerifyJWTToken.mockResolvedValue(mockAdminUser as any);
 
       const response = await request(app)
         .delete("/api/tickets/non-existent-id")
@@ -599,6 +611,7 @@ describe("Ticket Routes", () => {
 
       mockedUserService.findById.mockResolvedValue(mockTechnician as any);
       mockedTicketService.assignTechnician.mockResolvedValue(mockUpdatedTicket);
+      mockedVerifyJWTToken.mockResolvedValue(mockManagerUser as any);
 
       const response = await request(app)
         .post(`/api/tickets/${TICKET_ID_1}/assign`)
@@ -639,6 +652,7 @@ describe("Ticket Routes", () => {
       };
 
       mockedTicketService.assignTechnician.mockResolvedValue(mockUpdatedTicket);
+      mockedVerifyJWTToken.mockResolvedValue(mockManagerUser as any);
 
       const response = await request(app)
         .post(`/api/tickets/${TICKET_ID_1}/assign`)
@@ -670,6 +684,7 @@ describe("Ticket Routes", () => {
 
       mockedUserService.findById.mockResolvedValue(mockTechnician as any);
       mockedTicketService.assignTechnician.mockResolvedValue(null);
+      mockedVerifyJWTToken.mockResolvedValue(mockManagerUser as any);
 
       const response = await request(app)
         .post(`/api/tickets/${TICKET_ID_1}/assign`)
@@ -683,6 +698,7 @@ describe("Ticket Routes", () => {
 
     it("should return 404 when technician not found", async () => {
       mockedUserService.findById.mockResolvedValue(null);
+      mockedVerifyJWTToken.mockResolvedValue(mockManagerUser as any);
 
       const response = await request(app)
         .post(`/api/tickets/${TICKET_ID_1}/assign`)
@@ -708,6 +724,7 @@ describe("Ticket Routes", () => {
       };
 
       mockedUserService.findById.mockResolvedValue(mockFrontdeskUser as any);
+      mockedVerifyJWTToken.mockResolvedValue(mockManagerUser as any);
 
       const response = await request(app)
         .post(`/api/tickets/${TICKET_ID_1}/assign`)
@@ -756,6 +773,7 @@ describe("Ticket Routes", () => {
 
       mockedUserService.findById.mockResolvedValue(mockAdmin as any);
       mockedTicketService.assignTechnician.mockResolvedValue(mockUpdatedTicket);
+      mockedVerifyJWTToken.mockResolvedValue(mockAdminUser as any);
 
       const response = await request(app)
         .post(`/api/tickets/${TICKET_ID_1}/assign`)

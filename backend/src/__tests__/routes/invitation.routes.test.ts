@@ -86,7 +86,7 @@ describe("Invitation Routes", () => {
 
       expect(response.status).toBe(403);
       expect(response.body.success).toBe(false);
-      expect(response.body.error.message).toBe("Only admins can manage invitations");
+      expect(response.body.error.message).toBe("Access denied. Required role: admin");
       expect(mockedInvitationService.create).not.toHaveBeenCalled();
     });
 
@@ -183,7 +183,7 @@ describe("Invitation Routes", () => {
 
       expect(response.status).toBe(403);
       expect(response.body.success).toBe(false);
-      expect(response.body.error.message).toBe("Only admins can manage invitations");
+      expect(response.body.error.message).toBe("Access denied. Required role: admin");
     });
   });
 
@@ -226,7 +226,7 @@ describe("Invitation Routes", () => {
 
       expect(response.status).toBe(403);
       expect(response.body.success).toBe(false);
-      expect(response.body.error.message).toBe("Only admins can manage invitations");
+      expect(response.body.error.message).toBe("Access denied. Required role: admin");
     });
   });
 });

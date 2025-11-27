@@ -153,7 +153,7 @@ export interface TicketTable {
   deleted_at: SoftDelete;
 }
 
-export type UserRole = "admin" | "technician" | "frontdesk";
+export type UserRole = "admin" | "manager" | "technician" | "frontdesk";
 
 export interface InvitationTable {
   id: UUID;
