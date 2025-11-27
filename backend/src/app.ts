@@ -2,8 +2,11 @@ import cors from "cors";
 import express, { Express, NextFunction, Request, Response } from "express";
 import helmet from "helmet";
 import morgan from "morgan";
-import { HttpError } from "./config/errors";
+import { HttpError, ValidationError } from "./config/errors";
+import logger from "./config/logger";
 import customerRoutes from "./routes/customer.routes";
+import invoiceRoutes from "./routes/invoice.routes";
+import ticketRoutes from "./routes/ticket.routes";
 import userRoutes from "./routes/user.routes";
 
 // Import routes
@@ -19,6 +22,8 @@ app.use(morgan("dev"));
 // Routes
 app.use("/user", userRoutes);
 app.use("/customer", customerRoutes);
+app.use("/ticket", ticketRoutes);
+app.use("/invoice", invoiceRoutes);
 
 // Health check endpoint
 app.get("/health", (req: Request, res: Response) => {
@@ -31,15 +36,34 @@ app.use((req: Request, res: Response) => {
 });
 
 // Error handling middleware
-app.use((err: HttpError, req: Request, res: Response, next: NextFunction) => {
-  console.error(err.stack);
-  if (next) {
-    next();
-  }
-  res.status(err.statusCode || 500).json({
-    message: err.message || "Internal Server Error",
-    ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
-  });
+app.use((err: Error | HttpError, req: Request, res: Response, _next: NextFunction) => {
+  logger.error(err.stack || err.message);
+  
+  // Convert regular Errors to HttpError
+  const httpError = err instanceof HttpError 
+    ? err 
+    : new HttpError(err.message || "Internal Server Error", 500);
+  
+  const statusCode = httpError.statusCode;
+  const message = httpError.message;
+  
+  const errorResponse: {
+    success: false;
+    error: {
+      message: string;
+      errors?: Record<string, string>;
+      stack?: string;
+    };
+  } = {
+    success: false,
+    error: {
+      message,
+      ...(httpError instanceof ValidationError && { errors: httpError.errors }),
+      ...(process.env.NODE_ENV === "development" && { stack: httpError.stack }),
+    },
+  };
+  
+  res.status(statusCode).json(errorResponse);
 });
 
 export default app;
