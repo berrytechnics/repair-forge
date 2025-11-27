@@ -164,24 +164,24 @@ export default function CustomerForm({ customerId }: CustomerFormProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
-          <p className="mt-2 text-gray-700">Loading customer data...</p>
+          <p className="mt-2 text-gray-700 dark:text-gray-300">Loading customer data...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-6 lg:p-8">
       <div className="max-w-3xl mx-auto">
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
               {isUpdateMode ? "Edit Customer" : "Add New Customer"}
             </h1>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               {isUpdateMode
                 ? "Update customer information"
                 : "Create a new customer profile for your repair business"}
@@ -194,26 +194,26 @@ export default function CustomerForm({ customerId }: CustomerFormProps) {
                 ? router.push(`/customers/${customerId}`)
                 : router.push("/customers")
             }
-            className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            className="inline-flex items-center justify-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
           >
             Cancel
           </button>
         </div>
 
         {submitError && (
-          <div className="mb-6 p-3 bg-red-50 text-red-700 rounded-md border border-red-200">
+          <div className="mb-6 p-3 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-md border border-red-200 dark:border-red-800">
             {submitError}
           </div>
         )}
 
-        <div className="bg-white shadow rounded-lg">
+        <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
           <form onSubmit={handleSubmit} className="p-6">
             <div className="space-y-6">
               <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
                 <div>
                   <label
                     htmlFor="firstName"
-                    className="block text-sm font-medium text-gray-700"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300"
                   >
                     First Name *
                   </label>
@@ -224,14 +224,14 @@ export default function CustomerForm({ customerId }: CustomerFormProps) {
                       id="firstName"
                       value={formData.firstName}
                       onChange={handleChange}
-                      className={`block w-full rounded-md ${
+                      className={`block w-full rounded-md dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-500 ${
                         errors.firstName
-                          ? "border-red-300 text-red-900 placeholder-red-300 focus:border-red-500 focus:ring-red-500"
-                          : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                          ? "border-red-300 dark:border-red-600 text-red-900 dark:text-red-400 placeholder-red-300 dark:placeholder-red-500 focus:border-red-500 focus:ring-red-500"
+                          : "border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500"
                       } shadow-sm sm:text-sm`}
                     />
                     {errors.firstName && (
-                      <p className="mt-2 text-sm text-red-600">
+                      <p className="mt-2 text-sm text-red-600 dark:text-red-400">
                         {errors.firstName}
                       </p>
                     )}
@@ -241,7 +241,7 @@ export default function CustomerForm({ customerId }: CustomerFormProps) {
                 <div>
                   <label
                     htmlFor="lastName"
-                    className="block text-sm font-medium text-gray-700"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300"
                   >
                     Last Name *
                   </label>
@@ -252,14 +252,14 @@ export default function CustomerForm({ customerId }: CustomerFormProps) {
                       id="lastName"
                       value={formData.lastName}
                       onChange={handleChange}
-                      className={`block w-full rounded-md ${
+                      className={`block w-full rounded-md dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-500 ${
                         errors.lastName
-                          ? "border-red-300 text-red-900 placeholder-red-300 focus:border-red-500 focus:ring-red-500"
-                          : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                          ? "border-red-300 dark:border-red-600 text-red-900 dark:text-red-400 placeholder-red-300 dark:placeholder-red-500 focus:border-red-500 focus:ring-red-500"
+                          : "border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500"
                       } shadow-sm sm:text-sm`}
                     />
                     {errors.lastName && (
-                      <p className="mt-2 text-sm text-red-600">
+                      <p className="mt-2 text-sm text-red-600 dark:text-red-400">
                         {errors.lastName}
                       </p>
                     )}
@@ -269,7 +269,7 @@ export default function CustomerForm({ customerId }: CustomerFormProps) {
                 <div>
                   <label
                     htmlFor="email"
-                    className="block text-sm font-medium text-gray-700"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300"
                   >
                     Email Address *
                   </label>
@@ -280,14 +280,14 @@ export default function CustomerForm({ customerId }: CustomerFormProps) {
                       id="email"
                       value={formData.email}
                       onChange={handleChange}
-                      className={`block w-full rounded-md ${
+                      className={`block w-full rounded-md dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-500 ${
                         errors.email
-                          ? "border-red-300 text-red-900 placeholder-red-300 focus:border-red-500 focus:ring-red-500"
-                          : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                          ? "border-red-300 dark:border-red-600 text-red-900 dark:text-red-400 placeholder-red-300 dark:placeholder-red-500 focus:border-red-500 focus:ring-red-500"
+                          : "border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500"
                       } shadow-sm sm:text-sm`}
                     />
                     {errors.email && (
-                      <p className="mt-2 text-sm text-red-600">
+                      <p className="mt-2 text-sm text-red-600 dark:text-red-400">
                         {errors.email}
                       </p>
                     )}
@@ -297,7 +297,7 @@ export default function CustomerForm({ customerId }: CustomerFormProps) {
                 <div>
                   <label
                     htmlFor="phone"
-                    className="block text-sm font-medium text-gray-700"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300"
                   >
                     Phone Number
                   </label>
@@ -308,14 +308,14 @@ export default function CustomerForm({ customerId }: CustomerFormProps) {
                       id="phone"
                       value={formData.phone || ""}
                       onChange={handleChange}
-                      className={`block w-full rounded-md ${
+                      className={`block w-full rounded-md dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-500 ${
                         errors.phone
-                          ? "border-red-300 text-red-900 placeholder-red-300 focus:border-red-500 focus:ring-red-500"
-                          : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                          ? "border-red-300 dark:border-red-600 text-red-900 dark:text-red-400 placeholder-red-300 dark:placeholder-red-500 focus:border-red-500 focus:ring-red-500"
+                          : "border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500"
                       } shadow-sm sm:text-sm`}
                     />
                     {errors.phone && (
-                      <p className="mt-2 text-sm text-red-600">
+                      <p className="mt-2 text-sm text-red-600 dark:text-red-400">
                         {errors.phone}
                       </p>
                     )}
@@ -325,7 +325,7 @@ export default function CustomerForm({ customerId }: CustomerFormProps) {
                 <div className="sm:col-span-2">
                   <label
                     htmlFor="address"
-                    className="block text-sm font-medium text-gray-700"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300"
                   >
                     Street Address
                   </label>
@@ -336,7 +336,7 @@ export default function CustomerForm({ customerId }: CustomerFormProps) {
                       id="address"
                       value={formData.address || ""}
                       onChange={handleChange}
-                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                      className="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-500 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                     />
                   </div>
                 </div>
@@ -344,7 +344,7 @@ export default function CustomerForm({ customerId }: CustomerFormProps) {
                 <div>
                   <label
                     htmlFor="city"
-                    className="block text-sm font-medium text-gray-700"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300"
                   >
                     City
                   </label>
@@ -355,7 +355,7 @@ export default function CustomerForm({ customerId }: CustomerFormProps) {
                       id="city"
                       value={formData.city || ""}
                       onChange={handleChange}
-                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                      className="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-500 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                     />
                   </div>
                 </div>
@@ -364,7 +364,7 @@ export default function CustomerForm({ customerId }: CustomerFormProps) {
                   <div className="col-span-2">
                     <label
                       htmlFor="state"
-                      className="block text-sm font-medium text-gray-700"
+                      className="block text-sm font-medium text-gray-700 dark:text-gray-300"
                     >
                       State / Province
                     </label>
@@ -375,7 +375,7 @@ export default function CustomerForm({ customerId }: CustomerFormProps) {
                         id="state"
                         value={formData.state || ""}
                         onChange={handleChange}
-                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                        className="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-500 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                       />
                     </div>
                   </div>
@@ -383,7 +383,7 @@ export default function CustomerForm({ customerId }: CustomerFormProps) {
                   <div>
                     <label
                       htmlFor="zipCode"
-                      className="block text-sm font-medium text-gray-700"
+                      className="block text-sm font-medium text-gray-700 dark:text-gray-300"
                     >
                       Zip / Postal
                     </label>
@@ -394,14 +394,14 @@ export default function CustomerForm({ customerId }: CustomerFormProps) {
                         id="zipCode"
                         value={formData.zipCode || ""}
                         onChange={handleChange}
-                        className={`block w-full rounded-md ${
+                        className={`block w-full rounded-md dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-500 ${
                           errors.zipCode
-                            ? "border-red-300 text-red-900 placeholder-red-300 focus:border-red-500 focus:ring-red-500"
-                            : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                            ? "border-red-300 dark:border-red-600 text-red-900 dark:text-red-400 placeholder-red-300 dark:placeholder-red-500 focus:border-red-500 focus:ring-red-500"
+                            : "border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500"
                         } shadow-sm sm:text-sm`}
                       />
                       {errors.zipCode && (
-                        <p className="mt-2 text-sm text-red-600">
+                        <p className="mt-2 text-sm text-red-600 dark:text-red-400">
                           {errors.zipCode}
                         </p>
                       )}
@@ -412,7 +412,7 @@ export default function CustomerForm({ customerId }: CustomerFormProps) {
                 <div className="sm:col-span-2">
                   <label
                     htmlFor="notes"
-                    className="block text-sm font-medium text-gray-700"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300"
                   >
                     Notes
                   </label>
@@ -423,15 +423,15 @@ export default function CustomerForm({ customerId }: CustomerFormProps) {
                       rows={4}
                       value={formData.notes || ""}
                       onChange={handleChange}
-                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                      className="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-500 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                       placeholder="Additional information about the customer"
                     ></textarea>
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                <p className="text-sm text-gray-500">
+              <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
                   Fields marked with * are required
                 </p>
                 <div className="flex space-x-3">
@@ -452,7 +452,7 @@ export default function CustomerForm({ customerId }: CustomerFormProps) {
                         });
                         setErrors({});
                       }}
-                      className="rounded-md border border-gray-300 bg-white py-2 px-4 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                      className="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 py-2 px-4 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
                     >
                       Reset
                     </button>
@@ -460,7 +460,7 @@ export default function CustomerForm({ customerId }: CustomerFormProps) {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="inline-flex justify-center rounded-md border border-transparent bg-blue-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-75"
+                    className="inline-flex justify-center rounded-md border border-transparent bg-blue-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-75"
                   >
                     {isSubmitting
                       ? isUpdateMode
