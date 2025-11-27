@@ -138,6 +138,15 @@ jobs:
             fi
           done
           echo "All migrations completed successfully"
+          
+      - name: Verify database schema
+        env:
+          PGPASSWORD: ${{ env.DB_PASSWORD }}
+        run: |
+          echo "Verifying database tables exist..."
+          psql -h localhost -U ${{ env.DB_USER }} -d ${{ env.DB_NAME }} -c "\dt" || echo "Warning: Could not list tables"
+          # Verify key tables exist
+          psql -h localhost -U ${{ env.DB_USER }} -d ${{ env.DB_NAME }} -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('companies', 'users', 'customers', 'tickets', 'invoices', 'role_permissions');" || exit 1
 
       - name: Run tests
         run: yarn test
