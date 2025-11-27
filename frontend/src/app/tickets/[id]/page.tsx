@@ -7,19 +7,13 @@ import {
   assignTechnician,
   getTicketById,
   Ticket,
+  updateTicket,
   updateTicketStatus,
 } from "@/lib/api/ticket.api";
 import { formatPriority, formatStatus, getPriorityColor, getStatusColor } from "@/lib/utils/ticketUtils";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 
-// Define additional types not in the API
-interface Note {
-  date: string;
-  userId: string;
-  userName: string;
-  note: string;
-}
 
 export default function TicketDetailPage({
   params,
@@ -33,20 +27,22 @@ export default function TicketDetailPage({
   const [technicians, setTechnicians] = useState<Technician[]>([]);
   const [selectedTechnicianId, setSelectedTechnicianId] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
+  const [selectedPriority, setSelectedPriority] = useState("");
   const [newNote, setNewNote] = useState("");
   const [noteType, setNoteType] = useState<"diagnostic" | "repair">(
     "diagnostic"
   );
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // Parse notes from JSON strings to arrays
-  const diagnosticNotes: Note[] = ticket?.diagnosticNotes
-    ? JSON.parse(ticket.diagnosticNotes)
-    : [];
+  // Parse notes from plain text (notes are appended with double newlines)
+  const parseNotes = (notesText: string | null | undefined): string[] => {
+    if (!notesText) return [];
+    // Split by double newlines to get individual notes
+    return notesText.split(/\n\n+/).filter(note => note.trim().length > 0);
+  };
 
-  const repairNotes: Note[] = ticket?.repairNotes
-    ? JSON.parse(ticket.repairNotes)
-    : [];
+  const diagnosticNotes = parseNotes(ticket?.diagnosticNotes);
+  const repairNotes = parseNotes(ticket?.repairNotes);
 
   // Fetch ticket data
   useEffect(() => {
@@ -57,6 +53,7 @@ export default function TicketDetailPage({
         if (response.data) {
           setTicket(response.data);
           setSelectedStatus(response.data.status);
+          setSelectedPriority(response.data.priority);
         }
       } catch (err) {
         console.error("Error fetching ticket:", err);
@@ -91,11 +88,12 @@ export default function TicketDetailPage({
 
   // Handle technician assignment
   const handleAssignTechnician = async () => {
-    if (!selectedTechnicianId || !ticket) return;
+    if (!ticket) return;
 
     setIsUpdating(true);
     try {
-      const response = await assignTechnician(ticket.id, selectedTechnicianId);
+      const technicianId = selectedTechnicianId || null;
+      const response = await assignTechnician(ticket.id, technicianId);
       if (response.data) {
         setTicket(response.data);
         setSelectedTechnicianId("");
@@ -137,6 +135,30 @@ export default function TicketDetailPage({
         err instanceof Error
           ? err.message
           : "Failed to update status. Please try again."
+      );
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  // Handle priority update
+  const handlePriorityUpdate = async () => {
+    if (!selectedPriority || !ticket || selectedPriority === ticket.priority) return;
+
+    setIsUpdating(true);
+    try {
+      const response = await updateTicket(ticket.id, {
+        priority: selectedPriority as "low" | "medium" | "high" | "urgent",
+      });
+      if (response.data) {
+        setTicket(response.data);
+      }
+    } catch (err) {
+      console.error("Error updating priority:", err);
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to update priority. Please try again."
       );
     } finally {
       setIsUpdating(false);
@@ -426,16 +448,8 @@ export default function TicketDetailPage({
                               key={index}
                               className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-md"
                             >
-                              <div className="flex justify-between items-start">
-                                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                  {note.userName}
-                                </p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">
-                                  {formatDate(note.date)}
-                                </p>
-                              </div>
-                              <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-                                {note.note}
+                              <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap">
+                                {note.trim()}
                               </p>
                             </li>
                           ))}
@@ -455,16 +469,8 @@ export default function TicketDetailPage({
                               key={index}
                               className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-md"
                             >
-                              <div className="flex justify-between items-start">
-                                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                  {note.userName}
-                                </p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">
-                                  {formatDate(note.date)}
-                                </p>
-                              </div>
-                              <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-                                {note.note}
+                              <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap">
+                                {note.trim()}
                               </p>
                             </li>
                           ))}
@@ -616,7 +622,7 @@ export default function TicketDetailPage({
                       value={selectedTechnicianId}
                       onChange={(e) => setSelectedTechnicianId(e.target.value)}
                     >
-                      <option value="">Select a technician</option>
+                      <option value="">{ticket.technician ? "Unassign" : "Select a technician"}</option>
                       {technicians.map((tech) => (
                         <option key={tech.id} value={tech.id}>
                           {tech.firstName} {tech.lastName}
@@ -626,10 +632,10 @@ export default function TicketDetailPage({
                     <button
                       type="button"
                       onClick={handleAssignTechnician}
-                      disabled={isUpdating || !selectedTechnicianId}
+                      disabled={isUpdating}
                       className="ml-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800 focus:ring-blue-500 disabled:opacity-50"
                     >
-                      {isUpdating ? "Assigning..." : "Assign"}
+                      {isUpdating ? "Updating..." : ticket.technician && !selectedTechnicianId ? "Unassign" : "Assign"}
                     </button>
                   </div>
                 </div>
@@ -669,6 +675,45 @@ export default function TicketDetailPage({
                     type="button"
                     onClick={handleStatusUpdate}
                     disabled={isUpdating || selectedStatus === ticket.status}
+                    className="ml-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800 focus:ring-blue-500 disabled:opacity-50"
+                  >
+                    {isUpdating ? "Updating..." : "Update"}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Priority actions */}
+            <div className="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-lg">
+              <div className="px-4 py-5 sm:px-6 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-gray-100">
+                  Priority
+                </h3>
+              </div>
+              <div className="border-t border-gray-200 dark:border-gray-700 px-4 py-5 sm:p-6">
+                <label
+                  htmlFor="priority"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
+                  Update Priority
+                </label>
+                <div className="mt-1 flex">
+                  <select
+                    id="priority"
+                    name="priority"
+                    className="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-blue-500 dark:focus:border-blue-500 focus:ring-blue-500 dark:focus:ring-blue-500 sm:text-sm"
+                    value={selectedPriority}
+                    onChange={(e) => setSelectedPriority(e.target.value)}
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
+                  </select>
+                  <button
+                    type="button"
+                    onClick={handlePriorityUpdate}
+                    disabled={isUpdating || selectedPriority === ticket.priority}
                     className="ml-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800 focus:ring-blue-500 disabled:opacity-50"
                   >
                     {isUpdating ? "Updating..." : "Update"}

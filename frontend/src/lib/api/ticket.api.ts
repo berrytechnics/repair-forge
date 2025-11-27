@@ -139,12 +139,11 @@ export const deleteTicket = async (
 
 export const assignTechnician = async (
   ticketId: string,
-  technicianId: string,
-  notes?: string
+  technicianId: string | null
 ): Promise<ApiResponse<Ticket>> => {
   const response = await api.post<ApiResponse<Ticket>>(
     `/tickets/${ticketId}/assign`,
-    { technicianId, notes }
+    { technicianId: technicianId || null }
   );
 
   if (response.data.success) {
@@ -164,12 +163,11 @@ export const updateTicketStatus = async (
     | "in_progress"
     | "on_hold"
     | "completed"
-    | "cancelled",
-  notes?: string
+    | "cancelled"
 ): Promise<ApiResponse<Ticket>> => {
   const response = await api.post<ApiResponse<Ticket>>(
     `/tickets/${ticketId}/status`,
-    { status, notes }
+    { status }
   );
 
   if (response.data.success) {
@@ -183,11 +181,11 @@ export const updateTicketStatus = async (
 
 export const addDiagnosticNote = async (
   ticketId: string,
-  note: string
+  notes: string
 ): Promise<ApiResponse<Ticket>> => {
   const response = await api.post<ApiResponse<Ticket>>(
     `/tickets/${ticketId}/diagnostic-notes`,
-    { note }
+    { notes }
   );
 
   if (response.data.success) {
@@ -201,11 +199,11 @@ export const addDiagnosticNote = async (
 
 export const addRepairNote = async (
   ticketId: string,
-  note: string
+  notes: string
 ): Promise<ApiResponse<Ticket>> => {
   const response = await api.post<ApiResponse<Ticket>>(
     `/tickets/${ticketId}/repair-notes`,
-    { note }
+    { notes }
   );
 
   if (response.data.success) {

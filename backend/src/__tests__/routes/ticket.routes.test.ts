@@ -430,6 +430,94 @@ describe("Ticket Routes", () => {
       );
     });
 
+    it("should update ticket priority successfully", async () => {
+      const updateData = {
+        priority: "urgent" as const,
+      };
+
+      const mockUpdatedTicket = {
+        id: TICKET_ID_1,
+        ticketNumber: "TKT-12345678-001",
+        customerId: CUSTOMER_ID_1,
+        technicianId: TECHNICIAN_ID,
+        status: "in_progress" as const,
+        priority: "urgent" as const,
+        deviceType: "Smartphone",
+        deviceBrand: "Apple",
+        deviceModel: "iPhone 13",
+        serialNumber: "SN123456",
+        issueDescription: "Screen cracked",
+        diagnosticNotes: null,
+        repairNotes: null,
+        estimatedCompletionDate: null,
+        completedDate: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      mockedTicketService.update.mockResolvedValue(mockUpdatedTicket);
+
+      const response = await request(app)
+        .put(`/api/tickets/${TICKET_ID_1}`)
+        .set("Authorization", "Bearer valid-token")
+        .send(updateData);
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.priority).toBe("urgent");
+      expect(mockedTicketService.update).toHaveBeenCalledWith(
+        TICKET_ID_1,
+        updateData
+      );
+    });
+
+    it("should update priority to all valid values", async () => {
+      const validPriorities = ["low", "medium", "high", "urgent"];
+
+      for (const priority of validPriorities) {
+        const mockUpdatedTicket = {
+          id: TICKET_ID_1,
+          ticketNumber: "TKT-12345678-001",
+          customerId: CUSTOMER_ID_1,
+          technicianId: null,
+          status: "new" as const,
+          priority: priority as const,
+          deviceType: "Smartphone",
+          deviceBrand: null,
+          deviceModel: null,
+          serialNumber: null,
+          issueDescription: "Test",
+          diagnosticNotes: null,
+          repairNotes: null,
+          estimatedCompletionDate: null,
+          completedDate: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        mockedTicketService.update.mockResolvedValue(mockUpdatedTicket);
+
+        const response = await request(app)
+          .put(`/api/tickets/${TICKET_ID_1}`)
+          .set("Authorization", "Bearer valid-token")
+          .send({ priority });
+
+        expect(response.status).toBe(200);
+        expect(response.body.data.priority).toBe(priority);
+      }
+    });
+
+    it("should return 400 for invalid priority value", async () => {
+      const response = await request(app)
+        .put(`/api/tickets/${TICKET_ID_1}`)
+        .set("Authorization", "Bearer valid-token")
+        .send({ priority: "invalid_priority" });
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.message).toBe("Validation failed");
+    });
+
     it("should return 404 when ticket not found for update", async () => {
       mockedTicketService.update.mockResolvedValue(null);
 
