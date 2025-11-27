@@ -99,6 +99,14 @@ export default function InventoryPage() {
             Track and manage your parts and supplies
           </p>
         </div>
+        <div className="mt-4 sm:mt-0">
+          <button
+            onClick={() => router.push("/inventory/new")}
+            className="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          >
+            New Item
+          </button>
+        </div>
       </div>
 
       {/* Search */}
@@ -188,8 +196,7 @@ export default function InventoryPage() {
                 <div
                   className="block hover:bg-gray-50 dark:hover:bg-gray-700/50 px-4 py-4 sm:px-6 cursor-pointer"
                   onClick={() => {
-                    // Future: navigate to detail page
-                    // router.push(`/inventory/${item.id}`);
+                    router.push(`/inventory/${item.id}`);
                   }}
                 >
                   <div className="flex items-center justify-between">
@@ -207,6 +214,11 @@ export default function InventoryPage() {
                           {isLowStock(item) && (
                             <span className="inline-flex items-center rounded-full bg-red-100 dark:bg-red-900/30 px-2 py-0.5 text-xs font-medium text-red-800 dark:text-red-300">
                               Low Stock
+                            </span>
+                          )}
+                          {item.quantity < 0 && (
+                            <span className="inline-flex items-center rounded-full bg-orange-100 dark:bg-orange-900/30 px-2 py-0.5 text-xs font-medium text-orange-800 dark:text-orange-300">
+                              Backordered
                             </span>
                           )}
                         </div>
@@ -240,7 +252,9 @@ export default function InventoryPage() {
                       <div className="text-right">
                         <p
                           className={`font-medium ${
-                            isLowStock(item)
+                            item.quantity < 0
+                              ? "text-orange-600 dark:text-orange-400"
+                              : isLowStock(item)
                               ? "text-red-600 dark:text-red-400"
                               : "text-gray-900 dark:text-gray-100"
                           }`}

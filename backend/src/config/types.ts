@@ -19,6 +19,8 @@ export interface Database {
   invoices: InvoiceTable;
   invoice_items: InvoiceItemTable;
   invitations: InvitationTable;
+  purchase_orders: PurchaseOrderTable;
+  purchase_order_items: PurchaseOrderItemTable;
   tickets: TicketTable;
   users: UserTable;
 }
@@ -154,6 +156,41 @@ export interface TicketTable {
 }
 
 export type UserRole = "admin" | "manager" | "technician" | "frontdesk";
+
+export type PurchaseOrderStatus =
+  | "draft"
+  | "ordered"
+  | "received"
+  | "cancelled";
+
+export interface PurchaseOrderTable {
+  id: UUID;
+  company_id: UUID;
+  po_number: string;
+  supplier: string;
+  status: PurchaseOrderStatus;
+  order_date: Timestamp;
+  expected_delivery_date: Timestamp | null;
+  received_date: Timestamp | null;
+  notes: string | null;
+  total_amount: number;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+  deleted_at: SoftDelete;
+}
+
+export interface PurchaseOrderItemTable {
+  id: UUID;
+  purchase_order_id: UUID;
+  inventory_item_id: UUID;
+  quantity_ordered: number;
+  quantity_received: number;
+  unit_cost: number;
+  subtotal: number;
+  notes: string | null;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+}
 
 export interface InvitationTable {
   id: UUID;

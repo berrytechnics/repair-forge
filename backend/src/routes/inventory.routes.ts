@@ -1,8 +1,15 @@
 import express, { Request, Response } from "express";
+import { NotFoundError } from "../config/errors";
 import { validateRequest } from "../middlewares/auth.middleware";
+import { requireManagerOrAdmin, requireRole } from "../middlewares/rbac.middleware";
 import { requireTenantContext } from "../middlewares/tenant.middleware";
+import { validate } from "../middlewares/validation.middleware";
 import inventoryService from "../services/inventory.service";
 import { asyncHandler } from "../utils/asyncHandler";
+import {
+  createInventoryValidation,
+  updateInventoryValidation,
+} from "../validators/inventory.validator";
 
 const router = express.Router();
 
@@ -18,6 +25,67 @@ router.get(
     const searchQuery = req.query.query as string | undefined;
     const items = await inventoryService.findAll(companyId, searchQuery);
     res.json({ success: true, data: items });
+  })
+);
+
+// GET /api/inventory/:id - Get single inventory item
+router.get(
+  "/:id",
+  asyncHandler(async (req: Request, res: Response) => {
+    const companyId = req.companyId!;
+    const { id } = req.params;
+    const item = await inventoryService.findById(id, companyId);
+    if (!item) {
+      throw new NotFoundError("Inventory item not found");
+    }
+    res.json({ success: true, data: item });
+  })
+);
+
+// POST /api/inventory - Create inventory item (admin/manager only)
+router.post(
+  "/",
+  validate(createInventoryValidation),
+  requireManagerOrAdmin(),
+  asyncHandler(async (req: Request, res: Response) => {
+    const companyId = req.companyId!;
+    const item = await inventoryService.create(req.body, companyId);
+    res.status(201).json({ success: true, data: item });
+  })
+);
+
+// PUT /api/inventory/:id - Update inventory item (admin/manager only)
+router.put(
+  "/:id",
+  validate(updateInventoryValidation),
+  requireManagerOrAdmin(),
+  asyncHandler(async (req: Request, res: Response) => {
+    const companyId = req.companyId!;
+    const { id } = req.params;
+    const item = await inventoryService.update(id, req.body, companyId);
+    if (!item) {
+      throw new NotFoundError("Inventory item not found");
+    }
+    res.json({ success: true, data: item });
+  })
+);
+
+// DELETE /api/inventory/:id - Delete inventory item (admin only)
+// Validates that quantity is 0 before deletion
+router.delete(
+  "/:id",
+  requireRole(["admin"]),
+  asyncHandler(async (req: Request, res: Response) => {
+    const companyId = req.companyId!;
+    const { id } = req.params;
+    const deleted = await inventoryService.delete(id, companyId);
+    if (!deleted) {
+      throw new NotFoundError("Inventory item not found");
+    }
+    res.json({
+      success: true,
+      data: { message: "Inventory item deleted successfully" },
+    });
   })
 );
 

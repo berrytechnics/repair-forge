@@ -28,15 +28,15 @@ A comprehensive management system for electronics repair businesses with ticketi
   - Full UI integration
 - **Invoicing**: Invoice generation with automated invoice numbering, tax calculation, and payment tracking
 - **User Authentication**: JWT-based authentication with secure password hashing
+- **Role-Based Access Control**: RBAC middleware implemented and enforced on all routes with role-based permissions
 - **API Routes**: RESTful API endpoints for customers, tickets, invoices, and users
 - **Frontend UI**: Complete Next.js frontend with pages for customers, tickets, invoices, and dashboard
-- **Testing**: Comprehensive backend test suite with 40+ tests
+- **Testing**: Comprehensive backend test suite with 118+ tests and E2E testing framework (Playwright)
 - **Demo Tools**: Cloudflare tunnel integration for easy frontend sharing
 
 ### Planned Features
 
 - **Inventory Management**: Track parts, supplies, and set reorder thresholds
-- **Role-Based Access Control**: Enforce permissions for admin, manager, technician, and receptionist roles
 - **Diagnostic System**: Standardized diagnostic templates and checklists
 - **Communication Tools**: Email and SMS notifications for status updates
 - **Reporting**: Business analytics and performance reports
@@ -211,9 +211,10 @@ The backend includes:
 - TypeScript with strict type checking
 - Kysely ORM for type-safe database queries
 - JWT authentication middleware
+- Role-based access control (RBAC) middleware
 - Request validation middleware
 - Comprehensive error handling
-- Test suite with Jest
+- Test suite with Jest (118+ tests)
 
 ### Frontend Development
 
@@ -307,6 +308,11 @@ npm run analyze
 - `POST /invoice` - Create new invoice
 - `PUT /invoice/:id` - Update invoice
 - `DELETE /invoice/:id` - Delete invoice (soft delete)
+- `POST /invoice/:id/items` - Add item to invoice
+- `PUT /invoice/:id/items/:itemId` - Update invoice item
+- `DELETE /invoice/:id/items/:itemId` - Remove invoice item
+- `POST /invoice/:id/paid` - Mark invoice as paid
+- `GET /customer/:id/invoices` - Get customer's invoices
 
 ### Health Check
 - `GET /health` - Health check endpoint
@@ -315,7 +321,7 @@ All endpoints (except `/user/register`, `/user/login`, and `/health`) require au
 
 ## Project Status
 
-**Current Progress: ~45% Complete**
+**Current Progress: ~55% Complete**
 
 ### Completed
 - ✅ Database schema for all core entities
@@ -325,15 +331,16 @@ All endpoints (except `/user/register`, `/user/login`, and `/health`) require au
 - ✅ Frontend UI components and pages
 - ✅ API client functions with full integration
 - ✅ Request validation
-- ✅ Comprehensive test suite for backend routes (40+ tests)
+- ✅ Comprehensive test suite for backend routes (118+ tests)
+- ✅ Role-based access control (RBAC) middleware implemented and enforced on all routes
 - ✅ Ticket management UI fully functional
+- ✅ Invoice item management fully implemented (add, update, delete)
+- ✅ E2E testing framework established (Playwright)
 - ✅ Customer management UI fully functional
 - ✅ Demo tunnel script for sharing frontend
 
 ### In Progress
-- 🟡 Role-based access control enforcement
-- 🟡 Frontend-backend integration testing (end-to-end)
-- 🟡 Invoice advanced features (items management)
+- 🟡 Frontend role-based UI restrictions (RBAC backend complete)
 - 🟡 Inventory management system
 
 ### Planned

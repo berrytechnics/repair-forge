@@ -8,6 +8,7 @@ import customerRoutes from "./routes/customer.routes";
 import inventoryRoutes from "./routes/inventory.routes";
 import invitationRoutes from "./routes/invitation.routes";
 import invoiceRoutes from "./routes/invoice.routes";
+import purchaseOrderRoutes from "./routes/purchase-order.routes";
 import ticketRoutes from "./routes/ticket.routes";
 import userRoutes from "./routes/user.routes";
 
@@ -28,6 +29,7 @@ app.use("/api/customers", customerRoutes);
 app.use("/api/tickets", ticketRoutes);
 app.use("/api/invoices", invoiceRoutes);
 app.use("/api/inventory", inventoryRoutes);
+app.use("/api/purchase-orders", purchaseOrderRoutes);
 app.use("/api/invitations", invitationRoutes);
 
 // Health check endpoint

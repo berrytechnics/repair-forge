@@ -40,10 +40,9 @@ export const createInventoryValidation = [
     .isFloat({ min: 0 })
     .withMessage("Selling price must be a positive number"),
   body("quantity")
-    .exists()
-    .withMessage("Quantity is required")
-    .isInt({ min: 0 })
-    .withMessage("Quantity must be a non-negative integer"),
+    .optional()
+    .isInt()
+    .withMessage("Quantity must be an integer (negative values allowed for backordered items)"),
   body("reorderLevel")
     .exists()
     .withMessage("Reorder level is required")
@@ -85,10 +84,8 @@ export const updateInventoryValidation = [
     .optional()
     .isFloat({ min: 0 })
     .withMessage("Selling price must be a positive number"),
-  body("quantity")
-    .optional()
-    .isInt({ min: 0 })
-    .withMessage("Quantity must be a non-negative integer"),
+  // Quantity should not be directly updated - use purchase orders or adjustQuantity method
+  // Removed quantity from update validation
   body("reorderLevel")
     .optional()
     .isInt({ min: 0 })

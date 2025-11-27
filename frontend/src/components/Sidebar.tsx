@@ -9,6 +9,7 @@ import {
   ArrowRightEndOnRectangleIcon,
   Bars3Icon,
   ChartBarIcon,
+  ClipboardDocumentIcon,
   Cog6ToothIcon,
   DocumentTextIcon,
   MoonIcon,
@@ -87,6 +88,11 @@ export default function Sidebar() {
       href: "/inventory",
       label: "Inventory",
       icon: <ShoppingBagIcon className="w-6 h-6" />,
+    },
+    {
+      href: "/purchase-orders",
+      label: "Purchase Orders",
+      icon: <ClipboardDocumentIcon className="w-6 h-6" />,
     },
     {
       href: "/invoices",

@@ -51,3 +51,105 @@ export const searchInventory = async (
   throw new Error(response.data.error?.message || "Failed to search inventory");
 };
 
+export const getInventoryItem = async (
+  id: string
+): Promise<ApiResponse<InventoryItem>> => {
+  const response = await api.get<ApiResponse<InventoryItem>>(`/inventory/${id}`);
+
+  if (response.data.success) {
+    return response.data;
+  }
+
+  throw new Error(
+    response.data.error?.message || "Failed to fetch inventory item"
+  );
+};
+
+export interface CreateInventoryItemData {
+  sku: string;
+  name: string;
+  description?: string | null;
+  category: string;
+  subcategory?: string | null;
+  brand?: string | null;
+  model?: string | null;
+  compatibleWith?: string[] | null;
+  costPrice: number;
+  sellingPrice: number;
+  quantity?: number;
+  reorderLevel?: number;
+  location?: string | null;
+  supplier?: string | null;
+  supplierPartNumber?: string | null;
+  isActive?: boolean;
+}
+
+export interface UpdateInventoryItemData {
+  sku?: string;
+  name?: string;
+  description?: string | null;
+  category?: string;
+  subcategory?: string | null;
+  brand?: string | null;
+  model?: string | null;
+  compatibleWith?: string[] | null;
+  costPrice?: number;
+  sellingPrice?: number;
+  reorderLevel?: number;
+  location?: string | null;
+  supplier?: string | null;
+  supplierPartNumber?: string | null;
+  isActive?: boolean;
+}
+
+export const createInventoryItem = async (
+  data: CreateInventoryItemData
+): Promise<ApiResponse<InventoryItem>> => {
+  const response = await api.post<ApiResponse<InventoryItem>>(
+    "/inventory",
+    data
+  );
+
+  if (response.data.success) {
+    return response.data;
+  }
+
+  throw new Error(
+    response.data.error?.message || "Failed to create inventory item"
+  );
+};
+
+export const updateInventoryItem = async (
+  id: string,
+  data: UpdateInventoryItemData
+): Promise<ApiResponse<InventoryItem>> => {
+  const response = await api.put<ApiResponse<InventoryItem>>(
+    `/inventory/${id}`,
+    data
+  );
+
+  if (response.data.success) {
+    return response.data;
+  }
+
+  throw new Error(
+    response.data.error?.message || "Failed to update inventory item"
+  );
+};
+
+export const deleteInventoryItem = async (
+  id: string
+): Promise<ApiResponse<{ message: string }>> => {
+  const response = await api.delete<ApiResponse<{ message: string }>>(
+    `/inventory/${id}`
+  );
+
+  if (response.data.success) {
+    return response.data;
+  }
+
+  throw new Error(
+    response.data.error?.message || "Failed to delete inventory item"
+  );
+};
+
