@@ -32,10 +32,16 @@ app.use((req: Request, res: Response) => {
 });
 
 // Error handling middleware
-app.use((err: HttpError, req: Request, res: Response, _next: NextFunction) => {
+app.use((err: Error | HttpError, req: Request, res: Response, _next: NextFunction) => {
   logger.error(err.stack || err.message);
-  const statusCode = err.statusCode || 500;
-  const message = err.message || "Internal Server Error";
+  
+  // Convert regular Errors to HttpError
+  const httpError = err instanceof HttpError 
+    ? err 
+    : new HttpError(err.message || "Internal Server Error", 500);
+  
+  const statusCode = httpError.statusCode;
+  const message = httpError.message;
   
   const errorResponse: {
     success: false;
@@ -48,8 +54,8 @@ app.use((err: HttpError, req: Request, res: Response, _next: NextFunction) => {
     success: false,
     error: {
       message,
-      ...(err instanceof ValidationError && { errors: err.errors }),
-      ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
+      ...(httpError instanceof ValidationError && { errors: httpError.errors }),
+      ...(process.env.NODE_ENV === "development" && { stack: httpError.stack }),
     },
   };
   

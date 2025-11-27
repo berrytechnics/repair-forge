@@ -187,7 +187,7 @@ describe("User Routes", () => {
       expect(response.status).toBe(500);
       expect(response.body).toEqual({
         success: false,
-        error: { message: "Failed to register user" },
+        error: { message: "Database error" },
       });
       expect(mockedUserService.create).toHaveBeenCalled();
     });

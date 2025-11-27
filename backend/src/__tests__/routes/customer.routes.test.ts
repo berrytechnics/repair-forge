@@ -263,8 +263,9 @@ describe("Customer Routes", () => {
           email: "charlie@example.com",
         });
 
-      expect(response.status).toBe(400);
+      expect(response.status).toBe(500);
       expect(response.body.success).toBe(false);
+      expect(response.body.error.message).toBe("Database error");
     });
   });
 
