@@ -71,8 +71,8 @@ export default function EditPurchaseOrderPage({
             setItems(
               poResponse.data.items.map((item) => ({
                 inventoryItemId: item.inventoryItemId,
-                quantityOrdered: item.quantityOrdered,
-                unitCost: item.unitCost,
+                quantityOrdered: Number(item.quantityOrdered),
+                unitCost: Number(item.unitCost),
                 notes: item.notes || "",
               }))
             );
@@ -191,7 +191,7 @@ export default function EditPurchaseOrderPage({
   }
 
   const totalAmount = items.reduce(
-    (sum, item) => sum + item.quantityOrdered * item.unitCost,
+    (sum, item) => sum + Number(item.quantityOrdered) * Number(item.unitCost),
     0
   );
 
@@ -394,10 +394,10 @@ export default function EditPurchaseOrderPage({
                             {item.quantityOrdered}
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                            ${item.unitCost.toFixed(2)}
+                            ${Number(item.unitCost).toFixed(2)}
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                            ${(item.quantityOrdered * item.unitCost).toFixed(2)}
+                            ${(Number(item.quantityOrdered) * Number(item.unitCost)).toFixed(2)}
                           </td>
                           <td className="px-4 py-3 text-sm">
                             <button
