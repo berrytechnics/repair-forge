@@ -1,9 +1,9 @@
 # Software Project Completion Roadmap
 
-**Last Updated**: February 1, 2025 (Frontend unit testing infrastructure)
+**Last Updated**: February 1, 2025 (Asset Management feature requirement added)
 
 ## Project Status Overview
-- Current Progress: ~70% Complete (up from ~68%)
+- Current Progress: ~68% Complete (updated with asset feature requirement)
 - Estimated Time to MVP: 2-3 Months (from current state)
 - Development Approach: Solo Development with AI-Assisted (Cursor) Workflow
 - Developer: Solo owner/developer using Cursor for accelerated development
@@ -27,6 +27,7 @@
 - ✅ **Invoice PDF Generation Improvements** (11/28/2025): Enhanced PDF generation to display customer name and phone number instead of customer ID, and changed behavior to open PDF in new tab instead of downloading
 - ✅ **ESLint Fixes for CI Pipeline** (11/28/2025): Fixed all ESLint errors causing GitHub Actions CI failures - removed unused imports/variables, replaced `any` types with proper TypeScript types
 - ✅ **Frontend Unit Testing Infrastructure** (02/01/2025): Established comprehensive unit testing setup with Jest and React Testing Library, including tests for utility functions, form components, and context providers
+- 📋 **Asset Management Feature Requirement Added** (02/01/2025): Added customer asset tracking feature to MVP - assets store device information, ticket creation selects from customer assets, quick asset creation if none exist
 
 ### Technical Improvements
 - ✅ Consistent service layer patterns across all modules
@@ -46,7 +47,7 @@
 ## Current System State
 
 ### ✅ Completed Components
-- **Database Schema (100%)**: All core tables defined (users, customers, tickets, invoices, inventory_items, invoice_items, purchase_orders, purchase_order_items)
+- **Database Schema (95%)**: All core tables defined (users, customers, tickets, invoices, inventory_items, invoice_items, purchase_orders, purchase_order_items) - Assets table pending
 - **Backend Infrastructure (95%)**: Express server, Kysely ORM, error handling, logging, database connection
 - **Backend API Routes (100%)**: Complete CRUD routes for customers, tickets, invoices, inventory, purchase orders, and users
 - **Backend Services (100%)**: Complete service layer for customers, tickets, invoices, inventory, purchase orders, and users
@@ -65,7 +66,10 @@
 - **Ticket Features (100%)**: All CRUD and specialized endpoints complete (assign, status update, notes)
 
 ### ❌ Not Started
-- **Multi-tenant architecture** (companies, company_id isolation, tenant middleware)
+- **Asset Management System** (NEW - NEXT PRIORITY)
+  - Customer device asset tracking
+  - Asset selection during ticket creation
+  - Asset CRUD operations
 - Diagnostic checklist system
 - Communication tools (email/SMS)
 - Payment processing integration
@@ -74,24 +78,22 @@
 - Price book management
 
 ### ✅ Recently Completed
+- **Multi-Tenant Architecture Complete** (02/01/2025): Full multi-tenancy implementation with companies table, company_id isolation, tenant middleware, company-scoped services, and registration flow
 - **Invoice PDF Generation** (11/28/2025): Complete PDF generation with customer information display and new tab opening functionality
 - **ESLint Fixes for CI Pipeline** (11/28/2025): Fixed all ESLint errors - removed unused imports/variables, replaced `any` types with proper TypeScript types, ensuring CI pipeline passes
 
 ## Known Issues & Technical Debt
 
 ### Critical Issues to Fix
-1. **Multi-Tenant Architecture Implementation** (NEW - HIGH PRIORITY)
-   - Status: Not started - single-tenant architecture currently
-   - Issue: No company/tenant isolation - all users see all data
-   - Impact: Cannot support multiple companies - critical for SaaS model
-   - Fix: Implement shared database multi-tenancy with company_id isolation
-     - Add companies table
-     - Add company_id to all tenant tables (users, customers, tickets, invoices, inventory_items)
-     - Create tenant context middleware
-     - Update all services to filter by company_id
-     - Update registration to create/join companies
-     - Update JWT to include company_id
-     - Update all queries to scope by company
+1. **Multi-Tenant Architecture Implementation** ✅ COMPLETED
+   - Status: ✅ Complete - Multi-tenancy fully implemented
+   - ✅ Companies table created with migrations
+   - ✅ company_id added to all tenant tables
+   - ✅ Tenant middleware implemented and applied to all routes
+   - ✅ All services filter by company_id
+   - ✅ Registration handles company creation/joining
+   - ✅ JWT includes company_id
+   - ✅ Data isolation verified
 
 2. **Role-Based Access Control Enforcement** ✅ FIXED
    - Status: ✅ RBAC middleware implemented and applied to all routes
@@ -274,8 +276,67 @@
   - Ensure proper error messages for unauthorized access
   - Test that company boundaries cannot be bypassed
 
-### Month 2: Core Features & Inventory Management
-#### Week 1-2: Inventory Management System ✅ COMPLETED (11/27/2025)
+### Month 2: Core Features & Asset Management
+#### Week 1-2: Asset Management System (NEW)
+**Goal**: Implement customer asset tracking and asset-based ticket creation
+
+- **Database Schema**
+  - Create assets table (id, company_id, customer_id, device_type, device_brand, device_model, serial_number, notes, created_at, updated_at, deleted_at)
+  - Add asset_id foreign key to tickets table (optional, nullable)
+  - Create indexes on customer_id and company_id for performance
+  - Add migration script for assets table
+
+- **Backend Asset Service**
+  - Create asset.service.ts with CRUD operations
+  - Methods: create, findAll (by customer), findById, update, delete (soft delete)
+  - Filter by company_id and customer_id
+  - Validate asset ownership (customer must belong to company)
+
+- **Backend Asset Routes**
+  - Create asset.routes.ts with RBAC enforcement
+  - GET `/api/assets` - List assets (filtered by customer_id query param)
+  - GET `/api/assets/:id` - Get asset by ID
+  - POST `/api/assets` - Create new asset
+  - PUT `/api/assets/:id` - Update asset
+  - DELETE `/api/assets/:id` - Soft delete asset
+  - GET `/api/customers/:id/assets` - Get all assets for a customer
+  - Add request validation for all endpoints
+
+- **Backend Ticket Service Updates**
+  - Update ticket creation to optionally accept asset_id
+  - When asset_id provided, pre-populate device fields from asset
+  - Link ticket to asset for history tracking
+
+- **Frontend Asset API Client**
+  - Create asset.api.ts with all CRUD functions
+  - Functions: getAssets, getAssetById, getAssetsByCustomer, createAsset, updateAsset, deleteAsset
+
+- **Frontend Asset Components**
+  - Create AssetForm component for creating/editing assets
+  - Create asset list page (customer-specific view)
+  - Create asset detail/edit pages
+  - Add asset selection dropdown in TicketForm
+  - Add "Create Asset" quick action in TicketForm when no assets exist
+
+- **Frontend Ticket Form Updates**
+  - Add asset selection dropdown (shows customer's assets)
+  - When asset selected, pre-populate device_type, device_brand, device_model, serial_number
+  - Add "Create New Asset" button/modal when customer has no assets
+  - Link ticket to selected asset (asset_id)
+
+- **Customer Detail Page Updates**
+  - Add "Assets" section showing all customer assets
+  - Link to asset detail pages
+  - Show asset repair history (tickets linked to asset)
+
+- **Testing**
+  - Test asset CRUD operations
+  - Test asset selection in ticket creation
+  - Test asset pre-population in ticket form
+  - Test asset history tracking
+  - Test RBAC enforcement for assets
+
+#### Week 3-4: Inventory Management System ✅ COMPLETED (11/27/2025)
 **Goal**: Complete inventory tracking functionality
 
 - **Backend Inventory** ✅
@@ -579,15 +640,16 @@
 ## Immediate Next Steps (Priority Order)
 
 ### Week 1 Sprint Goals (Solo + Cursor) - UPDATED PRIORITY
-1. **Multi-Tenant Architecture Implementation** (3-4 days - HIGHEST PRIORITY)
-   - Use Cursor to generate database migration for companies table and company_id columns
-   - Create company service following existing service patterns
-   - Update all services to include company_id filtering (Cursor can help with pattern matching)
-   - Create tenant middleware (Cursor can generate middleware pattern)
-   - Update authentication to include company_id in JWT
-   - Update registration to handle company creation/joining
-   - Test data isolation between companies
-   - Migrate existing data to default company
+1. **Asset Management System Implementation** (3-4 days - HIGHEST PRIORITY)
+   - Use Cursor to generate database migration for assets table
+   - Create asset service following existing service patterns (customer.service.ts)
+   - Create asset routes with RBAC enforcement (following ticket.routes.ts pattern)
+   - Update ticket service to accept asset_id and pre-populate device fields
+   - Create frontend asset API client (following customer.api.ts pattern)
+   - Create AssetForm component (following CustomerForm.tsx pattern)
+   - Update TicketForm to include asset selection dropdown
+   - Add assets section to customer detail page
+   - Test asset CRUD operations and ticket-asset linking
 
 2. **Frontend-Backend Integration Testing** (1 day - after multi-tenancy)
    - Test all existing CRUD operations end-to-end with company context
@@ -631,7 +693,7 @@
 - ✅ Backend API complete (100% - achieved ahead of schedule)
 - ✅ Inventory management system complete (100%)
 - ✅ Purchase orders system complete (100%)
-- ⏳ **Multi-tenant architecture** (target: Week 1 - HIGHEST PRIORITY)
+- ✅ **Multi-tenant architecture** - COMPLETED (02/01/2025)
 - ⏳ Frontend-backend integration with company isolation (target: Week 2, currently ~85%)
 - ✅ RBAC enforcement (company-scoped, target: Week 4) - COMPLETED
 - ⏳ Core features working end-to-end with multi-tenancy (target: Week 6)
@@ -643,11 +705,11 @@
 ## Risk Mitigation (Updated)
 
 ### Current Risks
-1. **Multi-Tenant Architecture Not Implemented** (NEW - CRITICAL)
-   - Risk: Cannot support multiple companies - blocks SaaS model entirely
-   - Mitigation: Implement multi-tenancy in Week 1 before other features
-   - Impact: CRITICAL - application cannot be used as SaaS without this
-   - Priority: HIGHEST - must be completed before other features
+1. **Asset Management System Not Implemented** (NEW - HIGH PRIORITY)
+   - Risk: Cannot track customer devices/assets - core MVP feature missing
+   - Mitigation: Implement asset management system per PLAN.md Week 1-2 schedule
+   - Impact: HIGH - core feature required for MVP
+   - Priority: HIGH - next feature to implement
 
 2. **Data Isolation Vulnerabilities**
    - Risk: Users might access other companies' data if company_id filtering is missed

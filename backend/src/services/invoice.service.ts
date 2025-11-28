@@ -351,7 +351,7 @@ export class InvoiceService {
     return toInvoice(invoice);
   }
 
-  async update(id: string, data: UpdateInvoiceDto, companyId: string): Promise<Invoice | null> {
+  async update(id: string, data: UpdateInvoiceDto, companyId: string): Promise<(Invoice & { invoiceItems?: InvoiceItem[] }) | null> {
     let updateQuery = db
       .updateTable("invoices")
       .set({

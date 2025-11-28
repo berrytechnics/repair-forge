@@ -13,6 +13,7 @@ export type SoftDelete = ColumnType<
 
 // Database interface
 export interface Database {
+  assets: AssetTable;
   companies: CompanyTable;
   customers: CustomerTable;
   inventory_items: InventoryItemTable;
@@ -37,6 +38,20 @@ export interface CompanyTable {
   plan: string;
   status: string;
   settings: Record<string, unknown> | null;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+  deleted_at: SoftDelete;
+}
+
+export interface AssetTable {
+  id: UUID;
+  company_id: UUID;
+  customer_id: UUID;
+  device_type: string;
+  device_brand: string | null;
+  device_model: string | null;
+  serial_number: string | null;
+  notes: string | null;
   created_at: Timestamp;
   updated_at: Timestamp;
   deleted_at: SoftDelete;
@@ -143,6 +158,7 @@ export interface TicketTable {
   id: UUID;
   company_id: UUID;
   location_id: UUID | null;
+  asset_id: UUID | null;
   ticket_number: string;
   customer_id: UUID;
   technician_id: UUID | null;

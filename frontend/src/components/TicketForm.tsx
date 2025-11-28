@@ -13,6 +13,8 @@ import {
   getTicketById,
   updateTicket,
 } from "@/lib/api/ticket.api";
+import { Asset, getAssetsByCustomer } from "@/lib/api/asset.api";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 
@@ -32,6 +34,7 @@ export default function TicketForm({
     CreateTicketData & { id?: string; status?: string }
   >({
     customerId: initialCustomerId || "",
+    assetId: "",
     technicianId: "",
     deviceType: "",
     deviceBrand: "",
@@ -43,6 +46,9 @@ export default function TicketForm({
 
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [technicians, setTechnicians] = useState<Technician[]>([]);
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
+  const [isLoadingAssets, setIsLoadingAssets] = useState(false);
   const [customerSearchQuery, setCustomerSearchQuery] = useState("");
   const [showCustomerSearch, setShowCustomerSearch] = useState(
     !initialCustomerId
@@ -69,6 +75,7 @@ export default function TicketForm({
             setFormData({
               id: ticket.id,
               customerId: ticket.customerId,
+              assetId: ticket.assetId || "",
               technicianId: ticket.technicianId || "",
               deviceType: ticket.deviceType,
               deviceBrand: ticket.deviceBrand || "",
@@ -145,6 +152,57 @@ export default function TicketForm({
       fetchCustomer();
     }
   }, [initialCustomerId, isEditMode]);
+
+  // Fetch assets when customer is selected
+  useEffect(() => {
+    const fetchAssets = async () => {
+      if (!formData.customerId) {
+        setAssets([]);
+        setSelectedAsset(null);
+        return;
+      }
+
+      setIsLoadingAssets(true);
+      try {
+        const response = await getAssetsByCustomer(formData.customerId);
+        if (response.data) {
+          setAssets(response.data);
+        }
+      } catch (err) {
+        console.error("Error fetching assets:", err);
+        setAssets([]);
+      } finally {
+        setIsLoadingAssets(false);
+      }
+    };
+
+    fetchAssets();
+  }, [formData.customerId]);
+
+  // Handle asset selection
+  const handleAssetChange = (assetId: string) => {
+    if (!assetId) {
+      setSelectedAsset(null);
+      setFormData((prev) => ({
+        ...prev,
+        assetId: "",
+      }));
+      return;
+    }
+
+    const asset = assets.find((a) => a.id === assetId);
+    if (asset) {
+      setSelectedAsset(asset);
+      setFormData((prev) => ({
+        ...prev,
+        assetId: asset.id,
+        deviceType: asset.deviceType,
+        deviceBrand: asset.deviceBrand || "",
+        deviceModel: asset.deviceModel || "",
+        serialNumber: asset.serialNumber || "",
+      }));
+    }
+  };
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -453,6 +511,62 @@ export default function TicketForm({
                 <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
                   Device Information
                 </h3>
+
+                {/* Asset Selection */}
+                {formData.customerId && (
+                  <div className="mb-4">
+                    <label
+                      htmlFor="assetId"
+                      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    >
+                      Select Asset (Optional)
+                    </label>
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <select
+                          id="assetId"
+                          name="assetId"
+                          value={formData.assetId || ""}
+                          onChange={(e) => handleAssetChange(e.target.value)}
+                          className="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                          disabled={isLoadingAssets}
+                        >
+                          <option value="">
+                            {isLoadingAssets
+                              ? "Loading assets..."
+                              : assets.length === 0
+                              ? "No assets found"
+                              : "Select an asset or enter manually"}
+                          </option>
+                          {assets.map((asset) => (
+                            <option key={asset.id} value={asset.id}>
+                              {asset.deviceType}
+                              {asset.deviceBrand && ` - ${asset.deviceBrand}`}
+                              {asset.deviceModel && ` ${asset.deviceModel}`}
+                              {asset.serialNumber &&
+                                ` (${asset.serialNumber})`}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      {formData.customerId && (
+                        <Link
+                          href={`/assets/new?customerId=${formData.customerId}`}
+                          target="_blank"
+                          className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md shadow-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
+                        >
+                          Create Asset
+                        </Link>
+                      )}
+                    </div>
+                    {selectedAsset && (
+                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        Device fields pre-filled from selected asset
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
                   <div>
                     <label

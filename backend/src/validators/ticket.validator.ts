@@ -86,6 +86,20 @@ export const updateTicketValidation = [
     .optional()
     .isUUID()
     .withMessage("Customer ID must be a valid UUID"),
+  body("assetId")
+    .optional({ values: "falsy" })
+    .custom((value) => {
+      // If empty string, null, or undefined, skip validation (allows unsetting asset)
+      if (!value || value === "") {
+        return true;
+      }
+      // Otherwise, validate as UUID
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(value)) {
+        throw new Error("Asset ID must be a valid UUID");
+      }
+      return true;
+    }),
   body("technicianId")
     .optional({ values: "falsy" })
     .custom((value) => {
@@ -166,6 +180,20 @@ export const updateTicketValidation = [
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       if (!uuidRegex.test(value)) {
         throw new Error("Location ID must be a valid UUID");
+      }
+      return true;
+    }),
+  body("assetId")
+    .optional({ values: "falsy" })
+    .custom((value) => {
+      // If empty string, null, or undefined, skip validation (allows unsetting asset)
+      if (!value || value === "") {
+        return true;
+      }
+      // Otherwise, validate as UUID
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(value)) {
+        throw new Error("Asset ID must be a valid UUID");
       }
       return true;
     }),

@@ -8,6 +8,7 @@ import {
 } from "@/lib/api/customer.api";
 import { Invoice, getInvoicesByCustomer } from "@/lib/api/invoice.api";
 import { Ticket } from "@/lib/api/ticket.api";
+import { Asset, getAssetsByCustomer } from "@/lib/api/asset.api";
 import { formatStatus, getStatusColor } from "@/lib/utils/ticketUtils";
 import { useUser } from "@/lib/UserContext";
 import Link from "next/link";
@@ -24,6 +25,7 @@ export default function CustomerDetailPage({
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [assets, setAssets] = useState<Asset[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -94,6 +96,24 @@ export default function CustomerDetailPage({
     };
 
     fetchInvoices();
+  }, [customer]);
+
+  // Fetch customer assets
+  useEffect(() => {
+    const fetchAssets = async () => {
+      if (!customer) return;
+
+      try {
+        const response = await getAssetsByCustomer(customer.id);
+        if (response.data) {
+          setAssets(response.data);
+        }
+      } catch (err) {
+        console.error("Error fetching customer assets:", err);
+      }
+    };
+
+    fetchAssets();
   }, [customer]);
 
   // Handle customer deletion
@@ -427,6 +447,89 @@ export default function CustomerDetailPage({
                 )}
               </div>
             </div>
+            </div>
+
+            {/* Customer Assets Section */}
+            <div className="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-lg">
+              <div className="px-4 py-5 sm:px-6 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-gray-100">
+                  Customer Assets
+                </h3>
+                <p className="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">
+                  {assets.length === 0
+                    ? "No assets found for this customer"
+                    : `${assets.length} asset${
+                        assets.length === 1 ? "" : "s"
+                      } found`}
+                </p>
+              </div>
+              {assets.length > 0 ? (
+                <ul className="divide-y divide-gray-200 dark:divide-gray-700 max-h-96 overflow-y-auto">
+                  {assets.map((asset) => (
+                    <li key={asset.id}>
+                      <Link href={`/assets/${asset.id}`}>
+                        <div className="block hover:bg-gray-50 dark:hover:bg-gray-700/50 px-4 py-4 cursor-pointer">
+                          <div className="flex items-center justify-between">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-medium text-blue-600 dark:text-blue-400 truncate">
+                                {asset.deviceType}
+                              </p>
+                              <div className="mt-2 flex items-center space-x-4">
+                                {asset.deviceBrand && (
+                                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                                    {asset.deviceBrand}
+                                  </p>
+                                )}
+                                {asset.deviceModel && (
+                                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                                    {asset.deviceModel}
+                                  </p>
+                                )}
+                              </div>
+                              {asset.serialNumber && (
+                                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 font-mono">
+                                  S/N: {asset.serialNumber}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                            <p>Created: {formatDate(asset.createdAt)}</p>
+                          </div>
+                        </div>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="px-4 py-5 sm:p-6 text-center">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    No assets for this customer yet
+                  </p>
+                  {hasPermission("customers.create") && (
+                    <button
+                      onClick={() =>
+                        router.push(`/assets/new?customerId=${customer.id}`)
+                      }
+                      className="mt-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800 focus:ring-blue-500"
+                    >
+                      Create First Asset
+                    </button>
+                  )}
+                </div>
+              )}
+              {assets.length > 0 && hasPermission("customers.create") && (
+                <div className="px-4 py-3 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-200 dark:border-gray-700 text-right sm:px-6">
+                  <button
+                    onClick={() =>
+                      router.push(`/assets/new?customerId=${customer.id}`)
+                    }
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800 focus:ring-blue-500"
+                  >
+                    Create New Asset
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Customer Invoices Section */}

@@ -3,10 +3,12 @@ import { sql } from "kysely";
 import { v4 as uuidv4 } from "uuid";
 import { db } from "../config/connection";
 import { TicketPriority, TicketStatus, TicketTable } from "../config/types";
+import assetService from "./asset.service";
 
 // Input DTOs
 export interface CreateTicketDto {
   customerId: string;
+  assetId?: string | null;
   technicianId?: string | null;
   status?: TicketStatus;
   priority?: TicketPriority;
@@ -23,6 +25,7 @@ export interface CreateTicketDto {
 
 export interface UpdateTicketDto {
   customerId?: string;
+  assetId?: string | null;
   locationId?: string | null;
   technicianId?: string | null;
   status?: TicketStatus;
@@ -44,6 +47,7 @@ export type Ticket = Omit<
   | "id"
   | "company_id"
   | "location_id"
+  | "asset_id"
   | "ticket_number"
   | "customer_id"
   | "technician_id"
@@ -62,6 +66,7 @@ export type Ticket = Omit<
 > & {
   id: string;
   locationId: string | null;
+  assetId: string | null;
   ticketNumber: string;
   customerId: string;
   technicianId: string | null;
@@ -83,6 +88,7 @@ function toTicket(ticket: {
   id: string;
   company_id: string;
   location_id: string | null;
+  asset_id: string | null;
   ticket_number: string;
   customer_id: string;
   technician_id: string | null;
@@ -104,6 +110,7 @@ function toTicket(ticket: {
   return {
     id: ticket.id as string,
     locationId: ticket.location_id as string | null,
+    assetId: ticket.asset_id as string | null,
     ticketNumber: ticket.ticket_number,
     customerId: ticket.customer_id,
     technicianId: ticket.technician_id,
@@ -207,6 +214,29 @@ export class TicketService {
       throw new Error("Location not found or does not belong to company");
     }
 
+    // If assetId is provided, fetch asset and validate it belongs to company and customer
+    let deviceType = data.deviceType;
+    let deviceBrand = data.deviceBrand || null;
+    let deviceModel = data.deviceModel || null;
+    let serialNumber = data.serialNumber || null;
+    let assetId = data.assetId || null;
+
+    if (data.assetId) {
+      const asset = await assetService.findById(data.assetId, companyId);
+      if (!asset) {
+        throw new Error("Asset not found or does not belong to company");
+      }
+      if (asset.customerId !== data.customerId) {
+        throw new Error("Asset does not belong to the specified customer");
+      }
+      // Pre-populate device fields from asset
+      deviceType = asset.deviceType;
+      deviceBrand = asset.deviceBrand;
+      deviceModel = asset.deviceModel;
+      serialNumber = asset.serialNumber;
+      assetId = asset.id;
+    }
+
     // Generate unique ticket number for this company
     const ticketNumber = await generateTicketNumber(companyId);
 
@@ -216,15 +246,16 @@ export class TicketService {
         id: uuidv4(),
         company_id: companyId,
         location_id: locationId,
+        asset_id: assetId,
         ticket_number: ticketNumber,
         customer_id: data.customerId,
         technician_id: data.technicianId || null,
         status: data.status || "new",
         priority: data.priority || "medium",
-        device_type: data.deviceType,
-        device_brand: data.deviceBrand || null,
-        device_model: data.deviceModel || null,
-        serial_number: data.serialNumber || null,
+        device_type: deviceType,
+        device_brand: deviceBrand,
+        device_model: deviceModel,
+        serial_number: serialNumber,
         issue_description: data.issueDescription,
         diagnostic_notes: data.diagnosticNotes || null,
         repair_notes: data.repairNotes || null,
@@ -256,6 +287,21 @@ export class TicketService {
 
     if (data.customerId !== undefined) {
       updateQuery = updateQuery.set({ customer_id: data.customerId });
+    }
+    if (data.assetId !== undefined) {
+      // If setting asset, validate it belongs to company and customer
+      if (data.assetId !== null) {
+        const asset = await assetService.findById(data.assetId, companyId);
+        if (!asset) {
+          throw new Error("Asset not found or does not belong to company");
+        }
+        // Get current ticket to check customer
+        const currentTicket = await this.findById(id, companyId);
+        if (currentTicket && asset.customerId !== currentTicket.customerId) {
+          throw new Error("Asset does not belong to the ticket's customer");
+        }
+      }
+      updateQuery = updateQuery.set({ asset_id: data.assetId });
     }
     if (data.locationId !== undefined) {
       // If setting location, verify it belongs to company

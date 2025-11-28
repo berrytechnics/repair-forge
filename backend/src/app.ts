@@ -4,6 +4,7 @@ import helmet from "helmet";
 import morgan from "morgan";
 import { HttpError, ValidationError } from "./config/errors";
 import logger from "./config/logger";
+import assetRoutes from "./routes/asset.routes";
 import customerRoutes from "./routes/customer.routes";
 import inventoryRoutes from "./routes/inventory.routes";
 import invitationRoutes from "./routes/invitation.routes";
@@ -26,6 +27,7 @@ app.use(morgan("dev"));
 // Routes - all routes are prefixed with /api
 app.use("/api/auth", userRoutes);
 app.use("/api/users", userRoutes); // Also mount user routes at /api/users for technicians endpoint
+app.use("/api/assets", assetRoutes);
 app.use("/api/customers", customerRoutes);
 app.use("/api/tickets", ticketRoutes);
 app.use("/api/invoices", invoiceRoutes);

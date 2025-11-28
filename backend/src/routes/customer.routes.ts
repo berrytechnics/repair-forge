@@ -7,6 +7,7 @@ import { validateRequest } from "../middlewares/auth.middleware";
 import { requireAdmin, requireRole } from "../middlewares/rbac.middleware";
 import { requireTenantContext } from "../middlewares/tenant.middleware";
 import { validate } from "../middlewares/validation.middleware";
+import assetService from "../services/asset.service";
 import customerService from "../services/customer.service";
 import invoiceService from "../services/invoice.service";
 import ticketService from "../services/ticket.service";
@@ -126,6 +127,17 @@ router.get(
     const { id } = req.params;
     const invoices = await invoiceService.findAll(companyId, id, undefined);
     res.json({ success: true, data: invoices });
+  })
+);
+
+// GET /customers/:id/assets - Get customer assets
+router.get(
+  "/:id/assets",
+  asyncHandler(async (req: Request, res: Response) => {
+    const companyId = req.companyId!;
+    const { id } = req.params;
+    const assets = await assetService.findAll(companyId, id);
+    res.json({ success: true, data: assets });
   })
 );
 

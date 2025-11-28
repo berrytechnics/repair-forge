@@ -4,6 +4,7 @@ export interface Ticket {
   id: string;
   ticketNumber: string;
   customerId: string;
+  assetId?: string | null;
   technicianId?: string;
   status:
     | "new"
@@ -41,6 +42,7 @@ export interface Ticket {
 
 export interface CreateTicketData {
   customerId: string;
+  assetId?: string;
   technicianId?: string;
   deviceType: string;
   deviceBrand?: string;
@@ -52,6 +54,7 @@ export interface CreateTicketData {
 
 export interface UpdateTicketData {
   customerId?: string;
+  assetId?: string;
   technicianId?: string;
   deviceType?: string;
   deviceBrand?: string;
