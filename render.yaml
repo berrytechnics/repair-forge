@@ -1,10 +1,10 @@
-services:
+databases:
   # PostgreSQL Database
-  - type: postgres
-    name: circuit-sage-db
+  - name: circuit-sage-db
     plan: free
     ipAllowList: []
 
+services:
   # Backend API Service
   - type: web
     name: circuit-sage-api
