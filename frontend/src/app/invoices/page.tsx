@@ -198,14 +198,14 @@ export default function InvoicesListPage() {
             <p>Loading invoices...</p>
           </div>
         ) : invoices.length === 0 ? (
-          <div className="p-6 text-center text-gray-500">
+          <div className="p-6 text-center text-gray-500 dark:text-gray-400">
             {searchQuery ? (
               <p>
                 No invoices found matching &quot;{searchQuery}&quot;. Try a
                 different search or{" "}
                 <button
                   onClick={handleClearSearch}
-                  className="text-blue-600 hover:text-blue-500"
+                  className="text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300"
                 >
                   view all invoices
                 </button>
@@ -217,7 +217,7 @@ export default function InvoicesListPage() {
                 {hasPermission("invoices.create") && (
                   <button
                     onClick={() => router.push("/invoices/new")}
-                    className="mt-4 inline-flex items-center justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                    className="mt-4 inline-flex items-center justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
                   >
                     Create Your First Invoice
                   </button>
@@ -226,24 +226,24 @@ export default function InvoicesListPage() {
             )}
           </div>
         ) : (
-          <ul className="divide-y divide-gray-200">
+          <ul className="divide-y divide-gray-200 dark:divide-gray-700">
             {invoices.map((invoice) => (
               <li key={invoice.id}>
                 <Link href={`/invoices/${invoice.id}`}>
-                  <div className="block hover:bg-gray-50 px-4 py-4 sm:px-6">
+                  <div className="block hover:bg-gray-50 dark:hover:bg-gray-700/50 px-4 py-4 sm:px-6">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center min-w-0">
                         <div className="min-w-0 flex-1 px-4">
-                          <p className="text-sm font-medium text-blue-600 truncate">
+                          <p className="text-sm font-medium text-blue-600 dark:text-blue-400 truncate">
                             {invoice.invoiceNumber}
                           </p>
-                          <p className="mt-1 text-sm text-gray-500 truncate">
+                          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 truncate">
                             {invoice.customer?.firstName}{" "}
                             {invoice.customer?.lastName}
                           </p>
                         </div>
                       </div>
-                      <div className="ml-2 flex flex-col sm:flex-row sm:items-end text-sm text-gray-500">
+                      <div className="ml-2 flex flex-col sm:flex-row sm:items-end text-sm text-gray-500 dark:text-gray-400">
                         <div className="sm:mr-4">
                           <span className="font-medium">
                             ${Number(invoice.totalAmount || 0).toFixed(2)}
@@ -260,11 +260,11 @@ export default function InvoicesListPage() {
                       </div>
                     </div>
                     <div className="mt-2 flex justify-between">
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
                         Created: {formatDate(invoice.createdAt)}
                       </p>
                       {invoice.dueDate && (
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
                           Due: {formatDate(invoice.dueDate)}
                         </p>
                       )}

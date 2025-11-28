@@ -265,7 +265,7 @@ export class InvoiceService {
     return invoices.map(toInvoice);
   }
 
-  async findById(id: string, companyId: string): Promise<Invoice | null> {
+  async findById(id: string, companyId: string): Promise<(Invoice & { invoiceItems?: InvoiceItem[] }) | null> {
     const invoice = await db
       .selectFrom("invoices")
       .selectAll()
@@ -274,7 +274,22 @@ export class InvoiceService {
       .where("deleted_at", "is", null)
       .executeTakeFirst();
 
-    return invoice ? toInvoice(invoice) : null;
+    if (!invoice) {
+      return null;
+    }
+
+    // Fetch invoice items
+    const items = await db
+      .selectFrom("invoice_items")
+      .selectAll()
+      .where("invoice_id", "=", id)
+      .execute();
+
+    const invoiceData = toInvoice(invoice);
+    return {
+      ...invoiceData,
+      invoiceItems: items.map(toInvoiceItem),
+    };
   }
 
   async create(data: CreateInvoiceDto, companyId: string, locationId: string): Promise<Invoice> {
@@ -411,7 +426,22 @@ export class InvoiceService {
       .returningAll()
       .executeTakeFirst();
 
-    return updated ? toInvoice(updated) : null;
+    if (!updated) {
+      return null;
+    }
+
+    // Fetch invoice items
+    const items = await db
+      .selectFrom("invoice_items")
+      .selectAll()
+      .where("invoice_id", "=", id)
+      .execute();
+
+    const invoiceData = toInvoice(updated);
+    return {
+      ...invoiceData,
+      invoiceItems: items.map(toInvoiceItem),
+    };
   }
 
   async delete(id: string, companyId: string): Promise<boolean> {
@@ -623,7 +653,7 @@ export class InvoiceService {
     invoiceId: string,
     data: MarkInvoicePaidDto,
     companyId: string
-  ): Promise<Invoice | null> {
+  ): Promise<(Invoice & { invoiceItems?: InvoiceItem[] }) | null> {
     // Validate invoice exists
     const invoice = await this.findById(invoiceId, companyId);
     if (!invoice) {
@@ -649,7 +679,22 @@ export class InvoiceService {
       .returningAll()
       .executeTakeFirst();
 
-    return updated ? toInvoice(updated) : null;
+    if (!updated) {
+      return null;
+    }
+
+    // Fetch invoice items
+    const items = await db
+      .selectFrom("invoice_items")
+      .selectAll()
+      .where("invoice_id", "=", invoiceId)
+      .execute();
+
+    const invoiceData = toInvoice(updated);
+    return {
+      ...invoiceData,
+      invoiceItems: items.map(toInvoiceItem),
+    };
   }
 
   // Get invoice items
