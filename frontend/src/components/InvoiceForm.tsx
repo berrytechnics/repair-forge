@@ -97,14 +97,22 @@ export default function InvoiceForm({ invoiceId }: InvoiceFormProps) {
         try {
           const response = await getInvoiceById(invoiceId);
           if (response.data) {
+            // Normalize invoice items to ensure numeric values are numbers
+            const normalizedItems = (response.data.invoiceItems || []).map((item) => ({
+              ...item,
+              quantity: Number(item.quantity || 0),
+              unitPrice: Number(item.unitPrice || 0),
+              discountPercent: item.discountPercent ? Number(item.discountPercent) : undefined,
+            }));
+            
             setFormData({
               customerId: response.data.customerId,
               ticketId: response.data.ticketId || undefined,
               status: response.data.status,
-              invoiceItems: response.data.invoiceItems || [],
-              subtotal: response.data.subtotal,
-              taxRate: response.data.taxRate,
-              discountAmount: response.data.discountAmount,
+              invoiceItems: normalizedItems,
+              subtotal: Number(response.data.subtotal || 0),
+              taxRate: Number(response.data.taxRate || 0),
+              discountAmount: Number(response.data.discountAmount || 0),
               notes: response.data.notes,
             });
           }
@@ -123,11 +131,11 @@ export default function InvoiceForm({ invoiceId }: InvoiceFormProps) {
   // Calculate totals (now used in multiple places)
   const { subtotal, total } = useMemo(() => {
     const calcSubtotal = formData.invoiceItems.reduce(
-      (sum, item) => sum + item.quantity * item.unitPrice,
+      (sum, item) => sum + Number(item.quantity || 0) * Number(item.unitPrice || 0),
       0
     );
-    const calcTaxAmount = (calcSubtotal * formData.taxRate) / 100;
-    const calcTotal = calcSubtotal + calcTaxAmount - formData.discountAmount;
+    const calcTaxAmount = (calcSubtotal * Number(formData.taxRate || 0)) / 100;
+    const calcTotal = calcSubtotal + calcTaxAmount - Number(formData.discountAmount || 0);
 
     return {
       subtotal: calcSubtotal,
@@ -450,7 +458,7 @@ export default function InvoiceForm({ invoiceId }: InvoiceFormProps) {
                 <div>
                   <p className="text-gray-900 dark:text-gray-100">{item.description}</p>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {item.quantity} × ${item.unitPrice.toFixed(2)} ({item.type})
+                    {item.quantity} × ${Number(item.unitPrice || 0).toFixed(2)} ({item.type})
                     {item.discountPercent && item.discountPercent > 0 && (
                       <span className="ml-2">- {item.discountPercent}%</span>
                     )}

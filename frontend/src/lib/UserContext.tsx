@@ -101,7 +101,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
   };
 
   useEffect(() => {
-    const fetchUser = async () => {
+    const loadUser = async () => {
       // Don't try to fetch user on login or register pages
       if (pathname === "/login" || pathname === "/register") {
         setIsLoading(false);
@@ -119,15 +119,8 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
         return;
       }
 
-      // If we already have a user with permissions, don't refetch unnecessarily
-      // This prevents race conditions when navigating after login
-      // Note: We access 'user' from closure - this is safe because we only check it
-      // at the start of the effect, and the effect runs when pathname changes
-      if (user && user.permissions && user.permissions.length > 0) {
-        setIsLoading(false);
-        return;
-      }
-
+      // Always fetch user on mount/refresh to ensure we have the latest data
+      // The check for existing user with permissions was preventing refresh from working
       try {
         setIsLoading(true);
         await fetchUser();
@@ -138,7 +131,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
       }
     };
 
-    fetchUser();
+    loadUser();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 

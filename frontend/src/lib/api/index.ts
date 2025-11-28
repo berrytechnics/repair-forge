@@ -59,6 +59,10 @@ api.interceptors.request.use(
     let token = accessToken;
     if (!token && typeof window !== "undefined") {
       token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
+      // Update the module-level variable to keep it in sync
+      if (token) {
+        accessToken = token;
+      }
     }
     // Add auth token to headers if available
     if (token && config.headers) {
@@ -338,12 +342,17 @@ export const updateRolePermissions = async (
   }
 };
 
-// Set token from storage on init (check both localStorage and sessionStorage)
-if (typeof window !== "undefined") {
-  const savedToken = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
-  if (savedToken) {
-    accessToken = savedToken;
+// Function to restore token from storage
+export const restoreTokenFromStorage = (): void => {
+  if (typeof window !== "undefined") {
+    const savedToken = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
+    if (savedToken) {
+      accessToken = savedToken;
+    }
   }
-}
+};
+
+// Set token from storage on init (check both localStorage and sessionStorage)
+restoreTokenFromStorage();
 
 export default api;
