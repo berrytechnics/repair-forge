@@ -38,7 +38,6 @@ export default function TicketDetailPage({
   );
   const [isUpdating, setIsUpdating] = useState(false);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [isLoadingInvoices, setIsLoadingInvoices] = useState(false);
 
   // Parse notes from plain text (notes are appended with double newlines)
   const parseNotes = (notesText: string | null | undefined): string[] => {

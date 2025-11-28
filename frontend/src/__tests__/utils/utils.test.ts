@@ -39,7 +39,7 @@ describe('utility functions', () => {
 
     it('returns empty string for falsy values', () => {
       expect(formatDate('')).toBe('')
-      expect(formatDate(null as any)).toBe('')
+      expect(formatDate(null as unknown as string)).toBe('')
     })
   })
 
@@ -104,8 +104,8 @@ describe('utility functions', () => {
     })
 
     it('handles null/undefined', () => {
-      expect(truncateText(null as any)).toBe('')
-      expect(truncateText(undefined as any)).toBe('')
+      expect(truncateText(null as unknown as string)).toBe('')
+      expect(truncateText(undefined as unknown as string)).toBe('')
     })
   })
 })

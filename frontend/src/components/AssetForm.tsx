@@ -129,7 +129,7 @@ export default function AssetForm({
 
       if (isUpdateMode && assetId) {
         // Update existing asset
-        const { customerId, ...updateData } = cleanFormData as Asset;
+        const { customerId: _customerId, ...updateData } = cleanFormData as Asset;
         response = await updateAsset(assetId, updateData);
       } else {
         // Create new asset

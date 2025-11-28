@@ -7,7 +7,7 @@ import '@testing-library/jest-dom'
 if (typeof process !== 'undefined' && process.version.startsWith('v23')) {
   // Suppress the error for Node 23 - tests will work in CI with Node 22
   const originalError = console.error
-  console.error = (...args: any[]) => {
+  console.error = (...args: unknown[]) => {
     if (args[0]?.includes?.('stripAnsi is not a function')) {
       return
     }
@@ -39,7 +39,7 @@ jest.mock('next/navigation', () => ({
 // Mock Next.js Image component
 jest.mock('next/image', () => ({
   __esModule: true,
-  default: (props: any) => {
+  default: (props: Record<string, unknown>) => {
     // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
     return <img {...props} />
   },
@@ -52,7 +52,7 @@ const localStorageMock = {
   removeItem: jest.fn(),
   clear: jest.fn(),
 }
-global.localStorage = localStorageMock as any
+global.localStorage = localStorageMock as Storage
 
 // Mock window.sessionStorage
 const sessionStorageMock = {
@@ -61,5 +61,5 @@ const sessionStorageMock = {
   removeItem: jest.fn(),
   clear: jest.fn(),
 }
-global.sessionStorage = sessionStorageMock as any
+global.sessionStorage = sessionStorageMock as Storage
 

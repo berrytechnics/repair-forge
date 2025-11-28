@@ -4,7 +4,7 @@ import { UserProvider } from '@/lib/UserContext'
 import { ThemeProvider } from '@/lib/ThemeContext'
 
 // Mock user for testing
-export const mockUser = (overrides?: Partial<any>) => ({
+export const mockUser = (overrides?: Partial<Record<string, unknown>>) => ({
   id: 'test-user-id',
   email: 'test@example.com',
   firstName: 'Test',
@@ -16,7 +16,7 @@ export const mockUser = (overrides?: Partial<any>) => ({
 })
 
 // Mock location for testing
-export const mockLocation = (overrides?: Partial<any>) => ({
+export const mockLocation = (overrides?: Partial<Record<string, unknown>>) => ({
   id: 'test-location-id',
   name: 'Test Location',
   ...overrides,

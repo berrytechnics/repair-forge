@@ -387,7 +387,7 @@ export default function InvoiceForm({ invoiceId }: InvoiceFormProps) {
     try {
       // Strip temporary fields from invoice items before submission
       const invoiceItems = formData.invoiceItems.map((item) => {
-        const { id, invoiceId, createdAt, updatedAt, ...itemData } = item;
+        const { id: _id, invoiceId: _invoiceId, createdAt: _createdAt, updatedAt: _updatedAt, ...itemData } = item;
         return itemData;
       });
 
