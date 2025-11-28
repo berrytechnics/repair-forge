@@ -19,8 +19,9 @@ COPY --from=build /app/scripts ./scripts
 COPY --from=build /migrations ./database/migrations
 # Install production dependencies plus ts-node for running migration script
 RUN yarn install --production --frozen-lockfile && \
-    yarn add --dev ts-node typescript @types/node
+    yarn add --dev ts-node typescript @types/node && \
+    chmod +x ./scripts/start.sh
 EXPOSE 4000
 
-# For production
-CMD ["yarn", "start"]
+# For production - run migrations then start server
+CMD ["./scripts/start.sh"]
