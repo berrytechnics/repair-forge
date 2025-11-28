@@ -5,6 +5,7 @@ import {
   deleteInventoryItem,
   InventoryItem,
 } from "@/lib/api/inventory.api";
+import { useUser } from "@/lib/UserContext";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -15,10 +16,18 @@ export default function InventoryDetailPage({
   params: { id: string };
 }) {
   const router = useRouter();
+  const { user, hasPermission, isLoading: userLoading } = useUser();
   const [item, setItem] = useState<InventoryItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [, setError] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Check if user has permission to access this page
+  useEffect(() => {
+    if (!userLoading && (!user || !hasPermission("inventory.read"))) {
+      router.push("/dashboard");
+    }
+  }, [user, userLoading, hasPermission, router]);
 
   useEffect(() => {
     const fetchItem = async () => {
@@ -70,6 +79,18 @@ export default function InventoryDetailPage({
       currency: "USD",
     }).format(amount);
   };
+
+  if (userLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (!user || !hasPermission("inventory.read")) {
+    return null;
+  }
 
   if (isLoading) {
     return (

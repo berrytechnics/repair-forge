@@ -10,6 +10,7 @@ import {
   updateTicket,
   updateTicketStatus,
 } from "@/lib/api/ticket.api";
+import { useUser } from "@/lib/UserContext";
 import { getPriorityColor, getStatusColor } from "@/lib/utils/ticketUtils";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
@@ -21,6 +22,7 @@ export default function TicketDetailPage({
   params: { id: string };
 }) {
   const router = useRouter();
+  const { user, hasPermission, isLoading: userLoading } = useUser();
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -43,6 +45,13 @@ export default function TicketDetailPage({
 
   const diagnosticNotes = parseNotes(ticket?.diagnosticNotes);
   const repairNotes = parseNotes(ticket?.repairNotes);
+
+  // Check if user has permission to access this page
+  useEffect(() => {
+    if (!userLoading && (!user || !hasPermission("tickets.read"))) {
+      router.push("/dashboard");
+    }
+  }, [user, userLoading, hasPermission, router]);
 
   // Fetch ticket data
   useEffect(() => {
@@ -209,6 +218,18 @@ export default function TicketDetailPage({
       minute: "2-digit",
     });
   };
+
+  if (userLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (!user || !hasPermission("tickets.read")) {
+    return null;
+  }
 
   if (isLoading) {
     return (

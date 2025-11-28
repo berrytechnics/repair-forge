@@ -8,12 +8,19 @@ import React, { useCallback, useEffect, useState } from "react";
 
 export default function InvoicesListPage() {
   const router = useRouter();
-  const { hasPermission } = useUser();
+  const { user, hasPermission, isLoading: userLoading } = useUser();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [allInvoices, setAllInvoices] = useState<Invoice[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Check if user has permission to access this page
+  useEffect(() => {
+    if (!userLoading && (!user || !hasPermission("invoices.read"))) {
+      router.push("/dashboard");
+    }
+  }, [user, userLoading, hasPermission, router]);
 
   // Function to fetch all invoices
   const fetchAllInvoices = useCallback(async () => {
@@ -96,6 +103,18 @@ export default function InvoicesListPage() {
         return "bg-gray-100 text-gray-800";
     }
   };
+
+  if (userLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (!user || !hasPermission("invoices.read")) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-6 lg:p-8">

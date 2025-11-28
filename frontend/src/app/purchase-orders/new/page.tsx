@@ -6,12 +6,14 @@ import {
   CreatePurchaseOrderItemData,
 } from "@/lib/api/purchase-order.api";
 import { getInventory, InventoryItem } from "@/lib/api/inventory.api";
+import { useUser } from "@/lib/UserContext";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function NewPurchaseOrderPage() {
   const router = useRouter();
+  const { user, hasPermission, isLoading: userLoading } = useUser();
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -31,6 +33,13 @@ export default function NewPurchaseOrderPage() {
     notes: "",
   });
 
+  // Check if user has permission to access this page
+  useEffect(() => {
+    if (!userLoading && (!user || !hasPermission("purchaseOrders.create"))) {
+      router.push("/dashboard");
+    }
+  }, [user, userLoading, hasPermission, router]);
+
   useEffect(() => {
     const fetchInventory = async () => {
       try {
@@ -44,6 +53,18 @@ export default function NewPurchaseOrderPage() {
     };
     fetchInventory();
   }, []);
+
+  if (userLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (!user || !hasPermission("purchaseOrders.create")) {
+    return null;
+  }
 
   const handleAddItem = () => {
     if (!newItem.inventoryItemId || newItem.quantityOrdered <= 0 || newItem.unitCost < 0) {

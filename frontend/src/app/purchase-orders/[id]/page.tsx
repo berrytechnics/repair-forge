@@ -6,7 +6,9 @@ import {
   receivePurchaseOrder,
   PurchaseOrder,
 } from "@/lib/api/purchase-order.api";
+import { useUser } from "@/lib/UserContext";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function PurchaseOrderDetailPage({
@@ -14,6 +16,8 @@ export default function PurchaseOrderDetailPage({
 }: {
   params: { id: string };
 }) {
+  const router = useRouter();
+  const { user, hasPermission, isLoading: userLoading } = useUser();
   const [po, setPo] = useState<PurchaseOrder | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [, setError] = useState("");
@@ -22,6 +26,13 @@ export default function PurchaseOrderDetailPage({
   const [receivedQuantities, setReceivedQuantities] = useState<
     Record<string, number>
   >({});
+
+  // Check if user has permission to access this page
+  useEffect(() => {
+    if (!userLoading && (!user || !hasPermission("purchaseOrders.read"))) {
+      router.push("/dashboard");
+    }
+  }, [user, userLoading, hasPermission, router]);
 
   useEffect(() => {
     const fetchPO = async () => {
@@ -150,6 +161,18 @@ export default function PurchaseOrderDetailPage({
         return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300";
     }
   };
+
+  if (userLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (!user || !hasPermission("purchaseOrders.read")) {
+    return null;
+  }
 
   if (isLoading) {
     return (

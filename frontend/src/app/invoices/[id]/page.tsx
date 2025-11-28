@@ -9,6 +9,7 @@ import {
     removeInvoiceItem,
     updateInvoiceItem,
 } from "@/lib/api/invoice.api";
+import { useUser } from "@/lib/UserContext";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -19,6 +20,7 @@ export default function InvoiceDetailPage({
   params: { id: string };
 }) {
   const router = useRouter();
+  const { user, hasPermission, isLoading: userLoading } = useUser();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -44,6 +46,13 @@ export default function InvoiceDetailPage({
     discountPercent: 0,
     type: "service" as "part" | "service" | "other",
   });
+
+  // Check if user has permission to access this page
+  useEffect(() => {
+    if (!userLoading && (!user || !hasPermission("invoices.read"))) {
+      router.push("/dashboard");
+    }
+  }, [user, userLoading, hasPermission, router]);
 
   // Fetch invoice data
   useEffect(() => {
@@ -271,6 +280,18 @@ export default function InvoiceDetailPage({
 
   // Check if invoice can be edited
   const canEdit = invoice && (invoice.status === "draft" || invoice.status === "issued");
+
+  if (userLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (!user || !hasPermission("invoices.read")) {
+    return null;
+  }
 
   if (isLoading) {
     return (

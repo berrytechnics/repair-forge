@@ -20,7 +20,7 @@ export default function CustomerDetailPage({
   params: { id: string };
 }) {
   const router = useRouter();
-  const { hasPermission } = useUser();
+  const { user, hasPermission, isLoading: userLoading } = useUser();
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -28,6 +28,13 @@ export default function CustomerDetailPage({
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [error, setError] = useState("");
+
+  // Check if user has permission to access this page
+  useEffect(() => {
+    if (!userLoading && (!user || !hasPermission("customers.read"))) {
+      router.push("/dashboard");
+    }
+  }, [user, userLoading, hasPermission, router]);
 
   // Fetch customer data
   useEffect(() => {
@@ -121,6 +128,17 @@ export default function CustomerDetailPage({
     });
   };
 
+  if (userLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (!user || !hasPermission("customers.read")) {
+    return null;
+  }
 
   if (isLoading) {
     return (

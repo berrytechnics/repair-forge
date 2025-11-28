@@ -2,15 +2,26 @@
 
 import { Customer, getCustomers } from "@/lib/api/customer.api";
 import { getTickets, Ticket } from "@/lib/api/ticket.api";
+import { useUser } from "@/lib/UserContext";
 import { formatStatus, getStatusColor } from "@/lib/utils/ticketUtils";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function DashboardPage() {
+  const router = useRouter();
+  const { user, hasPermission, isLoading: userLoading } = useUser();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // Check if user has permission to access this page
+  useEffect(() => {
+    if (!userLoading && (!user || !hasPermission("settings.access"))) {
+      router.push("/login");
+    }
+  }, [user, userLoading, hasPermission, router]);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -77,6 +88,17 @@ export default function DashboardPage() {
     return `${diffInDays} day${diffInDays === 1 ? "" : "s"} ago`;
   };
 
+  if (userLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (!user || !hasPermission("settings.access")) {
+    return null;
+  }
 
   if (isLoading) {
     return (

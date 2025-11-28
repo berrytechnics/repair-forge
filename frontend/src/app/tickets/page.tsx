@@ -35,13 +35,20 @@ interface Ticket {
 
 export default function TicketsListPage() {
   const router = useRouter();
-  const { hasPermission } = useUser();
+  const { user, hasPermission, isLoading: userLoading } = useUser();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterPriority, setFilterPriority] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Check if user has permission to access this page
+  useEffect(() => {
+    if (!userLoading && (!user || !hasPermission("tickets.read"))) {
+      router.push("/dashboard");
+    }
+  }, [user, userLoading, hasPermission, router]);
 
   useEffect(() => {
     const fetchTickets = async () => {
@@ -97,6 +104,18 @@ export default function TicketsListPage() {
       ticket.issueDescription.toLowerCase().includes(query)
     );
   });
+
+  if (userLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (!user || !hasPermission("tickets.read")) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-6 lg:p-8">

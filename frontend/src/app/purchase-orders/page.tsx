@@ -7,14 +7,23 @@ import {
 } from "@/lib/api/purchase-order.api";
 import { useUser } from "@/lib/UserContext";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import React, { useCallback, useEffect, useState } from "react";
 
 export default function PurchaseOrdersPage() {
-  const { hasPermission } = useUser();
+  const router = useRouter();
+  const { user, hasPermission, isLoading: userLoading } = useUser();
   const [pos, setPos] = useState<PurchaseOrder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [statusFilter, setStatusFilter] = useState<PurchaseOrderStatus | "all">("all");
+
+  // Check if user has permission to access this page
+  useEffect(() => {
+    if (!userLoading && (!user || !hasPermission("purchaseOrders.read"))) {
+      router.push("/dashboard");
+    }
+  }, [user, userLoading, hasPermission, router]);
 
   const fetchPurchaseOrders = useCallback(async () => {
     try {
@@ -71,6 +80,18 @@ export default function PurchaseOrdersPage() {
         return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300";
     }
   };
+
+  if (userLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (!user || !hasPermission("purchaseOrders.read")) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-6 lg:p-8">
