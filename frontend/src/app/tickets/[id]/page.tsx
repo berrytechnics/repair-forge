@@ -38,7 +38,6 @@ export default function TicketDetailPage({
   );
   const [isUpdating, setIsUpdating] = useState(false);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [isLoadingInvoices, setIsLoadingInvoices] = useState(false);
 
   // Parse notes from plain text (notes are appended with double newlines)
   const parseNotes = (notesText: string | null | undefined): string[] => {
@@ -89,7 +88,6 @@ export default function TicketDetailPage({
       if (!ticket?.id || !hasPermission("invoices.read")) {
         return;
       }
-      setIsLoadingInvoices(true);
       try {
         const response = await getInvoicesByTicket(ticket.id);
         if (response.data) {
@@ -98,8 +96,6 @@ export default function TicketDetailPage({
       } catch (err) {
         console.error("Error fetching invoices:", err);
         // Don't show error to user, just log it
-      } finally {
-        setIsLoadingInvoices(false);
       }
     };
 

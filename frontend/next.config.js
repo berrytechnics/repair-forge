@@ -11,6 +11,10 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   output: "standalone", // Required for production Docker builds
+  eslint: {
+    // Disable ESLint during builds since it's run separately in CI
+    ignoreDuringBuilds: true,
+  },
   experimental: {
     outputFileTracingRoot: path.resolve(__dirname),
     memoryBasedWorkersCount: true,

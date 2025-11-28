@@ -1,11 +1,38 @@
 // Learn more: https://github.com/testing-library/jest-dom
 import '@testing-library/jest-dom'
 
-// Workaround for Jest/Node 23 compatibility issue with strip-ansi
+// Workaround for Jest/strip-ansi compatibility issue
 // This is a known issue: https://github.com/jestjs/jest/issues/14305
-// Tests work correctly in CI (Node 22) and will be fixed in future Jest versions
-if (typeof process !== 'undefined' && process.version.startsWith('v23')) {
-  // Suppress the error for Node 23 - tests will work in CI with Node 22
+// Ensure strip-ansi CommonJS version is available for Jest reporters
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const stripAnsi = require('strip-ansi-cjs')
+  // Make stripAnsi available globally for Jest's internal use
+  if (typeof global !== 'undefined') {
+    // @ts-expect-error - Adding to global for Jest compatibility
+    global.stripAnsi = typeof stripAnsi === 'function' ? stripAnsi : stripAnsi.default || stripAnsi
+  }
+  // Also ensure it's available in the module cache for require('strip-ansi')
+  if (typeof require !== 'undefined' && require.cache) {
+    try {
+      // @ts-expect-error - Modifying require cache for Jest compatibility
+      require.cache[require.resolve('strip-ansi')] = {
+        exports: stripAnsi,
+      }
+    } catch {
+      // Ignore if module resolution fails
+    }
+  }
+} catch {
+  // If strip-ansi is not available, provide a no-op function
+  if (typeof global !== 'undefined') {
+    // @ts-expect-error - Adding to global for Jest compatibility
+    global.stripAnsi = (str: string) => str
+  }
+}
+
+// Suppress console.error for stripAnsi errors
+if (typeof process !== 'undefined') {
   const originalError = console.error
   console.error = (...args: unknown[]) => {
     if (typeof args[0] === 'string' && args[0].includes('stripAnsi is not a function')) {

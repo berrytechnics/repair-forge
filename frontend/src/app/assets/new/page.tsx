@@ -3,9 +3,9 @@
 import AssetForm from "@/components/AssetForm";
 import { useUser } from "@/lib/UserContext";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 
-export default function NewAssetPage() {
+function NewAssetContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const customerId = searchParams.get("customerId");
@@ -38,5 +38,19 @@ export default function NewAssetPage() {
   }
 
   return <AssetForm customerId={customerId} />;
+}
+
+export default function NewAssetPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      }
+    >
+      <NewAssetContent />
+    </Suspense>
+  );
 }
 
