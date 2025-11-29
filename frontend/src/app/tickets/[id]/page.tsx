@@ -3,6 +3,10 @@
 import { getTechnicians, Technician } from "@/lib/api";
 import { getInvoicesByTicket, Invoice } from "@/lib/api/invoice.api";
 import {
+  getChecklistTemplates,
+  ChecklistTemplateSummary,
+} from "@/lib/api/diagnostic-checklist.api";
+import {
   addDiagnosticNote,
   addRepairNote,
   assignTechnician,
@@ -11,6 +15,7 @@ import {
   updateTicket,
   updateTicketStatus,
 } from "@/lib/api/ticket.api";
+import ChecklistResponseForm from "@/components/ChecklistResponseForm";
 import { useUser } from "@/lib/UserContext";
 import { getPriorityColor, getStatusColor } from "@/lib/utils/ticketUtils";
 import Link from "next/link";
@@ -38,6 +43,10 @@ export default function TicketDetailPage({
   );
   const [isUpdating, setIsUpdating] = useState(false);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [checklistTemplates, setChecklistTemplates] = useState<
+    ChecklistTemplateSummary[]
+  >([]);
+  const [assigningTemplate, setAssigningTemplate] = useState(false);
 
   // Parse notes from plain text (notes are appended with double newlines)
   const parseNotes = (notesText: string | null | undefined): string[] => {
@@ -101,6 +110,47 @@ export default function TicketDetailPage({
 
     fetchInvoices();
   }, [ticket?.id, hasPermission]);
+
+  // Fetch checklist templates
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      try {
+        const response = await getChecklistTemplates();
+        if (response.data) {
+          setChecklistTemplates(
+            response.data.filter((template) => template.isActive)
+          );
+        }
+      } catch (err) {
+        console.error("Error fetching checklist templates:", err);
+      }
+    };
+
+    fetchTemplates();
+  }, []);
+
+  const handleAssignTemplate = async (templateId: string) => {
+    if (!ticket) return;
+
+    setAssigningTemplate(true);
+    try {
+      await updateTicket(ticket.id, { checklistTemplateId: templateId });
+      // Reload ticket to get updated data
+      const response = await getTicketById(ticket.id);
+      if (response.data) {
+        setTicket(response.data);
+      }
+    } catch (err) {
+      console.error("Error assigning template:", err);
+      alert(
+        err instanceof Error
+          ? err.message
+          : "Failed to assign template. Please try again."
+      );
+    } finally {
+      setAssigningTemplate(false);
+    }
+  };
 
   // Fetch technicians
   useEffect(() => {
@@ -585,6 +635,60 @@ export default function TicketDetailPage({
                 </div>
               </div>
             </div>
+
+            {/* Checklist section */}
+            {(ticket.checklistTemplateId ||
+              (hasPermission("tickets.update") &&
+                checklistTemplates.length > 0)) && (
+              <div className="px-4 py-5 sm:px-6 border-t border-gray-200 dark:border-gray-700">
+                <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-gray-100 mb-4">
+                  Diagnostic Checklist
+                </h3>
+
+                {ticket.checklistTemplateId ? (
+                  <ChecklistResponseForm
+                    ticketId={ticket.id}
+                    templateId={ticket.checklistTemplateId}
+                  />
+                ) : (
+                  <div className="space-y-4">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      No checklist template assigned to this ticket.
+                    </p>
+                    {hasPermission("tickets.update") &&
+                      checklistTemplates.length > 0 && (
+                        <div>
+                          <label
+                            htmlFor="assign-template"
+                            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                          >
+                            Assign Checklist Template
+                          </label>
+                          <div className="flex gap-2">
+                            <select
+                              id="assign-template"
+                              onChange={(e) => {
+                                if (e.target.value) {
+                                  handleAssignTemplate(e.target.value);
+                                }
+                              }}
+                              disabled={assigningTemplate}
+                              className="flex-1 block rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                            >
+                              <option value="">Select a template...</option>
+                              {checklistTemplates.map((template) => (
+                                <option key={template.id} value={template.id}>
+                                  {template.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Right column - Customer and Actions */}

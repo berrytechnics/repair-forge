@@ -6,6 +6,7 @@ import { HttpError, ValidationError } from "./config/errors.js";
 import logger from "./config/logger.js";
 import assetRoutes from "./routes/asset.routes.js";
 import customerRoutes from "./routes/customer.routes.js";
+import diagnosticChecklistRoutes from "./routes/diagnostic-checklist.routes.js";
 import inventoryRoutes from "./routes/inventory.routes.js";
 import inventoryTransferRoutes from "./routes/inventory-transfer.routes.js";
 import invitationRoutes from "./routes/invitation.routes.js";
@@ -31,6 +32,7 @@ app.use("/api/auth", userRoutes);
 app.use("/api/users", userRoutes); // Also mount user routes at /api/users for technicians endpoint
 app.use("/api/assets", assetRoutes);
 app.use("/api/customers", customerRoutes);
+app.use("/api/diagnostic-checklists", diagnosticChecklistRoutes);
 app.use("/api/tickets", ticketRoutes);
 app.use("/api/invoices", invoiceRoutes);
 app.use("/api/inventory", inventoryRoutes);

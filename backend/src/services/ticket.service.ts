@@ -2,13 +2,16 @@
 import { sql } from "kysely";
 import { v4 as uuidv4 } from "uuid";
 import { db } from "../config/connection.js";
+import { BadRequestError } from "../config/errors.js";
 import { TicketPriority, TicketStatus, TicketTable } from "../config/types.js";
 import assetService from "./asset.service.js";
+import diagnosticChecklistService from "./diagnostic-checklist.service.js";
 
 // Input DTOs
 export interface CreateTicketDto {
   customerId: string;
   assetId?: string | null;
+  checklistTemplateId?: string | null;
   technicianId?: string | null;
   status?: TicketStatus;
   priority?: TicketPriority;
@@ -26,6 +29,7 @@ export interface CreateTicketDto {
 export interface UpdateTicketDto {
   customerId?: string;
   assetId?: string | null;
+  checklistTemplateId?: string | null;
   locationId?: string | null;
   technicianId?: string | null;
   status?: TicketStatus;
@@ -48,6 +52,7 @@ export type Ticket = Omit<
   | "company_id"
   | "location_id"
   | "asset_id"
+  | "checklist_template_id"
   | "ticket_number"
   | "customer_id"
   | "technician_id"
@@ -67,6 +72,7 @@ export type Ticket = Omit<
   id: string;
   locationId: string | null;
   assetId: string | null;
+  checklistTemplateId: string | null;
   ticketNumber: string;
   customerId: string;
   technicianId: string | null;
@@ -89,6 +95,7 @@ function toTicket(ticket: {
   company_id: string;
   location_id: string | null;
   asset_id: string | null;
+  checklist_template_id: string | null;
   ticket_number: string;
   customer_id: string;
   technician_id: string | null;
@@ -111,6 +118,7 @@ function toTicket(ticket: {
     id: ticket.id as string,
     locationId: ticket.location_id as string | null,
     assetId: ticket.asset_id as string | null,
+    checklistTemplateId: ticket.checklist_template_id as string | null,
     ticketNumber: ticket.ticket_number,
     customerId: ticket.customer_id,
     technicianId: ticket.technician_id,
@@ -214,6 +222,24 @@ export class TicketService {
       throw new Error("Location not found or does not belong to company");
     }
 
+    // If checklistTemplateId is provided, validate it belongs to company
+    let checklistTemplateId = data.checklistTemplateId || null;
+    if (data.checklistTemplateId) {
+      const template = await db
+        .selectFrom("diagnostic_checklist_templates")
+        .select("id")
+        .where("id", "=", data.checklistTemplateId)
+        .where("company_id", "=", companyId)
+        .where("deleted_at", "is", null)
+        .where("is_active", "=", true)
+        .executeTakeFirst();
+
+      if (!template) {
+        throw new Error("Checklist template not found, inactive, or does not belong to company");
+      }
+      checklistTemplateId = template.id;
+    }
+
     // If assetId is provided, fetch asset and validate it belongs to company and customer
     let deviceType = data.deviceType;
     let deviceBrand = data.deviceBrand || null;
@@ -247,6 +273,7 @@ export class TicketService {
         company_id: companyId,
         location_id: locationId,
         asset_id: assetId,
+        checklist_template_id: checklistTemplateId,
         ticket_number: ticketNumber,
         customer_id: data.customerId,
         technician_id: data.technicianId || null,
@@ -302,6 +329,24 @@ export class TicketService {
         }
       }
       updateQuery = updateQuery.set({ asset_id: data.assetId });
+    }
+    if (data.checklistTemplateId !== undefined) {
+      // If setting checklist template, verify it belongs to company
+      if (data.checklistTemplateId !== null) {
+        const template = await db
+          .selectFrom("diagnostic_checklist_templates")
+          .select("id")
+          .where("id", "=", data.checklistTemplateId)
+          .where("company_id", "=", companyId)
+          .where("deleted_at", "is", null)
+          .where("is_active", "=", true)
+          .executeTakeFirst();
+
+        if (!template) {
+          throw new Error("Checklist template not found, inactive, or does not belong to company");
+        }
+      }
+      updateQuery = updateQuery.set({ checklist_template_id: data.checklistTemplateId });
     }
     if (data.locationId !== undefined) {
       // If setting location, verify it belongs to company
@@ -405,6 +450,16 @@ export class TicketService {
   }
 
   async updateStatus(id: string, status: TicketStatus, companyId: string): Promise<Ticket | null> {
+    // Validate checklist completion if moving to completed status
+    if (status === "completed") {
+      const validation = await diagnosticChecklistService.validateRequiredItems(id, companyId);
+      if (!validation.valid) {
+        throw new BadRequestError(
+          `Cannot complete ticket. Required checklist items are missing: ${validation.missingItems.join(", ")}`
+        );
+      }
+    }
+
     const updated = await db
       .updateTable("tickets")
       .set({
@@ -418,6 +473,10 @@ export class TicketService {
       .executeTakeFirst();
 
     return updated ? toTicket(updated) : null;
+  }
+
+  async validateChecklistCompletion(ticketId: string, companyId: string): Promise<{ valid: boolean; missingItems: string[] }> {
+    return diagnosticChecklistService.validateRequiredItems(ticketId, companyId);
   }
 
   async addDiagnosticNotes(id: string, notes: string, companyId: string): Promise<Ticket | null> {

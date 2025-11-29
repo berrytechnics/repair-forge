@@ -76,6 +76,20 @@ export const createTicketValidation = [
     .optional()
     .isISO8601()
     .withMessage("Estimated completion date must be a valid ISO 8601 date"),
+  body("checklistTemplateId")
+    .optional({ values: "falsy" })
+    .custom((value) => {
+      // If empty string, null, or undefined, skip validation (allows no template)
+      if (!value || value === "") {
+        return true;
+      }
+      // Otherwise, validate as UUID
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(value)) {
+        throw new Error("Checklist template ID must be a valid UUID");
+      }
+      return true;
+    }),
 ];
 
 /**
@@ -194,6 +208,20 @@ export const updateTicketValidation = [
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       if (!uuidRegex.test(value)) {
         throw new Error("Asset ID must be a valid UUID");
+      }
+      return true;
+    }),
+  body("checklistTemplateId")
+    .optional({ values: "falsy" })
+    .custom((value) => {
+      // If empty string, null, or undefined, skip validation (allows unsetting template)
+      if (!value || value === "") {
+        return true;
+      }
+      // Otherwise, validate as UUID
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(value)) {
+        throw new Error("Checklist template ID must be a valid UUID");
       }
       return true;
     }),

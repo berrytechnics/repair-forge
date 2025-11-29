@@ -1,7 +1,12 @@
 "use client";
 
 import { useUser } from "@/lib/UserContext";
-import { Cog6ToothIcon, MapPinIcon, ShieldCheckIcon } from "@heroicons/react/24/outline";
+import {
+  ClipboardDocumentCheckIcon,
+  Cog6ToothIcon,
+  MapPinIcon,
+  ShieldCheckIcon,
+} from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -36,6 +41,14 @@ export default function SettingsPage() {
       href: "/settings/permissions",
       icon: ShieldCheckIcon,
       permission: "permissions.view",
+    },
+    {
+      name: "Diagnostic Checklists",
+      description: "Create and manage diagnostic checklist templates",
+      href: "/settings/diagnostic-checklists",
+      icon: ClipboardDocumentCheckIcon,
+      permission: "settings.access",
+      adminOnly: true,
     },
     {
       name: "Locations",

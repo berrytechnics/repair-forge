@@ -16,6 +16,9 @@ export interface Database {
   assets: AssetTable;
   companies: CompanyTable;
   customers: CustomerTable;
+  diagnostic_checklist_templates: DiagnosticChecklistTemplateTable;
+  diagnostic_checklist_items: DiagnosticChecklistItemTable;
+  diagnostic_checklist_responses: DiagnosticChecklistResponseTable;
   inventory_items: InventoryItemTable;
   invoices: InvoiceTable;
   invoice_items: InvoiceItemTable;
@@ -159,6 +162,7 @@ export interface TicketTable {
   company_id: UUID;
   location_id: UUID | null;
   asset_id: UUID | null;
+  checklist_template_id: UUID | null;
   ticket_number: string;
   customer_id: UUID;
   technician_id: UUID | null;
@@ -285,6 +289,41 @@ export interface UserTable {
   created_at: Timestamp;
   updated_at: Timestamp;
   deleted_at: SoftDelete;
+}
+
+export type ChecklistFieldType = "checkbox" | "text" | "dropdown";
+
+export interface DiagnosticChecklistTemplateTable {
+  id: UUID;
+  company_id: UUID;
+  name: string;
+  description: string | null;
+  is_active: boolean;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+  deleted_at: SoftDelete;
+}
+
+export interface DiagnosticChecklistItemTable {
+  id: UUID;
+  template_id: UUID;
+  label: string;
+  field_type: ChecklistFieldType;
+  is_required: boolean;
+  order_index: number;
+  dropdown_options: string[] | null;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+}
+
+export interface DiagnosticChecklistResponseTable {
+  id: UUID;
+  ticket_id: UUID;
+  template_id: UUID;
+  item_id: UUID;
+  response_value: string | null;
+  created_at: Timestamp;
+  updated_at: Timestamp;
 }
 
 // Extend Express Request interface to include user, companyId, and locationId property

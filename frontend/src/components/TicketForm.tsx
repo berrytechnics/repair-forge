@@ -7,6 +7,10 @@ import {
   searchCustomers,
 } from "@/lib/api/customer.api";
 import {
+  getChecklistTemplates,
+  ChecklistTemplateSummary,
+} from "@/lib/api/diagnostic-checklist.api";
+import {
   CreateTicketData,
   UpdateTicketData,
   createTicket,
@@ -35,6 +39,7 @@ export default function TicketForm({
   >({
     customerId: initialCustomerId || "",
     assetId: "",
+    checklistTemplateId: "",
     technicianId: "",
     deviceType: "",
     deviceBrand: "",
@@ -47,6 +52,9 @@ export default function TicketForm({
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [technicians, setTechnicians] = useState<Technician[]>([]);
   const [assets, setAssets] = useState<Asset[]>([]);
+  const [checklistTemplates, setChecklistTemplates] = useState<
+    ChecklistTemplateSummary[]
+  >([]);
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [isLoadingAssets, setIsLoadingAssets] = useState(false);
   const [customerSearchQuery, setCustomerSearchQuery] = useState("");
@@ -76,6 +84,7 @@ export default function TicketForm({
               id: ticket.id,
               customerId: ticket.customerId,
               assetId: ticket.assetId || "",
+              checklistTemplateId: ticket.checklistTemplateId || "",
               technicianId: ticket.technicianId || "",
               deviceType: ticket.deviceType,
               deviceBrand: ticket.deviceBrand || "",
@@ -122,6 +131,25 @@ export default function TicketForm({
     };
 
     fetchTechnicians();
+  }, []);
+
+  // Fetch checklist templates
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      try {
+        const response = await getChecklistTemplates();
+        if (response.data) {
+          // Only show active templates
+          setChecklistTemplates(
+            response.data.filter((template) => template.isActive)
+          );
+        }
+      } catch (err) {
+        console.error("Error fetching checklist templates:", err);
+      }
+    };
+
+    fetchTemplates();
   }, []);
 
   // Fetch customer data if initialCustomerId is provided
@@ -318,6 +346,8 @@ export default function TicketForm({
           issueDescription,
           priority,
           technicianId: technicianId || undefined,
+          checklistTemplateId:
+            cleanFormData.checklistTemplateId || undefined,
         };
 
         response = await updateTicket(ticketId, updateData);
@@ -655,6 +685,39 @@ export default function TicketForm({
                       />
                     </div>
                   </div>
+                </div>
+              </div>
+
+              {/* Checklist Template Selection */}
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+                  Diagnostic Checklist (Optional)
+                </h3>
+                <div>
+                  <label
+                    htmlFor="checklistTemplateId"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >
+                    Select Checklist Template
+                  </label>
+                  <select
+                    id="checklistTemplateId"
+                    name="checklistTemplateId"
+                    value={formData.checklistTemplateId || ""}
+                    onChange={handleChange}
+                    className="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  >
+                    <option value="">No checklist template</option>
+                    {checklistTemplates.map((template) => (
+                      <option key={template.id} value={template.id}>
+                        {template.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Select a diagnostic checklist template to attach to this
+                    ticket. You can fill it out after creating the ticket.
+                  </p>
                 </div>
               </div>
 
