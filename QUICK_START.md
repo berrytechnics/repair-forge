@@ -1,39 +1,30 @@
 # CircuitSage Quick Start Guide
 
-Welcome to CircuitSage! This guide will help you get started using the application from a user perspective.
+Welcome to CircuitSage! This guide will help you get up and running quickly.
 
-## Table of Contents
+## Getting Started
 
-- [Accessing the Application](#accessing-the-application)
-- [First Login](#first-login)
-- [Navigation Overview](#navigation-overview)
-- [Core Workflows](#core-workflows)
-- [User Roles and Permissions](#user-roles-and-permissions)
-- [Tips and Best Practices](#tips-and-best-practices)
+### Access the Application
 
-## Accessing the Application
+Once CircuitSage is running, open your web browser and navigate to:
 
-Once CircuitSage is running, access it in your web browser:
-
-**URL**: http://localhost:3000
+**http://localhost:3000**
 
 The application works best in modern browsers (Chrome, Firefox, Safari, Edge).
 
-## First Login
+### First Login
 
-### Default Admin Account
+When you first access CircuitSage, use these default credentials:
 
-When you first access CircuitSage, use these credentials:
+- **Email**: `admin@circuitsage.com`
+- **Password**: `admin123`
 
-- **Email**: admin@circuitsage.com
-- **Password**: admin123
+**Security Warning**: Change this password immediately after your first login!
 
-**⚠️ Security Note**: Change this password immediately after your first login!
-
-### Changing Your Password
+#### Changing Your Password
 
 1. Log in with the default credentials
-2. Click on your user avatar in the top-right corner
+2. Click your user avatar in the top-right corner
 3. Navigate to **Settings**
 4. Update your password in the **Account Settings** section
 
@@ -41,7 +32,7 @@ When you first access CircuitSage, use these credentials:
 
 The main navigation sidebar provides access to all features:
 
-### Main Menu Items
+### Main Menu
 
 - **Dashboard** - Overview of key metrics and recent activity
 - **Tickets** - Manage repair tickets and track job status
@@ -62,12 +53,12 @@ Click your avatar in the top-right to access:
 
 ## Core Workflows
 
-### 1. Managing Customers
+### Managing Customers
 
 #### Creating a New Customer
 
 1. Navigate to **Customers** from the sidebar
-2. Click the **"Add Customer"** or **"New Customer"** button
+2. Click **"Add Customer"** or **"New Customer"**
 3. Fill in the customer information:
    - Name (First and Last)
    - Email address
@@ -88,7 +79,7 @@ Click your avatar in the top-right to access:
 2. View customer information, ticket history, and invoice history
 3. Edit customer information by clicking the **"Edit"** button
 
-### 2. Creating and Managing Tickets
+### Creating and Managing Tickets
 
 #### Creating a New Ticket
 
@@ -137,7 +128,7 @@ The system automatically assigns a ticket number (e.g., TKT-0001).
 
 To unassign, select "None" or "Unassigned" from the dropdown.
 
-### 3. Creating and Managing Invoices
+### Creating and Managing Invoices
 
 #### Creating an Invoice
 
@@ -160,7 +151,7 @@ The system automatically assigns an invoice number (e.g., INV-0001).
    - **Description**: Item or service description
    - **Quantity**: Number of units
    - **Unit Price**: Price per unit
-   - **Tax Rate**: Tax percentage (if applicable)
+   - **Taxable**: Whether the item is taxable
 4. Click **"Add Item"**
 
 The system automatically calculates:
@@ -192,7 +183,7 @@ The system automatically calculates:
 
 The invoice status will update to "Paid" and the date will be recorded.
 
-### 4. Managing Inventory
+### Managing Inventory
 
 #### Adding Inventory Items
 
@@ -219,7 +210,7 @@ The invoice status will update to "Paid" and the date will be recorded.
 
 Items below their reorder threshold will be highlighted or shown in a "Low Stock" section.
 
-### 5. Managing Purchase Orders
+### Managing Purchase Orders
 
 #### Creating a Purchase Order
 
@@ -336,7 +327,6 @@ If you encounter issues or have questions:
 
 ## Keyboard Shortcuts
 
-- **Ctrl/Cmd + K**: Quick search (if implemented)
 - **Esc**: Close modals or cancel actions
 - **Enter**: Submit forms
 
@@ -352,6 +342,3 @@ For the best experience, keep your browser updated to the latest version.
 ---
 
 **Ready to get started?** Log in at http://localhost:3000 and begin managing your repair business!
-
-
-
