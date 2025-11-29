@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import { jest } from "@jest/globals";
 import { ForbiddenError } from "../../config/errors.js";
 import {
   requireLocationContext,
@@ -12,8 +13,12 @@ import {
   createTestLocation,
   assignUserToLocation,
 } from "../helpers/seed.helper.js";
+import { cleanupTestData } from "../helpers/db.helper.js";
 
 describe("Location Middleware", () => {
+  let testCompanyIds: string[] = [];
+  let testLocationIds: string[] = [];
+  let testUserIds: string[] = [];
   let testCompanyId: string;
   let testLocationId: string;
   let adminUserId: string;
@@ -21,22 +26,38 @@ describe("Location Middleware", () => {
 
   beforeEach(async () => {
     testCompanyId = await createTestCompany();
+    testCompanyIds.push(testCompanyId);
     testLocationId = await createTestLocation(testCompanyId, { name: "Test Location" });
+    testLocationIds.push(testLocationId);
 
     adminUserId = await createTestUser(testCompanyId, {
       role: "admin",
       email: "admin@test.com",
       currentLocationId: testLocationId,
     });
+    testUserIds.push(adminUserId);
 
     regularUserId = await createTestUser(testCompanyId, {
       role: "technician",
       email: "tech@test.com",
       currentLocationId: testLocationId,
     });
+    testUserIds.push(regularUserId);
 
     // Assign regular user to location
     await assignUserToLocation(regularUserId, testLocationId);
+  });
+
+  afterEach(async () => {
+    // Clean up all test data
+    await cleanupTestData({
+      companyIds: testCompanyIds,
+      userIds: testUserIds,
+      locationIds: testLocationIds,
+    });
+    testCompanyIds = [];
+    testUserIds = [];
+    testLocationIds = [];
   });
 
   describe("userHasLocationAccess", () => {
@@ -62,6 +83,7 @@ describe("Location Middleware", () => {
 
     it("should return false for user not assigned to location", async () => {
       const otherLocationId = await createTestLocation(testCompanyId, { name: "Other Location" });
+      testLocationIds.push(otherLocationId);
       const hasAccess = await userHasLocationAccess(
         regularUserId,
         otherLocationId,
@@ -73,7 +95,9 @@ describe("Location Middleware", () => {
 
     it("should return false for location from different company", async () => {
       const otherCompanyId = await createTestCompany({ name: "Other Company" });
+      testCompanyIds.push(otherCompanyId);
       const otherLocationId = await createTestLocation(otherCompanyId);
+      testLocationIds.push(otherLocationId);
       const hasAccess = await userHasLocationAccess(
         adminUserId,
         otherLocationId,
@@ -183,6 +207,7 @@ describe("Location Middleware", () => {
 
     it("should throw ForbiddenError for user not assigned to location", async () => {
       const otherLocationId = await createTestLocation(testCompanyId, { name: "Other Location" });
+      testLocationIds.push(otherLocationId);
       const userWithOtherLocation: UserWithoutPassword = {
         id: regularUserId,
         company_id: testCompanyId as unknown as string,

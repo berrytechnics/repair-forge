@@ -56,7 +56,14 @@ export async function closeConnection(): Promise<void> {
     await db.destroy();
     logger.info("Database connection closed");
     // Give a small delay to ensure all connections are fully closed
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    // Use unref() in test environment to prevent keeping the process alive
+    const delayPromise = new Promise((resolve) => {
+      const timer = setTimeout(resolve, 100);
+      if (process.env.NODE_ENV === "test") {
+        timer.unref();
+      }
+    });
+    await delayPromise;
   } catch (error) {
     // Log error but don't throw - allow cleanup to continue
     logger.error("Error closing database connection:", error);
