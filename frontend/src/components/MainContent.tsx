@@ -11,9 +11,10 @@ export default function MainContent({ children }: MainContentProps) {
   const pathname = usePathname();
   const { user, isLoading } = useUser();
   
-  // Don't apply sidebar margin on auth pages or when user is not logged in
+  // Don't apply sidebar margin on auth pages, home page, or when user is not logged in
   const isAuthPage = pathname === "/login" || pathname === "/register";
-  const shouldShowSidebar = !isLoading && user && !isAuthPage;
+  const isHomePage = pathname === "/";
+  const shouldShowSidebar = !isLoading && user && !isAuthPage && !isHomePage;
   
   return (
     <main className={`flex-1 p-4 lg:p-8 bg-background ${shouldShowSidebar ? "lg:ml-64" : ""}`}>

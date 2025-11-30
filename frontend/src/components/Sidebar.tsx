@@ -137,6 +137,16 @@ export default function Sidebar() {
     },
   ];
 
+  // Hide sidebar completely on homepage
+  if (pathname === "/") {
+    return null;
+  }
+
+  // Hide sidebar completely when user is not logged in
+  if (!isLoading && !user) {
+    return null;
+  }
+
   // Filter navigation based on user permissions
   const navigation = allNavigationItems.filter((item) => {
     if (!user) return false;
@@ -146,11 +156,6 @@ export default function Sidebar() {
     }
     return hasPermission(item.permission);
   });
-
-  // Hide sidebar completely when user is not logged in
-  if (!isLoading && !user) {
-    return null;
-  }
 
   // Show loading state during initial load
   if (isLoading) {
