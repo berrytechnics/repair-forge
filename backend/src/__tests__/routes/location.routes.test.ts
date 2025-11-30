@@ -5,6 +5,7 @@ import {
   createTestCompany,
   createTestLocation,
   assignUserToLocation,
+  createTestSubscription,
 } from "../helpers/seed.helper.js";
 import { createTestUsersWithRoles, getAuthHeader } from "../helpers/auth.helper.js";
 
@@ -23,8 +24,12 @@ describe("Location Routes Integration Tests", () => {
     testCompany2Id = await createTestCompany({ name: "Test Company 2" });
 
     // Create test users with different roles
+    // Note: createTestUsersWithRoles creates a default location
     const users = await createTestUsersWithRoles(testCompanyId);
     testUserIds.push(users.admin.userId, users.frontdesk.userId, users.technician.userId);
+    
+    // Track the default location for cleanup
+    testLocationIds.push(users.locationId);
 
     adminToken = users.admin.token;
     technicianToken = users.technician.token;
@@ -130,6 +135,14 @@ describe("Location Routes Integration Tests", () => {
 
   describe("POST /api/locations", () => {
     it("should create location as admin", async () => {
+      // Create a subscription with payment method to allow additional locations
+      // (first location is free, but createTestUsersWithRoles already created one)
+      await createTestSubscription(testCompanyId, {
+        autopayEnabled: true,
+        squareCardId: "test-card-id",
+        status: "active",
+      });
+
       const response = await request(app)
         .post("/api/locations")
         .set(getAuthHeader(adminToken))
@@ -176,6 +189,13 @@ describe("Location Routes Integration Tests", () => {
     });
 
     it("should enforce unique name per company", async () => {
+      // Create a subscription with payment method to allow additional locations
+      await createTestSubscription(testCompanyId, {
+        autopayEnabled: true,
+        squareCardId: "test-card-id",
+        status: "active",
+      });
+
       const locationId = await createTestLocation(testCompanyId, { name: "Unique Location" });
       testLocationIds.push(locationId);
 

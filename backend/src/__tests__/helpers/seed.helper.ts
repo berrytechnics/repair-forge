@@ -3,7 +3,7 @@ import { sql } from "kysely";
 import { v4 as uuidv4 } from "uuid";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
-import { UserRole, TicketStatus, TicketPriority, InvoiceStatus, InventoryTransferStatus } from "../../config/types.js";
+import { UserRole, TicketStatus, TicketPriority, InvoiceStatus, InventoryTransferStatus, SubscriptionStatus } from "../../config/types.js";
 import { db } from "../../config/connection.js";
 
 /**
@@ -562,5 +562,45 @@ export async function createTestInventoryTransfer(
     .execute();
 
   return transferId;
+}
+
+/**
+ * Create a test subscription in the database
+ * This allows tests to bypass payment method checks
+ */
+export async function createTestSubscription(
+  companyId: string,
+  overrides?: {
+    squareSubscriptionId?: string | null;
+    status?: SubscriptionStatus;
+    monthlyAmount?: number;
+    billingDay?: number;
+    autopayEnabled?: boolean;
+    squareCustomerId?: string | null;
+    squareCardId?: string | null;
+  }
+): Promise<string> {
+  const subscriptionId = uuidv4();
+  const status: SubscriptionStatus = overrides?.status || "active";
+
+  await db
+    .insertInto("subscriptions")
+    .values({
+      id: subscriptionId,
+      company_id: companyId,
+      square_subscription_id: overrides?.squareSubscriptionId || null,
+      status: status,
+      monthly_amount: overrides?.monthlyAmount ?? 50.0,
+      billing_day: overrides?.billingDay ?? 1,
+      autopay_enabled: overrides?.autopayEnabled !== undefined ? overrides.autopayEnabled : true,
+      square_customer_id: overrides?.squareCustomerId || null,
+      square_card_id: overrides?.squareCardId || "test-card-id",
+      created_at: sql`now()`,
+      updated_at: sql`now()`,
+      deleted_at: null,
+    })
+    .execute();
+
+  return subscriptionId;
 }
 
