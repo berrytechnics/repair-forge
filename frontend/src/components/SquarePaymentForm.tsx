@@ -1,61 +1,99 @@
 "use client";
 
 import { payments } from "@square/web-sdk";
+import type { Card } from "@square/web-sdk";
 import { useEffect, useRef, useState } from "react";
 import { getIntegration, IntegrationConfig } from "@/lib/api/integration.api";
 
 interface SquarePaymentFormProps {
-  onCardTokenized: (cardToken: string) => void;
+  // For autopay (card tokenization)
+  onCardTokenized?: (cardToken: string) => void;
+  // For payment processing
+  onPaymentSuccess?: (sourceId: string) => void;
   onError: (error: string) => void;
   disabled?: boolean;
+  // Optional props for direct configuration (used in invoice page)
+  applicationId?: string;
+  locationId?: string;
+  testMode?: boolean;
+  amount?: number;
+  isProcessing?: boolean;
 }
 
 export default function SquarePaymentForm({
   onCardTokenized,
+  onPaymentSuccess,
   onError,
   disabled = false,
+  applicationId: propApplicationId,
+  locationId: propLocationId,
+  testMode: propTestMode,
+  amount: propAmount,
+  isProcessing: propIsProcessing,
 }: SquarePaymentFormProps) {
   const [isLoading, setIsLoading] = useState(true);
-  const [paymentForm, setPaymentForm] = useState<payments.PaymentForm | null>(
-    null
-  );
+  const [cardInstance, setCardInstance] = useState<Card | null>(null);
   const cardContainerRef = useRef<HTMLDivElement>(null);
-  const [integration, setIntegration] = useState<IntegrationConfig | null>(
-    null
-  );
+  const [integration, setIntegration] = useState<IntegrationConfig | null>(null);
 
   useEffect(() => {
     const initializeSquare = async () => {
       try {
-        // Get Square integration config
-        const integrationData = await getIntegration("payment");
-        if (!integrationData?.data) {
-          onError("Square payment integration not configured");
-          setIsLoading(false);
-          return;
-        }
+        let config: IntegrationConfig;
+        let applicationId: string;
+        let locationId: string;
 
-        const config = integrationData.data;
-        if (config.provider !== "square" || !config.applicationId) {
-          onError("Square payment integration not properly configured");
-          setIsLoading(false);
-          return;
+        // Use props if provided, otherwise fetch from API
+        if (propApplicationId && propLocationId) {
+          applicationId = propApplicationId;
+          locationId = propLocationId;
+          // Create a minimal config object for display purposes
+          config = {
+            provider: "square",
+            applicationId,
+            locationId,
+            settings: propTestMode ? { testMode: true } : undefined,
+          } as IntegrationConfig;
+        } else {
+          // Get Square integration config from API
+          const integrationData = await getIntegration("payment");
+          if (!integrationData?.data) {
+            onError("Square payment integration not configured");
+            setIsLoading(false);
+            return;
+          }
+
+          config = integrationData.data;
+          if (config.provider !== "square" || !config.applicationId) {
+            onError("Square payment integration not properly configured");
+            setIsLoading(false);
+            return;
+          }
+
+          applicationId = config.applicationId;
+          locationId = config.locationId || "";
         }
 
         setIntegration(config);
 
-        // Initialize Square Payment Form
-        const form = await payments.paymentForm({
-          applicationId: config.applicationId,
-          locationId: config.locationId || "",
-          inputClass: "sq-input",
-          autoBuild: false,
-          card: {
-            elementId: "#sq-card",
-          },
-        });
+        // Initialize Square Payments SDK
+        const paymentsSdk = await payments(applicationId, locationId);
+        if (!paymentsSdk) {
+          onError("Failed to initialize Square Payments SDK");
+          setIsLoading(false);
+          return;
+        }
 
-        setPaymentForm(form);
+        // Create Card payment method instance
+        const card = await paymentsSdk.card();
+
+        setCardInstance(card);
+
+        // Attach card form to the DOM element
+        if (cardContainerRef.current) {
+          await card.attach("#sq-card");
+        }
+
         setIsLoading(false);
       } catch (error) {
         console.error("Error initializing Square:", error);
@@ -69,30 +107,45 @@ export default function SquarePaymentForm({
     };
 
     initializeSquare();
-  }, [onError]);
+  }, [onError, propApplicationId, propLocationId, propTestMode]);
 
   useEffect(() => {
-    if (paymentForm && cardContainerRef.current) {
-      paymentForm.build();
-    }
-  }, [paymentForm]);
+    const attachCard = async () => {
+      if (cardInstance && cardContainerRef.current) {
+        try {
+          await cardInstance.attach("#sq-card");
+        } catch (error) {
+          console.error("Error attaching card form:", error);
+        }
+      }
+    };
+    attachCard();
+  }, [cardInstance]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!paymentForm || disabled) {
+    if (!cardInstance || disabled || propIsProcessing) {
       return;
     }
 
     try {
-      const result = await paymentForm.requestCardNonce();
-      if (result.status === "OK" && result.cardNonce) {
-        onCardTokenized(result.cardNonce);
-      } else {
+      const result = await cardInstance.tokenize();
+      if (result.status === "OK" && "token" in result) {
+        // If onPaymentSuccess is provided, use it (for payment processing)
+        // Otherwise use onCardTokenized (for autopay)
+        if (onPaymentSuccess) {
+          onPaymentSuccess(result.token);
+        } else if (onCardTokenized) {
+          onCardTokenized(result.token);
+        }
+      } else if ("errors" in result) {
         onError(
-          result.errors?.[0]?.detail ||
+          result.errors[0]?.message ||
             "Failed to tokenize card. Please try again."
         );
+      } else {
+        onError("Failed to tokenize card. Please try again.");
       }
     } catch (error) {
       console.error("Error tokenizing card:", error);
@@ -131,10 +184,14 @@ export default function SquarePaymentForm({
 
       <button
         type="submit"
-        disabled={disabled || !paymentForm}
+        disabled={disabled || !cardInstance || propIsProcessing}
         className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {disabled ? "Processing..." : "Save Card for Autopay"}
+        {disabled || propIsProcessing
+          ? "Processing..."
+          : onPaymentSuccess
+          ? `Pay $${propAmount?.toFixed(2) || "0.00"}`
+          : "Save Card for Autopay"}
       </button>
 
       <style jsx global>{`
