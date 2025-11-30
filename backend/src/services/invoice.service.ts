@@ -2,7 +2,7 @@
 import { sql } from "kysely";
 import { v4 as uuidv4 } from "uuid";
 import { db } from "../config/connection.js";
-import { NotFoundError } from "../config/errors.js";
+import { BadRequestError, ForbiddenError, NotFoundError } from "../config/errors.js";
 import { InvoiceItemTable, InvoiceStatus, InvoiceTable } from "../config/types.js";
 import emailService from "../integrations/email/email.service.js";
 import customerService from "./customer.service.js";
@@ -108,6 +108,12 @@ export interface MarkInvoicePaidDto {
   paymentReference?: string | null;
   paidDate?: string | null;
   notes?: string | null;
+}
+
+export interface RefundInvoiceDto {
+  refundAmount: number;
+  refundReason?: string | null;
+  refundMethod?: string | null;
 }
 
 // Invoice Item output type
@@ -536,12 +542,14 @@ export class InvoiceService {
       throw new NotFoundError("Invoice not found");
     }
 
-    // Get tax rate from location
+    // Get tax settings from location
     let taxRate = 0;
+    let taxEnabled = true;
+    let taxInclusive = false;
     if (invoice.location_id) {
       const location = await db
         .selectFrom("locations")
-        .select("tax_rate")
+        .select(["tax_rate", "tax_enabled", "tax_inclusive"])
         .where("id", "=", invoice.location_id)
         .where("company_id", "=", companyId)
         .where("deleted_at", "is", null)
@@ -549,13 +557,27 @@ export class InvoiceService {
 
       if (location) {
         taxRate = Number(location.tax_rate);
+        taxEnabled = location.tax_enabled ?? true;
+        taxInclusive = location.tax_inclusive ?? false;
       }
     }
 
     const discountAmount = Number(invoice.discount_amount);
-    // Apply tax only to taxable items
-    const taxAmount = taxableSubtotal * (taxRate / 100);
-    const totalAmount = subtotal + taxAmount - discountAmount;
+    
+    // Calculate tax based on tax settings
+    let taxAmount = 0;
+    if (taxEnabled && taxRate > 0) {
+      if (taxInclusive) {
+        // Tax is included in prices, calculate tax from total
+        // taxAmount = taxableSubtotal - (taxableSubtotal / (1 + taxRate / 100))
+        taxAmount = taxableSubtotal - (taxableSubtotal / (1 + taxRate / 100));
+      } else {
+        // Tax is added to subtotal (current behavior)
+        taxAmount = taxableSubtotal * (taxRate / 100);
+      }
+    }
+    
+    const totalAmount = subtotal + (taxInclusive ? 0 : taxAmount) - discountAmount;
 
     // Update invoice totals and tax_rate
     await db
@@ -581,19 +603,48 @@ export class InvoiceService {
       throw new NotFoundError("Invoice not found");
     }
 
-    // Determine if item is taxable (from inventory_item if linked, otherwise default to true)
+    // Validate inventory item if provided
     let isTaxable = true;
     if (data.inventoryItemId) {
       const inventoryItem = await db
         .selectFrom("inventory_items")
-        .select("is_taxable")
+        .selectAll()
         .where("id", "=", data.inventoryItemId)
         .where("company_id", "=", companyId)
         .where("deleted_at", "is", null)
         .executeTakeFirst();
 
-      if (inventoryItem) {
-        isTaxable = inventoryItem.is_taxable;
+      if (!inventoryItem) {
+        throw new NotFoundError("Inventory item not found or does not belong to company");
+      }
+
+      // Validate inventory item belongs to invoice's location (or user's current location)
+      if (invoice.locationId && inventoryItem.location_id) {
+        const inventoryLocationId = inventoryItem.location_id as unknown as string;
+        if (inventoryLocationId !== invoice.locationId) {
+          throw new BadRequestError("Inventory item does not belong to the invoice's location");
+        }
+      }
+
+      // Validate sufficient quantity available
+      if (data.quantity > inventoryItem.quantity) {
+        throw new BadRequestError(
+          `Insufficient stock. Available: ${inventoryItem.quantity}, Requested: ${data.quantity}`
+        );
+      }
+
+      // Use inventory item's taxable status
+      isTaxable = inventoryItem.is_taxable ?? true;
+
+      // Auto-populate fields from inventory item if not provided
+      if (!data.description || data.description.trim() === "") {
+        data.description = inventoryItem.name;
+      }
+      if (data.unitPrice === 0 || !data.unitPrice) {
+        data.unitPrice = inventoryItem.selling_price;
+      }
+      if (!data.type || data.type === "service") {
+        data.type = "part";
       }
     }
 
@@ -635,7 +686,8 @@ export class InvoiceService {
     invoiceId: string,
     itemId: string,
     data: UpdateInvoiceItemDto,
-    companyId: string
+    companyId: string,
+    userPermissions?: string[]
   ): Promise<InvoiceItem | null> {
     // Validate invoice exists
     const invoice = await this.findById(invoiceId, companyId);
@@ -653,6 +705,20 @@ export class InvoiceService {
 
     if (!existingItem) {
       throw new NotFoundError("Invoice item not found");
+    }
+
+    // Check permissions for price/discount changes
+    if (userPermissions) {
+      if (data.unitPrice !== undefined && Number(data.unitPrice) !== Number(existingItem.unit_price)) {
+        if (!userPermissions.includes("invoices.modifyPrices")) {
+          throw new ForbiddenError("You do not have permission to modify prices");
+        }
+      }
+      if (data.discountPercent !== undefined && Number(data.discountPercent) !== Number(existingItem.discount_percent)) {
+        if (!userPermissions.includes("invoices.modifyDiscounts")) {
+          throw new ForbiddenError("You do not have permission to modify discounts");
+        }
+      }
     }
 
     // Build update query
@@ -793,6 +859,69 @@ export class InvoiceService {
     }
 
     return result;
+  }
+
+  // Refund manual payment
+  async refundManualPayment(
+    invoiceId: string,
+    data: RefundInvoiceDto,
+    companyId: string
+  ): Promise<Invoice | null> {
+    // Validate invoice exists
+    const invoice = await this.findById(invoiceId, companyId);
+    if (!invoice) {
+      throw new NotFoundError("Invoice not found");
+    }
+
+    // Validate invoice is paid
+    if (invoice.status !== "paid") {
+      throw new BadRequestError("Only paid invoices can be refunded");
+    }
+
+    // Validate refund amount
+    if (data.refundAmount <= 0) {
+      throw new BadRequestError("Refund amount must be greater than 0");
+    }
+
+    const currentRefundAmount = invoice.refundAmount || 0;
+    const totalRefundAmount = currentRefundAmount + data.refundAmount;
+
+    if (totalRefundAmount > invoice.totalAmount) {
+      throw new BadRequestError(
+        `Refund amount exceeds invoice total. Maximum refund: ${invoice.totalAmount - currentRefundAmount}`
+      );
+    }
+
+    // Determine new status
+    let newStatus: InvoiceStatus = invoice.status;
+    if (totalRefundAmount >= invoice.totalAmount) {
+      // Fully refunded
+      newStatus = "cancelled";
+    }
+    // For partial refunds, keep status as "paid"
+
+    // Update invoice with refund
+    const updated = await db
+      .updateTable("invoices")
+      .set({
+        refund_amount: totalRefundAmount,
+        status: newStatus,
+        updated_at: sql`now()`,
+        notes: data.refundReason
+          ? `${invoice.notes || ""}\n\nRefund: ${data.refundAmount} (${data.refundReason})`.trim()
+          : invoice.notes,
+      })
+      .where("id", "=", invoiceId)
+      .where("company_id", "=", companyId)
+      .where("deleted_at", "is", null)
+      .returningAll()
+      .executeTakeFirst();
+
+    if (!updated) {
+      return null;
+    }
+
+    return toInvoice(updated);
   }
 
   // Get invoice items

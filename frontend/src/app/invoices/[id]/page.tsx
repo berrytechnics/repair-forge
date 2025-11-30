@@ -6,6 +6,7 @@ import {
   addInvoiceItem,
   getInvoiceById,
   markInvoiceAsPaid,
+  refundInvoice,
   removeInvoiceItem,
   updateInvoiceItem,
 } from "@/lib/api/invoice.api";
@@ -311,20 +312,41 @@ export default function InvoiceDetailPage({
   };
 
   // Handle refund payment
-  const handleRefundPayment = async (amount?: number, reason?: string) => {
-    if (!invoice || !invoice.paymentReference) return;
+  const handleRefundPayment = async (amount?: number, reason?: string, refundMethod?: string) => {
+    if (!invoice) return;
 
     setIsProcessingPayment(true);
     try {
-      const result = await refundPayment({
-        transactionId: invoice.paymentReference,
-        amount,
-        reason,
-      });
-      await refreshInvoice();
-      setShowRefundModal(false);
-      if (result.data?.refundId) {
-        alert(`Refund processed successfully! Refund ID: ${result.data.refundId}`);
+      // Check if invoice has a payment reference (provider payment) or is manual
+      const isProviderPayment = invoice.paymentReference && invoice.paymentMethod && 
+        invoice.paymentMethod !== "manual" && invoice.paymentMethod !== "cash" && invoice.paymentMethod !== "check";
+      
+      if (isProviderPayment && hasPermission("payments.refund")) {
+        // Use payment provider refund
+        const result = await refundPayment({
+          transactionId: invoice.paymentReference!,
+          amount,
+          reason,
+        });
+        await refreshInvoice();
+        setShowRefundModal(false);
+        if (result.data?.refundId) {
+          alert(`Refund processed successfully! Refund ID: ${result.data.refundId}`);
+        }
+      } else if (hasPermission("invoices.markPaid")) {
+        // Use manual refund
+        const maxRefundAmount = invoice.totalAmount - (invoice.refundAmount || 0);
+        const refundAmount = amount || maxRefundAmount;
+        await refundInvoice(invoice.id, {
+          refundAmount: refundAmount,
+          refundReason: reason,
+          refundMethod: refundMethod || invoice.paymentMethod || "manual",
+        });
+        await refreshInvoice();
+        setShowRefundModal(false);
+        alert(`Refund recorded successfully!`);
+      } else {
+        throw new Error("You do not have permission to process refunds");
       }
     } catch (err) {
       console.error("Error processing refund:", err);
@@ -507,7 +529,7 @@ export default function InvoiceDetailPage({
                 )}
               </>
             )}
-            {invoice.status === "paid" && invoice.paymentReference && hasPermission("payments.refund") && (
+            {invoice.status === "paid" && (hasPermission("payments.refund") || hasPermission("invoices.markPaid")) && (
               <button
                 onClick={() => setShowRefundModal(true)}
                 disabled={isProcessingPayment}
@@ -1232,19 +1254,21 @@ function RefundPaymentModal({
 }: {
   invoice: Invoice;
   onClose: () => void;
-  onConfirm: (amount?: number, reason?: string) => void;
+  onConfirm: (amount?: number, reason?: string, refundMethod?: string) => void;
   isProcessing: boolean;
 }) {
+  const maxRefundAmount = invoice.totalAmount - (invoice.refundAmount || 0);
   const [formData, setFormData] = useState({
-    amount: invoice.totalAmount.toString(),
+    amount: maxRefundAmount.toString(),
     reason: "",
+    refundMethod: invoice.paymentMethod || "manual",
     fullRefund: true,
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const amount = formData.fullRefund ? undefined : Number(formData.amount);
-    onConfirm(amount, formData.reason || undefined);
+    onConfirm(amount, formData.reason || undefined, formData.refundMethod);
   };
 
   return (
@@ -1259,6 +1283,16 @@ function RefundPaymentModal({
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
               Refund payment for invoice <strong>{invoice.invoiceNumber}</strong>
             </p>
+            {invoice.refundAmount && invoice.refundAmount > 0 && (
+              <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded">
+                <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                  Already refunded: ${Number(invoice.refundAmount).toFixed(2)} of ${Number(invoice.totalAmount).toFixed(2)}
+                </p>
+                <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
+                  Maximum refundable: ${maxRefundAmount.toFixed(2)}
+                </p>
+              </div>
+            )}
             <div className="flex items-center mb-4">
               <input
                 type="checkbox"
@@ -1273,7 +1307,7 @@ function RefundPaymentModal({
                 htmlFor="fullRefund"
                 className="ml-2 block text-sm text-gray-900 dark:text-gray-100"
               >
-                Full refund (${Number(invoice.totalAmount).toFixed(2)})
+                Full refund (${maxRefundAmount.toFixed(2)})
               </label>
             </div>
             {!formData.fullRefund && (
@@ -1284,7 +1318,7 @@ function RefundPaymentModal({
                 <input
                   type="number"
                   min="0.01"
-                  max={invoice.totalAmount}
+                  max={maxRefundAmount}
                   step="0.01"
                   value={formData.amount}
                   onChange={(e) =>
@@ -1293,8 +1327,30 @@ function RefundPaymentModal({
                   className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                   required
                 />
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Maximum: ${maxRefundAmount.toFixed(2)}
+                </p>
               </div>
             )}
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Refund Method
+              </label>
+              <select
+                value={formData.refundMethod}
+                onChange={(e) =>
+                  setFormData({ ...formData, refundMethod: e.target.value })
+                }
+                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+              >
+                <option value="manual">Manual</option>
+                <option value="cash">Cash</option>
+                <option value="check">Check</option>
+                <option value="credit_card">Credit Card</option>
+                <option value="debit_card">Debit Card</option>
+                <option value="bank_transfer">Bank Transfer</option>
+              </select>
+            </div>
             <div className="mt-4">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Reason (Optional)

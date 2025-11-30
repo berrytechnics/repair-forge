@@ -27,6 +27,9 @@ export default function LocationForm({ locationId }: LocationFormProps) {
     email: "",
     isActive: true,
     taxRate: 0,
+    taxName: "Sales Tax",
+    taxEnabled: true,
+    taxInclusive: false,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -48,6 +51,9 @@ export default function LocationForm({ locationId }: LocationFormProps) {
               email: response.data.email || "",
               isActive: response.data.is_active,
               taxRate: response.data.taxRate || 0,
+              taxName: response.data.taxName || "Sales Tax",
+              taxEnabled: response.data.taxEnabled !== undefined ? response.data.taxEnabled : true,
+              taxInclusive: response.data.taxInclusive !== undefined ? response.data.taxInclusive : false,
             });
           }
         } catch (err) {
@@ -140,9 +146,18 @@ export default function LocationForm({ locationId }: LocationFormProps) {
       // Include isActive if explicitly set (default is true, so always include it)
       cleanFormData.isActive = formData.isActive;
       
-      // Include taxRate only if it's not 0 (the default)
-      if (formData.taxRate !== undefined && formData.taxRate !== 0) {
+      // Include tax settings
+      if (formData.taxRate !== undefined) {
         cleanFormData.taxRate = formData.taxRate;
+      }
+      if (formData.taxName !== undefined) {
+        cleanFormData.taxName = formData.taxName;
+      }
+      if (formData.taxEnabled !== undefined) {
+        cleanFormData.taxEnabled = formData.taxEnabled;
+      }
+      if (formData.taxInclusive !== undefined) {
+        cleanFormData.taxInclusive = formData.taxInclusive;
       }
 
       let response;
@@ -288,38 +303,103 @@ export default function LocationForm({ locationId }: LocationFormProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label
-            htmlFor="taxRate"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-          >
-            Tax Rate (%)
-          </label>
-          <input
-            type="number"
-            id="taxRate"
-            name="taxRate"
-            value={formData.taxRate || 0}
-            onChange={handleChange}
-            min="0"
-            max="100"
-            step="0.01"
-            className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-500 ${
-              errors.taxRate
-                ? "border-red-500 dark:border-red-600"
-                : "border-gray-300 dark:border-gray-600"
-            }`}
-            placeholder="0.00"
-          />
-          {errors.taxRate && (
-            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.taxRate}</p>
-          )}
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Tax rate percentage for this location (0-100)
-          </p>
+      {/* Tax Settings Section */}
+      <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Tax Settings</h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label
+              htmlFor="taxName"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
+              Tax Name
+            </label>
+            <input
+              type="text"
+              id="taxName"
+              name="taxName"
+              value={formData.taxName || "Sales Tax"}
+              onChange={handleChange}
+              className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-500 ${
+                errors.taxName
+                  ? "border-red-500 dark:border-red-600"
+                  : "border-gray-300 dark:border-gray-600"
+              }`}
+              placeholder="Sales Tax"
+            />
+            {errors.taxName && (
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.taxName}</p>
+            )}
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Name of the tax (e.g., Sales Tax, VAT)
+            </p>
+          </div>
+
+          <div>
+            <label
+              htmlFor="taxRate"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
+              Tax Rate (%)
+            </label>
+            <input
+              type="number"
+              id="taxRate"
+              name="taxRate"
+              value={formData.taxRate || 0}
+              onChange={handleChange}
+              min="0"
+              max="100"
+              step="0.01"
+              className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-500 ${
+                errors.taxRate
+                  ? "border-red-500 dark:border-red-600"
+                  : "border-gray-300 dark:border-gray-600"
+              }`}
+              placeholder="0.00"
+            />
+            {errors.taxRate && (
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.taxRate}</p>
+            )}
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Tax rate percentage (0-100)
+            </p>
+          </div>
         </div>
 
+        <div className="mt-4 space-y-3">
+          <label className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              name="taxEnabled"
+              checked={formData.taxEnabled !== undefined ? formData.taxEnabled : true}
+              onChange={handleChange}
+              className="w-4 h-4 text-blue-600 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded focus:ring-blue-500"
+            />
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Tax Enabled</span>
+          </label>
+          <p className="ml-6 text-sm text-gray-500 dark:text-gray-400">
+            When disabled, tax will not be calculated for invoices at this location
+          </p>
+
+          <label className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              name="taxInclusive"
+              checked={formData.taxInclusive !== undefined ? formData.taxInclusive : false}
+              onChange={handleChange}
+              className="w-4 h-4 text-blue-600 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded focus:ring-blue-500"
+            />
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Tax Inclusive Pricing</span>
+          </label>
+          <p className="ml-6 text-sm text-gray-500 dark:text-gray-400">
+            When enabled, prices include tax. When disabled, tax is added to subtotal.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="flex items-center space-x-2">
             <input

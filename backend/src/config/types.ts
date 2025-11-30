@@ -29,6 +29,7 @@ export interface Database {
   role_permissions: RolePermissionTable;
   tickets: TicketTable;
   user_locations: UserLocationTable;
+  user_roles: UserRoleTable;
   users: UserTable;
   inventory_transfers: InventoryTransferTable;
 }
@@ -253,8 +254,11 @@ export interface LocationTable {
   address: string | null;
   phone: string | null;
   email: string | null;
-  is_active: boolean;
   tax_rate: number;
+  tax_name: string | null;
+  tax_enabled: boolean;
+  tax_inclusive: boolean;
+  is_active: boolean;
   created_at: Timestamp;
   updated_at: Timestamp;
   deleted_at: SoftDelete;
@@ -264,6 +268,16 @@ export interface UserLocationTable {
   user_id: UUID;
   location_id: UUID;
   created_at: Timestamp;
+}
+
+export interface UserRoleTable {
+  id: UUID;
+  user_id: UUID;
+  role: string;
+  is_primary: boolean;
+  company_id: UUID;
+  created_at: Timestamp;
+  updated_at: Timestamp;
 }
 
 export type InventoryTransferStatus = "pending" | "completed" | "cancelled";

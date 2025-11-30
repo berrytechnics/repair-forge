@@ -97,6 +97,12 @@ export interface MarkInvoicePaidData {
   notes?: string;
 }
 
+export interface RefundInvoiceData {
+  refundAmount: number;
+  refundReason?: string;
+  refundMethod?: string;
+}
+
 // Invoice API functions
 export const getInvoices = async (
   params?: URLSearchParams
@@ -235,6 +241,24 @@ export const markInvoiceAsPaid = async (
 
   throw new Error(
     response.data.error?.message || "Failed to mark invoice as paid"
+  );
+};
+
+export const refundInvoice = async (
+  invoiceId: string,
+  refundData: RefundInvoiceData
+): Promise<ApiResponse<Invoice>> => {
+  const response = await api.post<ApiResponse<Invoice>>(
+    `/invoices/${invoiceId}/refund`,
+    refundData
+  );
+
+  if (response.data.success) {
+    return response.data;
+  }
+
+  throw new Error(
+    response.data.error?.message || "Failed to refund invoice"
   );
 };
 

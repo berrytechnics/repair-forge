@@ -8,6 +8,7 @@ import {
   EnvelopeIcon,
   MapPinIcon,
   ShieldCheckIcon,
+  UsersIcon,
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -37,6 +38,14 @@ export default function SettingsPage() {
   }
 
   const settingsItems = [
+    {
+      name: "Users",
+      description: "Manage user accounts, roles, and access",
+      href: "/settings/users",
+      icon: UsersIcon,
+      permission: "settings.access",
+      adminOnly: true,
+    },
     {
       name: "Permissions",
       description: "View role-based permissions matrix",

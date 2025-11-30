@@ -230,3 +230,24 @@ export const updateInvoiceValidation = [
       return true;
     }),
 ];
+
+/**
+ * Validation rules for refunding an invoice
+ */
+export const refundInvoiceValidation = [
+  body("refundAmount")
+    .exists()
+    .withMessage("Refund amount is required")
+    .isFloat({ min: 0.01 })
+    .withMessage("Refund amount must be greater than 0"),
+  body("refundReason")
+    .optional()
+    .trim()
+    .isLength({ max: 500 })
+    .withMessage("Refund reason must not exceed 500 characters"),
+  body("refundMethod")
+    .optional()
+    .trim()
+    .isLength({ max: 50 })
+    .withMessage("Refund method must not exceed 50 characters"),
+];

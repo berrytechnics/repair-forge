@@ -516,7 +516,7 @@ describe("Ticket Routes Integration Tests", () => {
       expect(response.status).toBe(400);
       expect(response.body.success).toBe(false);
       expect(response.body.error.message).toBe(
-        "User must be a technician or admin to be assigned to a ticket"
+        "User must be a technician, manager, or admin to be assigned to a ticket"
       );
     });
 

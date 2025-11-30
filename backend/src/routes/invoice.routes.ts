@@ -2,7 +2,7 @@ import express, { Request, Response } from "express";
 import {
   NotFoundError,
 } from "../config/errors.js";
-import { InvoiceStatus } from "../config/types.js";
+import { InvoiceStatus, UserRole } from "../config/types.js";
 import { validateRequest } from "../middlewares/auth.middleware.js";
 import { requireLocationContext } from "../middlewares/location.middleware.js";
 import { requireAdmin, requireRole } from "../middlewares/rbac.middleware.js";
@@ -16,6 +16,7 @@ import {
   createInvoiceItemValidation,
   updateInvoiceItemValidation,
   markInvoicePaidValidation,
+  refundInvoiceValidation,
 } from "../validators/invoice.validator.js";
 
 const router = express.Router();
@@ -136,8 +137,14 @@ router.put(
   requireRole(["admin", "manager"]),
   asyncHandler(async (req: Request, res: Response) => {
     const companyId = req.companyId!;
+    const user = req.user as { role: string; permissions?: string[] };
     const { id, itemId } = req.params;
-    const item = await invoiceService.updateInvoiceItem(id, itemId, req.body, companyId);
+    
+    // Get user permissions for permission checks
+    const { getPermissionsForRole } = await import("../config/permissions.js");
+    const userPermissions = await getPermissionsForRole(user.role as UserRole, companyId);
+    
+    const item = await invoiceService.updateInvoiceItem(id, itemId, req.body, companyId, userPermissions);
     if (!item) {
       throw new NotFoundError("Invoice item not found");
     }
@@ -174,6 +181,23 @@ router.post(
     const companyId = req.companyId!;
     const { id } = req.params;
     const invoice = await invoiceService.markInvoiceAsPaid(id, req.body, companyId);
+    if (!invoice) {
+      throw new NotFoundError("Invoice not found");
+    }
+    res.json({ success: true, data: invoice });
+  })
+);
+
+// POST /invoice/:id/refund - Refund manual payment
+router.post(
+  "/:id/refund",
+  requireLocationContext,
+  validate(refundInvoiceValidation),
+  requireRole(["admin", "manager"]),
+  asyncHandler(async (req: Request, res: Response) => {
+    const companyId = req.companyId!;
+    const { id } = req.params;
+    const invoice = await invoiceService.refundManualPayment(id, req.body, companyId);
     if (!invoice) {
       throw new NotFoundError("Invoice not found");
     }

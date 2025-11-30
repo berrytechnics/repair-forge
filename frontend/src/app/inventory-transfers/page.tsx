@@ -12,7 +12,7 @@ import React, { useCallback, useEffect, useState } from "react";
 
 export default function InventoryTransfersPage() {
   const router = useRouter();
-  const { user, hasPermission, isLoading: userLoading } = useUser();
+  const { user, hasPermission, isLoading: userLoading, availableLocations } = useUser();
   const [transfers, setTransfers] = useState<InventoryTransfer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -24,6 +24,9 @@ export default function InventoryTransfersPage() {
       router.push("/dashboard");
     }
   }, [user, userLoading, hasPermission, router]);
+
+  // Check if user has access to multiple locations
+  const hasMultipleLocations = availableLocations.length > 1;
 
   const fetchTransfers = useCallback(async () => {
     try {
@@ -86,6 +89,24 @@ export default function InventoryTransfersPage() {
     return null;
   }
 
+  // If user only has access to one location, show message
+  if (!hasMultipleLocations) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-6 lg:p-8">
+        <div className="max-w-3xl mx-auto">
+          <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+              Inventory Transfers
+            </h1>
+            <p className="text-gray-700 dark:text-gray-300">
+              Inventory transfers require access to multiple locations. You currently have access to only one location.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-6 lg:p-8">
       <div className="sm:flex sm:items-center sm:justify-between mb-6">
@@ -97,7 +118,7 @@ export default function InventoryTransfersPage() {
             Transfer inventory items between locations
           </p>
         </div>
-        {hasPermission("inventoryTransfers.create") && (
+        {hasPermission("inventoryTransfers.create") && hasMultipleLocations && (
           <div className="mt-4 sm:mt-0">
             <Link
               href="/inventory-transfers/new"

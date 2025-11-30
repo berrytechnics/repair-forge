@@ -12,6 +12,9 @@ export interface CreateLocationDto {
   email?: string;
   isActive?: boolean;
   taxRate?: number;
+  taxName?: string;
+  taxEnabled?: boolean;
+  taxInclusive?: boolean;
 }
 
 export interface UpdateLocationDto {
@@ -21,13 +24,19 @@ export interface UpdateLocationDto {
   email?: string;
   isActive?: boolean;
   taxRate?: number;
+  taxName?: string;
+  taxEnabled?: boolean;
+  taxInclusive?: boolean;
 }
 
 // Output type
-export type Location = Omit<LocationTable, "id" | "company_id" | "created_at" | "updated_at" | "deleted_at" | "tax_rate"> & {
+export type Location = Omit<LocationTable, "id" | "company_id" | "created_at" | "updated_at" | "deleted_at" | "tax_rate" | "tax_name" | "tax_enabled" | "tax_inclusive"> & {
   id: string;
   company_id: string;
   taxRate: number;
+  taxName: string | null;
+  taxEnabled: boolean;
+  taxInclusive: boolean;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -42,6 +51,9 @@ function toLocation(location: {
   email: string | null;
   is_active: boolean;
   tax_rate: number;
+  tax_name: string | null;
+  tax_enabled: boolean;
+  tax_inclusive: boolean;
   created_at: Date;
   updated_at: Date;
   deleted_at: Date | null;
@@ -55,6 +67,9 @@ function toLocation(location: {
     email: location.email,
     is_active: location.is_active,
     taxRate: Number(location.tax_rate),
+    taxName: location.tax_name,
+    taxEnabled: location.tax_enabled,
+    taxInclusive: location.tax_inclusive,
     createdAt: location.created_at,
     updatedAt: location.updated_at,
   };
@@ -101,6 +116,9 @@ export class LocationService {
         email: data.email || null,
         is_active: data.isActive !== undefined ? data.isActive : true,
         tax_rate: data.taxRate !== undefined ? data.taxRate : 0,
+        tax_name: data.taxName || "Sales Tax",
+        tax_enabled: data.taxEnabled !== undefined ? data.taxEnabled : true,
+        tax_inclusive: data.taxInclusive !== undefined ? data.taxInclusive : false,
         created_at: sql`now()`,
         updated_at: sql`now()`,
         deleted_at: null,
@@ -148,6 +166,15 @@ export class LocationService {
     }
     if (data.taxRate !== undefined) {
       updateQuery = updateQuery.set({ tax_rate: data.taxRate });
+    }
+    if (data.taxName !== undefined) {
+      updateQuery = updateQuery.set({ tax_name: data.taxName || null });
+    }
+    if (data.taxEnabled !== undefined) {
+      updateQuery = updateQuery.set({ tax_enabled: data.taxEnabled });
+    }
+    if (data.taxInclusive !== undefined) {
+      updateQuery = updateQuery.set({ tax_inclusive: data.taxInclusive });
     }
 
     const updated = await updateQuery.returningAll().executeTakeFirst();

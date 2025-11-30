@@ -149,6 +149,22 @@ export const deletePurchaseOrder = async (
   );
 };
 
+export const submitPurchaseOrder = async (
+  id: string
+): Promise<ApiResponse<PurchaseOrder>> => {
+  const response = await api.post<ApiResponse<PurchaseOrder>>(
+    `/purchase-orders/${id}/submit`
+  );
+
+  if (response.data.success) {
+    return response.data;
+  }
+
+  throw new Error(
+    response.data.error?.message || "Failed to submit purchase order"
+  );
+};
+
 export const receivePurchaseOrder = async (
   id: string,
   data: ReceivePurchaseOrderData

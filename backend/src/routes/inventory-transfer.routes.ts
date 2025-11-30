@@ -24,6 +24,19 @@ router.get(
   "/",
   asyncHandler(async (req: Request, res: Response) => {
     const companyId = req.companyId!;
+    const user = req.user as UserWithoutPassword;
+    
+    // Check if user has access to multiple locations
+    const userService = (await import("../services/user.service.js")).default;
+    const userLocations = await userService.getUserLocations(user.id, companyId);
+    
+    // If user only has access to one location, return empty array
+    // (inventory transfers require multiple locations)
+    if (userLocations.length <= 1) {
+      res.json({ success: true, data: [] });
+      return;
+    }
+    
     const status = req.query.status as InventoryTransferStatus | undefined;
     const fromLocation = req.query.fromLocation as string | undefined;
     const toLocation = req.query.toLocation as string | undefined;

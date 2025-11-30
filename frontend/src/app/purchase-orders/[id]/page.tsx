@@ -3,8 +3,9 @@
 import {
   cancelPurchaseOrder,
   getPurchaseOrder,
-  receivePurchaseOrder,
   PurchaseOrder,
+  receivePurchaseOrder,
+  submitPurchaseOrder,
 } from "@/lib/api/purchase-order.api";
 import { useUser } from "@/lib/UserContext";
 import Link from "next/link";
@@ -102,6 +103,28 @@ export default function PurchaseOrderDetailPage({
       console.error("Error receiving purchase order:", err);
       const errorMessage =
         err instanceof Error ? err.message : "Failed to receive purchase order.";
+      setError(errorMessage);
+      alert(errorMessage);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!po) return;
+    if (!confirm("Are you sure you want to submit this purchase order? Once submitted, it cannot be edited.")) {
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      await submitPurchaseOrder(po.id);
+      await refreshPO();
+      alert("Purchase order submitted successfully");
+    } catch (err) {
+      console.error("Error submitting purchase order:", err);
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to submit purchase order.";
       setError(errorMessage);
       alert(errorMessage);
     } finally {
@@ -228,39 +251,56 @@ export default function PurchaseOrderDetailPage({
           </div>
           <div className="flex gap-2">
             {po.status === "draft" && (
-              <Link
-                href={`/purchase-orders/${po.id}/edit`}
-                className="inline-flex items-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600"
-              >
-                Edit
-              </Link>
+              <>
+                {hasPermission("purchaseOrders.update") && (
+                  <button
+                    onClick={handleSubmit}
+                    className="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700"
+                    disabled={isProcessing}
+                  >
+                    {isProcessing ? "Submitting..." : "Submit Order"}
+                  </button>
+                )}
+                {hasPermission("purchaseOrders.update") && (
+                  <Link
+                    href={`/purchase-orders/${po.id}/edit`}
+                    className="inline-flex items-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600"
+                  >
+                    Edit
+                  </Link>
+                )}
+                {hasPermission("purchaseOrders.cancel") && (
+                  <button
+                    onClick={handleCancel}
+                    className="inline-flex items-center rounded-md border border-red-300 dark:border-red-600 bg-white dark:bg-gray-700 px-4 py-2 text-sm font-medium text-red-700 dark:text-red-400 shadow-sm hover:bg-red-50 dark:hover:bg-red-900/20"
+                    disabled={isProcessing}
+                  >
+                    Cancel
+                  </button>
+                )}
+              </>
             )}
             {po.status === "ordered" && (
               <>
-                <button
-                  onClick={() => setShowReceiveForm(!showReceiveForm)}
-                  className="inline-flex items-center rounded-md border border-transparent bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-green-700"
-                  disabled={isProcessing}
-                >
-                  {showReceiveForm ? "Cancel Receive" : "Receive"}
-                </button>
-                <button
-                  onClick={handleCancel}
-                  className="inline-flex items-center rounded-md border border-red-300 dark:border-red-600 bg-white dark:bg-gray-700 px-4 py-2 text-sm font-medium text-red-700 dark:text-red-400 shadow-sm hover:bg-red-50 dark:hover:bg-red-900/20"
-                  disabled={isProcessing}
-                >
-                  Cancel PO
-                </button>
+                {hasPermission("purchaseOrders.receive") && (
+                  <button
+                    onClick={() => setShowReceiveForm(!showReceiveForm)}
+                    className="inline-flex items-center rounded-md border border-transparent bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-green-700"
+                    disabled={isProcessing}
+                  >
+                    {showReceiveForm ? "Cancel Receive" : "Receive"}
+                  </button>
+                )}
+                {hasPermission("purchaseOrders.cancel") && (
+                  <button
+                    onClick={handleCancel}
+                    className="inline-flex items-center rounded-md border border-red-300 dark:border-red-600 bg-white dark:bg-gray-700 px-4 py-2 text-sm font-medium text-red-700 dark:text-red-400 shadow-sm hover:bg-red-50 dark:hover:bg-red-900/20"
+                    disabled={isProcessing}
+                  >
+                    Cancel PO
+                  </button>
+                )}
               </>
-            )}
-            {po.status === "draft" && (
-              <button
-                onClick={handleCancel}
-                className="inline-flex items-center rounded-md border border-red-300 dark:border-red-600 bg-white dark:bg-gray-700 px-4 py-2 text-sm font-medium text-red-700 dark:text-red-400 shadow-sm hover:bg-red-50 dark:hover:bg-red-900/20"
-                disabled={isProcessing}
-              >
-                Cancel
-              </button>
             )}
           </div>
         </div>

@@ -528,6 +528,52 @@ export class PurchaseOrderService {
     return purchaseOrder;
   }
 
+  async submit(id: string, companyId: string): Promise<PurchaseOrder> {
+    // Get purchase order
+    const po = await db
+      .selectFrom("purchase_orders")
+      .selectAll()
+      .where("id", "=", id)
+      .where("company_id", "=", companyId)
+      .where("deleted_at", "is", null)
+      .executeTakeFirst();
+
+    if (!po) {
+      throw new NotFoundError("Purchase order not found");
+    }
+
+    if (po.status !== "draft") {
+      throw new BadRequestError(`Only draft purchase orders can be submitted. Current status: ${po.status}`);
+    }
+
+    // Verify purchase order has items
+    const items = await db
+      .selectFrom("purchase_order_items")
+      .selectAll()
+      .where("purchase_order_id", "=", id)
+      .execute();
+
+    if (!items || items.length === 0) {
+      throw new BadRequestError("Purchase order must have at least one item before submitting");
+    }
+
+    // Update purchase order status to "ordered"
+    const updated = await db
+      .updateTable("purchase_orders")
+      .set({
+        status: "ordered",
+        updated_at: sql`now()`,
+      })
+      .where("id", "=", id)
+      .where("company_id", "=", companyId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    const purchaseOrder = toPurchaseOrder(updated);
+    purchaseOrder.items = items.map(toPurchaseOrderItem);
+    return purchaseOrder;
+  }
+
   async cancel(id: string, companyId: string): Promise<PurchaseOrder> {
     // Get purchase order
     const po = await db

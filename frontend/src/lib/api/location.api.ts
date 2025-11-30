@@ -10,6 +10,9 @@ export interface Location {
   email?: string;
   is_active: boolean;
   taxRate: number;
+  taxName?: string | null;
+  taxEnabled?: boolean;
+  taxInclusive?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -21,6 +24,9 @@ export interface CreateLocationData {
   email?: string;
   isActive?: boolean;
   taxRate?: number;
+  taxName?: string;
+  taxEnabled?: boolean;
+  taxInclusive?: boolean;
 }
 
 export interface UpdateLocationData {
@@ -30,6 +36,9 @@ export interface UpdateLocationData {
   email?: string;
   isActive?: boolean;
   taxRate?: number;
+  taxName?: string;
+  taxEnabled?: boolean;
+  taxInclusive?: boolean;
 }
 
 export interface LocationUser {

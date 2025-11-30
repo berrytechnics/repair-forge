@@ -91,6 +91,18 @@ router.delete(
   })
 );
 
+// POST /api/purchase-orders/:id/submit - Submit purchase order (change status from draft to ordered) (admin/manager only)
+router.post(
+  "/:id/submit",
+  requireManagerOrAdmin(),
+  asyncHandler(async (req: Request, res: Response) => {
+    const companyId = req.companyId!;
+    const { id } = req.params;
+    const po = await purchaseOrderService.submit(id, companyId);
+    res.json({ success: true, data: po });
+  })
+);
+
 // POST /api/purchase-orders/:id/receive - Receive purchase order and update inventory (admin/manager only)
 router.post(
   "/:id/receive",

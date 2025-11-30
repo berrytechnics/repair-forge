@@ -14,7 +14,7 @@ import { validate } from "../middlewares/validation.middleware.js";
 import companyService from "../services/company.service.js";
 import invitationService from "../services/invitation.service.js";
 import locationService from "../services/location.service.js";
-import userService, { UserWithoutPassword } from "../services/user.service.js";
+import userService, { UserWithoutPassword, UpdateUserDto } from "../services/user.service.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { generateNewJWTToken } from "../utils/auth.js";
 import { loginValidation, registerValidation } from "../validators/user.validator.js";
@@ -32,6 +32,9 @@ function formatUserForResponse(user: UserWithoutPassword) {
     last_name: string;
     email: string;
     role: string;
+    roles?: string[];
+    primaryRole?: string;
+    active?: boolean;
   };
   
   return {
@@ -41,6 +44,9 @@ function formatUserForResponse(user: UserWithoutPassword) {
     lastName: userWithSnakeCase.last_name,
     email: userWithSnakeCase.email,
     role: userWithSnakeCase.role,
+    roles: userWithSnakeCase.roles || [userWithSnakeCase.role],
+    primaryRole: userWithSnakeCase.primaryRole || userWithSnakeCase.role,
+    active: userWithSnakeCase.active !== undefined ? userWithSnakeCase.active : true,
   };
 }
 
@@ -462,6 +468,283 @@ router.get(
     res.json({
       success: true,
       data: locations,
+    });
+  })
+);
+
+// GET /api/users - Get all users in company (admin only)
+router.get(
+  "/",
+  validateRequest,
+  requireTenantContext,
+  requireAdmin(),
+  asyncHandler(async (req: Request, res: Response) => {
+    const companyId = req.companyId!;
+    const users = await userService.findAll(companyId);
+    const formattedUsers = users.map(formatUserForResponse);
+    
+    res.json({
+      success: true,
+      data: formattedUsers,
+    });
+  })
+);
+
+// GET /api/users/:id - Get user by ID (admin only, or own profile)
+router.get(
+  "/:id",
+  validateRequest,
+  requireTenantContext,
+  asyncHandler(async (req: Request, res: Response) => {
+    const companyId = req.companyId!;
+    const { id: userId } = req.params;
+    const currentUser = req.user as UserWithoutPassword | undefined;
+
+    if (!currentUser) {
+      throw new UnauthorizedError("User not found");
+    }
+
+    // Users can only view their own profile unless they're admin
+    if (currentUser.role !== "admin" && currentUser.id !== userId) {
+      throw new UnauthorizedError("You can only view your own profile");
+    }
+
+    const user = await userService.findById(userId);
+    if (!user || (user.company_id as unknown as string) !== companyId) {
+      throw new NotFoundError("User not found");
+    }
+
+    const formattedUser = formatUserForResponse(user);
+    res.json({
+      success: true,
+      data: formattedUser,
+    });
+  })
+);
+
+// PUT /api/users/:id - Update user (admin only, or own profile for limited fields)
+router.put(
+  "/:id",
+  validateRequest,
+  requireTenantContext,
+  asyncHandler(async (req: Request, res: Response) => {
+    const companyId = req.companyId!;
+    const { id: userId } = req.params;
+    const currentUser = req.user as UserWithoutPassword | undefined;
+    const { firstName, lastName, email, active } = req.body;
+
+    if (!currentUser) {
+      throw new UnauthorizedError("User not found");
+    }
+
+    // Users can only update their own profile (limited fields) unless they're admin
+    if (currentUser.role !== "admin" && currentUser.id !== userId) {
+      throw new UnauthorizedError("You can only update your own profile");
+    }
+
+    // Non-admins can only update firstName and lastName
+    const updateData: UpdateUserDto = {};
+    if (currentUser.role === "admin") {
+      if (firstName !== undefined) updateData.firstName = firstName;
+      if (lastName !== undefined) updateData.lastName = lastName;
+      if (email !== undefined) updateData.email = email;
+      if (active !== undefined) updateData.active = active;
+    } else {
+      if (firstName !== undefined) updateData.firstName = firstName;
+      if (lastName !== undefined) updateData.lastName = lastName;
+    }
+
+    const updated = await userService.update(userId, updateData);
+    if (!updated || (updated.company_id as unknown as string) !== companyId) {
+      throw new NotFoundError("User not found");
+    }
+
+    const formattedUser = formatUserForResponse(updated);
+    res.json({
+      success: true,
+      data: formattedUser,
+    });
+  })
+);
+
+// DELETE /api/users/:id - Deactivate user (admin only)
+router.delete(
+  "/:id",
+  validateRequest,
+  requireTenantContext,
+  requireAdmin(),
+  asyncHandler(async (req: Request, res: Response) => {
+    const companyId = req.companyId!;
+    const { id: userId } = req.params;
+    const currentUser = req.user as UserWithoutPassword | undefined;
+
+    if (!currentUser) {
+      throw new UnauthorizedError("User not found");
+    }
+
+    // Prevent self-deletion
+    if (currentUser.id === userId) {
+      throw new BadRequestError("You cannot deactivate your own account");
+    }
+
+    const user = await userService.findById(userId);
+    if (!user || (user.company_id as unknown as string) !== companyId) {
+      throw new NotFoundError("User not found");
+    }
+
+    // Deactivate instead of hard delete
+    await userService.update(userId, { active: false });
+
+    res.json({
+      success: true,
+      data: { message: "User deactivated successfully" },
+    });
+  })
+);
+
+// POST /api/users/:id/roles - Add role to user (admin only)
+router.post(
+  "/:id/roles",
+  validateRequest,
+  requireTenantContext,
+  requireAdmin(),
+  asyncHandler(async (req: Request, res: Response) => {
+    const companyId = req.companyId!;
+    const { id: userId } = req.params;
+    const { role, isPrimary } = req.body;
+
+    if (!role) {
+      throw new BadRequestError("Role is required");
+    }
+
+    const validRoles: UserRole[] = ["admin", "manager", "technician", "frontdesk"];
+    if (!validRoles.includes(role)) {
+      throw new BadRequestError(`Invalid role: ${role}`);
+    }
+
+    const added = await userService.addUserRole(userId, role, companyId, isPrimary || false);
+    if (!added) {
+      throw new NotFoundError("User not found or does not belong to company");
+    }
+
+    const user = await userService.findById(userId);
+    if (!user) {
+      throw new NotFoundError("User not found");
+    }
+
+    const formattedUser = formatUserForResponse(user);
+    res.json({
+      success: true,
+      data: formattedUser,
+    });
+  })
+);
+
+// DELETE /api/users/:id/roles/:role - Remove role from user (admin only)
+router.delete(
+  "/:id/roles/:role",
+  validateRequest,
+  requireTenantContext,
+  requireAdmin(),
+  asyncHandler(async (req: Request, res: Response) => {
+    const companyId = req.companyId!;
+    const { id: userId, role } = req.params;
+
+    const validRoles: UserRole[] = ["admin", "manager", "technician", "frontdesk"];
+    if (!validRoles.includes(role as UserRole)) {
+      throw new BadRequestError(`Invalid role: ${role}`);
+    }
+
+    try {
+      const removed = await userService.removeUserRole(userId, role as UserRole, companyId);
+      if (!removed) {
+        throw new NotFoundError("User not found, role not found, or user does not belong to company");
+      }
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("last role")) {
+        throw new BadRequestError(error.message);
+      }
+      throw error;
+    }
+
+    const user = await userService.findById(userId);
+    if (!user) {
+      throw new NotFoundError("User not found");
+    }
+
+    const formattedUser = formatUserForResponse(user);
+    res.json({
+      success: true,
+      data: formattedUser,
+    });
+  })
+);
+
+// PUT /api/users/:id/roles/:role/primary - Set primary role (admin only)
+router.put(
+  "/:id/roles/:role/primary",
+  validateRequest,
+  requireTenantContext,
+  requireAdmin(),
+  asyncHandler(async (req: Request, res: Response) => {
+    const companyId = req.companyId!;
+    const { id: userId, role } = req.params;
+
+    const validRoles: UserRole[] = ["admin", "manager", "technician", "frontdesk"];
+    if (!validRoles.includes(role as UserRole)) {
+      throw new BadRequestError(`Invalid role: ${role}`);
+    }
+
+    try {
+      const set = await userService.setPrimaryRole(userId, role as UserRole, companyId);
+      if (!set) {
+        throw new NotFoundError("User not found or does not have this role");
+      }
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("does not have")) {
+        throw new BadRequestError(error.message);
+      }
+      throw error;
+    }
+
+    const user = await userService.findById(userId);
+    if (!user) {
+      throw new NotFoundError("User not found");
+    }
+
+    const formattedUser = formatUserForResponse(user);
+    res.json({
+      success: true,
+      data: formattedUser,
+    });
+  })
+);
+
+// POST /api/users/:id/reset-password - Reset user password (admin only)
+router.post(
+  "/:id/reset-password",
+  validateRequest,
+  requireTenantContext,
+  requireAdmin(),
+  asyncHandler(async (req: Request, res: Response) => {
+    const companyId = req.companyId!;
+    const { id: userId } = req.params;
+    const { newPassword } = req.body;
+
+    if (!newPassword || newPassword.length < 8) {
+      throw new BadRequestError("Password must be at least 8 characters long");
+    }
+
+    const user = await userService.findById(userId);
+    if (!user || (user.company_id as unknown as string) !== companyId) {
+      throw new NotFoundError("User not found");
+    }
+
+    await userService.update(userId, { password: newPassword });
+
+    res.json({
+      success: true,
+      data: { message: "Password reset successfully" },
     });
   })
 );

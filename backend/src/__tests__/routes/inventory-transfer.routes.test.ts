@@ -6,6 +6,7 @@ import {
   createTestLocation,
   createTestInventoryItem,
   createTestInventoryTransfer,
+  assignUserToLocation,
 } from "../helpers/seed.helper.js";
 import { createTestUsersWithRoles, getAuthHeader, createAuthenticatedUser } from "../helpers/auth.helper.js";
 import { db } from "../../config/connection.js";
@@ -39,12 +40,21 @@ describe("Inventory Transfer Routes Integration Tests", () => {
     const users = await createTestUsersWithRoles(testCompanyId);
     testUserIds.push(users.admin.userId, users.frontdesk.userId, users.technician.userId);
     
+    // Assign all users to both locations so they can see inventory transfers
+    // (inventory transfers are only visible if user has access to multiple locations)
+    await assignUserToLocation(users.admin.userId, testLocation1Id);
+    await assignUserToLocation(users.admin.userId, testLocation2Id);
+    await assignUserToLocation(users.technician.userId, testLocation1Id);
+    await assignUserToLocation(users.technician.userId, testLocation2Id);
+    await assignUserToLocation(users.frontdesk.userId, testLocation1Id);
+    await assignUserToLocation(users.frontdesk.userId, testLocation2Id);
+    
     authToken = users.technician.token;
     adminToken = users.admin.token;
     frontdeskToken = users.frontdesk.token;
     technicianToken = users.technician.token;
 
-    // Create manager user and assign to location
+    // Create manager user and assign to both locations
     const managerUser = await createAuthenticatedUser(testCompanyId, "manager", {
       email: "manager@test.com",
       firstName: "Manager",
@@ -52,6 +62,8 @@ describe("Inventory Transfer Routes Integration Tests", () => {
       locationId: testLocation1Id,
     });
     testUserIds.push(managerUser.userId);
+    // Assign manager to second location as well
+    await assignUserToLocation(managerUser.userId, testLocation2Id);
     managerToken = managerUser.token;
     managerUserId = managerUser.userId;
 

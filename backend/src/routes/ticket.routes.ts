@@ -189,7 +189,7 @@ router.post(
     const { id } = req.params;
     const { technicianId } = req.body;
     
-    // If technicianId is provided, validate it exists and is a technician in the same company
+    // If technicianId is provided, validate it exists and is eligible to be assigned (technician, manager, or admin)
     if (technicianId) {
       const technician = await userService.findById(technicianId);
       if (!technician) {
@@ -198,8 +198,8 @@ router.post(
       if ((technician.company_id as unknown as string) !== companyId) {
         throw new BadRequestError("Technician must belong to the same company");
       }
-      if (technician.role !== "technician" && technician.role !== "admin") {
-        throw new BadRequestError("User must be a technician or admin to be assigned to a ticket");
+      if (!["technician", "manager", "admin"].includes(technician.role)) {
+        throw new BadRequestError("User must be a technician, manager, or admin to be assigned to a ticket");
       }
     }
     

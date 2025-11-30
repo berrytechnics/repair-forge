@@ -100,6 +100,26 @@ export default function TicketForm({
               setSelectedCustomer(ticket.customer as Customer);
               setShowCustomerSearch(false);
             }
+
+            // If ticket has an asset, fetch assets to populate the dropdown
+            if (ticket.assetId && ticket.customerId) {
+              setIsLoadingAssets(true);
+              try {
+                const assetResponse = await getAssetsByCustomer(ticket.customerId);
+                if (assetResponse.data) {
+                  setAssets(assetResponse.data);
+                  // Set selected asset if it exists
+                  const asset = assetResponse.data.find((a) => a.id === ticket.assetId);
+                  if (asset) {
+                    setSelectedAsset(asset);
+                  }
+                }
+              } catch (err) {
+                console.error("Error fetching assets:", err);
+              } finally {
+                setIsLoadingAssets(false);
+              }
+            }
           }
         } catch (err) {
           console.error("Error fetching ticket:", err);
@@ -181,30 +201,51 @@ export default function TicketForm({
     }
   }, [initialCustomerId, isEditMode]);
 
-  // Fetch assets when customer is selected
-  useEffect(() => {
-    const fetchAssets = async () => {
-      if (!formData.customerId) {
-        setAssets([]);
-        setSelectedAsset(null);
-        return;
-      }
+  // Manual fetch assets function - called when asset select is opened
+  const fetchAssets = async (forceRefresh = false) => {
+    if (!formData.customerId) {
+      setAssets([]);
+      setSelectedAsset(null);
+      return;
+    }
 
-      setIsLoadingAssets(true);
-      try {
-        const response = await getAssetsByCustomer(formData.customerId);
-        if (response.data) {
-          setAssets(response.data);
+    // Don't fetch if already loaded (unless force refresh)
+    if (assets.length > 0 && !forceRefresh) {
+      return;
+    }
+
+    setIsLoadingAssets(true);
+    try {
+      const response = await getAssetsByCustomer(formData.customerId);
+      if (response.data) {
+        setAssets(response.data);
+        // If we have a selected asset, update it in case it changed
+        if (formData.assetId) {
+          const asset = response.data.find((a) => a.id === formData.assetId);
+          if (asset) {
+            setSelectedAsset(asset);
+          }
         }
-      } catch (err) {
-        console.error("Error fetching assets:", err);
-        setAssets([]);
-      } finally {
-        setIsLoadingAssets(false);
+      }
+    } catch (err) {
+      console.error("Error fetching assets:", err);
+      setAssets([]);
+    } finally {
+      setIsLoadingAssets(false);
+    }
+  };
+
+  // Refresh assets when window regains focus (in case new asset was created)
+  useEffect(() => {
+    const handleFocus = () => {
+      if (formData.customerId) {
+        fetchAssets(true);
       }
     };
 
-    fetchAssets();
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.customerId]);
 
   // Handle asset selection
@@ -214,6 +255,10 @@ export default function TicketForm({
       setFormData((prev) => ({
         ...prev,
         assetId: "",
+        deviceType: "",
+        deviceBrand: "",
+        deviceModel: "",
+        serialNumber: "",
       }));
       return;
     }
@@ -229,6 +274,13 @@ export default function TicketForm({
         deviceModel: asset.deviceModel || "",
         serialNumber: asset.serialNumber || "",
       }));
+    }
+  };
+
+  // Handle asset select focus/open - trigger lazy loading
+  const handleAssetSelectFocus = () => {
+    if (formData.customerId && assets.length === 0 && !isLoadingAssets) {
+      fetchAssets();
     }
   };
 
@@ -288,8 +340,8 @@ export default function TicketForm({
       newErrors.customerId = "Customer is required";
     }
 
-    if (!formData.deviceType.trim()) {
-      newErrors.deviceType = "Device type is required";
+    if (!formData.assetId) {
+      newErrors.assetId = "Asset selection is required";
     }
 
     if (!formData.issueDescription.trim()) {
@@ -542,14 +594,14 @@ export default function TicketForm({
                   Device Information
                 </h3>
 
-                {/* Asset Selection */}
+                {/* Asset Selection - Required */}
                 {formData.customerId && (
                   <div className="mb-4">
                     <label
                       htmlFor="assetId"
                       className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                     >
-                      Select Asset (Optional)
+                      Select Asset *
                     </label>
                     <div className="flex gap-2">
                       <div className="flex-1">
@@ -558,15 +610,21 @@ export default function TicketForm({
                           name="assetId"
                           value={formData.assetId || ""}
                           onChange={(e) => handleAssetChange(e.target.value)}
-                          className="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                          onFocus={handleAssetSelectFocus}
+                          onMouseDown={handleAssetSelectFocus}
+                          className={`block w-full rounded-md dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
+                            errors.assetId
+                              ? "border-red-300 dark:border-red-600"
+                              : "border-gray-300"
+                          }`}
                           disabled={isLoadingAssets}
                         >
                           <option value="">
                             {isLoadingAssets
                               ? "Loading assets..."
                               : assets.length === 0
-                              ? "No assets found"
-                              : "Select an asset or enter manually"}
+                              ? "Click to load assets"
+                              : "Select an asset"}
                           </option>
                           {assets.map((asset) => (
                             <option key={asset.id} value={asset.id}>
@@ -578,6 +636,11 @@ export default function TicketForm({
                             </option>
                           ))}
                         </select>
+                        {errors.assetId && (
+                          <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+                            {errors.assetId}
+                          </p>
+                        )}
                       </div>
                       {formData.customerId && (
                         <Link
@@ -590,102 +653,20 @@ export default function TicketForm({
                       )}
                     </div>
                     {selectedAsset && (
-                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                        Device fields pre-filled from selected asset
-                      </p>
+                      <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-md">
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          Selected Asset:
+                        </p>
+                        <p className="text-sm text-gray-700 dark:text-gray-300">
+                          {selectedAsset.deviceType}
+                          {selectedAsset.deviceBrand && ` - ${selectedAsset.deviceBrand}`}
+                          {selectedAsset.deviceModel && ` ${selectedAsset.deviceModel}`}
+                          {selectedAsset.serialNumber && ` (${selectedAsset.serialNumber})`}
+                        </p>
+                      </div>
                     )}
                   </div>
                 )}
-
-                <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
-                  <div>
-                    <label
-                      htmlFor="deviceType"
-                      className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-                    >
-                      Device Type *
-                    </label>
-                    <div className="mt-1">
-                      <input
-                        type="text"
-                        name="deviceType"
-                        id="deviceType"
-                        value={formData.deviceType}
-                        onChange={handleChange}
-                        placeholder="e.g. Smartphone, Laptop, Tablet"
-                        className={`block w-full rounded-md dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-500 dark:border-gray-600 ${
-                          errors.deviceType
-                            ? "border-red-300 dark:border-red-600 text-red-900 dark:text-red-400 placeholder-red-300 dark:placeholder-red-500 focus:border-red-500 focus:ring-red-500"
-                            : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                        } shadow-sm sm:text-sm`}
-                      />
-                      {errors.deviceType && (
-                        <p className="mt-2 text-sm text-red-600 dark:text-red-400">
-                          {errors.deviceType}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="deviceBrand"
-                      className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-                    >
-                      Brand
-                    </label>
-                    <div className="mt-1">
-                      <input
-                        type="text"
-                        name="deviceBrand"
-                        id="deviceBrand"
-                        value={formData.deviceBrand || ""}
-                        onChange={handleChange}
-                        placeholder="e.g. Apple, Samsung, Dell"
-                        className="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-500 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="deviceModel"
-                      className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-                    >
-                      Model
-                    </label>
-                    <div className="mt-1">
-                      <input
-                        type="text"
-                        name="deviceModel"
-                        id="deviceModel"
-                        value={formData.deviceModel || ""}
-                        onChange={handleChange}
-                        placeholder="e.g. iPhone 14 Pro, Galaxy S22"
-                        className="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-500 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="serialNumber"
-                      className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-                    >
-                      Serial Number
-                    </label>
-                    <div className="mt-1">
-                      <input
-                        type="text"
-                        name="serialNumber"
-                        id="serialNumber"
-                        value={formData.serialNumber || ""}
-                        onChange={handleChange}
-                        className="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                      />
-                    </div>
-                  </div>
-                </div>
               </div>
 
               {/* Checklist Template Selection */}
@@ -817,6 +798,7 @@ export default function TicketForm({
                       onClick={() => {
                         setFormData({
                           customerId: initialCustomerId || "",
+                          assetId: "",
                           technicianId: "",
                           deviceType: "",
                           deviceBrand: "",
@@ -825,6 +807,8 @@ export default function TicketForm({
                           issueDescription: "",
                           priority: "medium",
                         });
+                        setAssets([]);
+                        setSelectedAsset(null);
                         if (!initialCustomerId) {
                           setSelectedCustomer(null);
                           setShowCustomerSearch(true);

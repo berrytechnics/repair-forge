@@ -26,6 +26,8 @@ export const PERMISSIONS = {
   INVOICES_DELETE: "invoices.delete",
   INVOICES_MANAGE_ITEMS: "invoices.manageItems",
   INVOICES_MARK_PAID: "invoices.markPaid",
+  INVOICES_MODIFY_PRICES: "invoices.modifyPrices",
+  INVOICES_MODIFY_DISCOUNTS: "invoices.modifyDiscounts",
 
   // Inventory permissions
   INVENTORY_READ: "inventory.read",
@@ -100,6 +102,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     PERMISSIONS.INVOICES_DELETE,
     PERMISSIONS.INVOICES_MANAGE_ITEMS,
     PERMISSIONS.INVOICES_MARK_PAID,
+    PERMISSIONS.INVOICES_MODIFY_PRICES,
+    PERMISSIONS.INVOICES_MODIFY_DISCOUNTS,
 
     // Inventory - all permissions
     PERMISSIONS.INVENTORY_READ,
@@ -160,6 +164,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     PERMISSIONS.INVOICES_UPDATE,
     PERMISSIONS.INVOICES_MANAGE_ITEMS,
     PERMISSIONS.INVOICES_MARK_PAID,
+    PERMISSIONS.INVOICES_MODIFY_PRICES,
+    PERMISSIONS.INVOICES_MODIFY_DISCOUNTS,
 
     // Payments - process and refund
     PERMISSIONS.PAYMENTS_PROCESS,
