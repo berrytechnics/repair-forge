@@ -129,6 +129,9 @@ export interface InvoiceTable {
   discount_amount: number;
   total_amount: number;
   refund_amount: number;
+  refund_date: Timestamp | null;
+  refund_reason: string | null;
+  refund_method: string | null;
   notes: string | null;
   payment_method: string | null;
   payment_reference: string | null;

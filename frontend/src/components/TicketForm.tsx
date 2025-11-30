@@ -203,22 +203,22 @@ export default function TicketForm({
 
   // Manual fetch assets function - called when asset select is opened
   const fetchAssets = async (forceRefresh = false) => {
-    if (!formData.customerId) {
-      setAssets([]);
-      setSelectedAsset(null);
-      return;
-    }
+      if (!formData.customerId) {
+        setAssets([]);
+        setSelectedAsset(null);
+        return;
+      }
 
     // Don't fetch if already loaded (unless force refresh)
     if (assets.length > 0 && !forceRefresh) {
       return;
     }
 
-    setIsLoadingAssets(true);
-    try {
-      const response = await getAssetsByCustomer(formData.customerId);
-      if (response.data) {
-        setAssets(response.data);
+      setIsLoadingAssets(true);
+      try {
+        const response = await getAssetsByCustomer(formData.customerId);
+        if (response.data) {
+          setAssets(response.data);
         // If we have a selected asset, update it in case it changed
         if (formData.assetId) {
           const asset = response.data.find((a) => a.id === formData.assetId);
@@ -226,14 +226,14 @@ export default function TicketForm({
             setSelectedAsset(asset);
           }
         }
+        }
+      } catch (err) {
+        console.error("Error fetching assets:", err);
+        setAssets([]);
+      } finally {
+        setIsLoadingAssets(false);
       }
-    } catch (err) {
-      console.error("Error fetching assets:", err);
-      setAssets([]);
-    } finally {
-      setIsLoadingAssets(false);
-    }
-  };
+    };
 
   // Refresh assets when window regains focus (in case new asset was created)
   useEffect(() => {
@@ -662,7 +662,7 @@ export default function TicketForm({
                           {selectedAsset.deviceBrand && ` - ${selectedAsset.deviceBrand}`}
                           {selectedAsset.deviceModel && ` ${selectedAsset.deviceModel}`}
                           {selectedAsset.serialNumber && ` (${selectedAsset.serialNumber})`}
-                        </p>
+                      </p>
                       </div>
                     )}
                   </div>

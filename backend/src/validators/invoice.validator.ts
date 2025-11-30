@@ -248,6 +248,6 @@ export const refundInvoiceValidation = [
   body("refundMethod")
     .optional()
     .trim()
-    .isLength({ max: 50 })
-    .withMessage("Refund method must not exceed 50 characters"),
+    .isIn(["manual", "square", "stripe", "paypal"])
+    .withMessage("Refund method must be one of: manual, square, stripe, paypal"),
 ];

@@ -31,6 +31,27 @@ router.get(
   })
 );
 
+// GET /api/inventory/items/by-location/:locationId - Get inventory items for a specific location
+router.get(
+  "/items/by-location/:locationId",
+  requireRole(["admin", "manager", "technician"]),
+  asyncHandler(async (req: Request, res: Response) => {
+    const companyId = req.companyId!;
+    const { locationId } = req.params;
+    const searchQuery = req.query.search as string | undefined;
+    const inStock = req.query.inStock === "true";
+    
+    let items = await inventoryService.findAll(companyId, searchQuery, locationId);
+    
+    // Filter to items with quantity > 0 if inStock is true
+    if (inStock) {
+      items = items.filter((item) => item.quantity > 0);
+    }
+    
+    res.json({ success: true, data: items });
+  })
+);
+
 // GET /api/inventory/:id - Get single inventory item
 router.get(
   "/:id",

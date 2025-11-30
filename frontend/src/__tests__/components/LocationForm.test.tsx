@@ -178,13 +178,13 @@ describe('LocationForm', () => {
       await waitFor(() => {
         expect(mockedLocationApi.createLocation).toHaveBeenCalledWith(
           expect.objectContaining({
-            name: 'Test Location',
-            isActive: true,
+          name: 'Test Location',
+          isActive: true,
             taxRate: 0,
             taxName: 'Sales Tax',
             taxEnabled: true,
             taxInclusive: false,
-          })
+        })
         )
       })
     })

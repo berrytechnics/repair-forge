@@ -306,8 +306,8 @@ export default function LocationForm({ locationId }: LocationFormProps) {
       {/* Tax Settings Section */}
       <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
         <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Tax Settings</h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label
               htmlFor="taxName"
@@ -336,33 +336,33 @@ export default function LocationForm({ locationId }: LocationFormProps) {
             </p>
           </div>
 
-          <div>
-            <label
-              htmlFor="taxRate"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-            >
-              Tax Rate (%)
-            </label>
-            <input
-              type="number"
-              id="taxRate"
-              name="taxRate"
-              value={formData.taxRate || 0}
-              onChange={handleChange}
-              min="0"
-              max="100"
-              step="0.01"
-              className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-500 ${
-                errors.taxRate
-                  ? "border-red-500 dark:border-red-600"
-                  : "border-gray-300 dark:border-gray-600"
-              }`}
-              placeholder="0.00"
-            />
-            {errors.taxRate && (
-              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.taxRate}</p>
-            )}
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+        <div>
+          <label
+            htmlFor="taxRate"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+          >
+            Tax Rate (%)
+          </label>
+          <input
+            type="number"
+            id="taxRate"
+            name="taxRate"
+            value={formData.taxRate || 0}
+            onChange={handleChange}
+            min="0"
+            max="100"
+            step="0.01"
+            className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-500 ${
+              errors.taxRate
+                ? "border-red-500 dark:border-red-600"
+                : "border-gray-300 dark:border-gray-600"
+            }`}
+            placeholder="0.00"
+          />
+          {errors.taxRate && (
+            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.taxRate}</p>
+          )}
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               Tax rate percentage (0-100)
             </p>
           </div>
@@ -397,7 +397,7 @@ export default function LocationForm({ locationId }: LocationFormProps) {
             When enabled, prices include tax. When disabled, tax is added to subtotal.
           </p>
         </div>
-      </div>
+        </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>

@@ -406,7 +406,7 @@ export default function InvoiceForm({ invoiceId }: InvoiceFormProps) {
       return;
     }
 
-        // In edit mode, use API to add item
+    // In edit mode, use API to add item
     if (isEditMode && invoiceId) {
       setIsSubmitting(true);
       try {
@@ -807,14 +807,14 @@ export default function InvoiceForm({ invoiceId }: InvoiceFormProps) {
                 )}
               </div>
               {/* Stock Item Fields */}
-              <div className="grid grid-cols-4 gap-4">
-                <input
-                  type="text"
-                  name="description"
-                  placeholder="Description"
-                  value={newItem.description}
-                  onChange={handleNewItemChange}
-                  className="col-span-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-500 rounded p-2 focus:border-blue-500 dark:focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:focus:ring-blue-500"
+          <div className="grid grid-cols-4 gap-4">
+            <input
+              type="text"
+              name="description"
+              placeholder="Description"
+              value={newItem.description}
+              onChange={handleNewItemChange}
+              className="col-span-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-500 rounded p-2 focus:border-blue-500 dark:focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:focus:ring-blue-500"
                   disabled={!selectedInventoryItem}
                 />
                 <input
@@ -866,48 +866,48 @@ export default function InvoiceForm({ invoiceId }: InvoiceFormProps) {
                   value={newItem.description}
                   onChange={handleNewItemChange}
                   className="col-span-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-500 rounded p-2 focus:border-blue-500 dark:focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:focus:ring-blue-500"
-                />
-                <input
-                  type="number"
-                  name="quantity"
-                  placeholder="Quantity"
-                  value={newItem.quantity}
-                  onChange={handleNewItemChange}
-                  className="border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-500 rounded p-2 focus:border-blue-500 dark:focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:focus:ring-blue-500"
-                />
-                <select
-                  name="type"
-                  value={newItem.type}
-                  onChange={handleNewItemChange}
-                  className="border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded p-2 focus:border-blue-500 dark:focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:focus:ring-blue-500"
-                >
-                  <option value="service">Service</option>
-                  <option value="part">Part</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-              <div className="grid grid-cols-4 gap-4 mt-2">
-                <input
-                  type="number"
-                  name="unitPrice"
-                  placeholder="Unit Price"
-                  value={newItem.unitPrice}
-                  onChange={handleNewItemChange}
+            />
+            <input
+              type="number"
+              name="quantity"
+              placeholder="Quantity"
+              value={newItem.quantity}
+              onChange={handleNewItemChange}
+              className="border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-500 rounded p-2 focus:border-blue-500 dark:focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:focus:ring-blue-500"
+            />
+            <select
+              name="type"
+              value={newItem.type}
+              onChange={handleNewItemChange}
+              className="border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded p-2 focus:border-blue-500 dark:focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:focus:ring-blue-500"
+            >
+              <option value="service">Service</option>
+              <option value="part">Part</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div className="grid grid-cols-4 gap-4 mt-2">
+            <input
+              type="number"
+              name="unitPrice"
+              placeholder="Unit Price"
+              value={newItem.unitPrice}
+              onChange={handleNewItemChange}
                   className={`col-span-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-500 rounded p-2 focus:border-blue-500 dark:focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:focus:ring-blue-500 ${
                     !canModifyPrices ? "opacity-50 cursor-not-allowed" : ""
                   }`}
                   disabled={!canModifyPrices}
                   title={!canModifyPrices ? "You do not have permission to modify prices" : ""}
-                />
-                <button
-                  type="button"
-                  onClick={handleAddInvoiceItem}
-                  disabled={isSubmitting}
-                  className="bg-blue-500 dark:bg-blue-700 text-white rounded p-2 hover:bg-blue-600 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500 disabled:opacity-50"
-                >
-                  {isSubmitting ? "Adding..." : "Add Item"}
-                </button>
-              </div>
+            />
+            <button
+              type="button"
+              onClick={handleAddInvoiceItem}
+              disabled={isSubmitting}
+              className="bg-blue-500 dark:bg-blue-700 text-white rounded p-2 hover:bg-blue-600 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500 disabled:opacity-50"
+            >
+              {isSubmitting ? "Adding..." : "Add Item"}
+            </button>
+          </div>
             </>
           )}
           {errors.invoiceItems && (

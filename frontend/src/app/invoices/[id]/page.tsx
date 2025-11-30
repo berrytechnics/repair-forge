@@ -323,15 +323,15 @@ export default function InvoiceDetailPage({
       
       if (isProviderPayment && hasPermission("payments.refund")) {
         // Use payment provider refund
-        const result = await refundPayment({
+      const result = await refundPayment({
           transactionId: invoice.paymentReference!,
-          amount,
-          reason,
-        });
-        await refreshInvoice();
-        setShowRefundModal(false);
-        if (result.data?.refundId) {
-          alert(`Refund processed successfully! Refund ID: ${result.data.refundId}`);
+        amount,
+        reason,
+      });
+      await refreshInvoice();
+      setShowRefundModal(false);
+      if (result.data?.refundId) {
+        alert(`Refund processed successfully! Refund ID: ${result.data.refundId}`);
         }
       } else if (hasPermission("invoices.markPaid")) {
         // Use manual refund

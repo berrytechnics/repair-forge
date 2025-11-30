@@ -35,6 +35,9 @@ export interface Invoice {
   discountAmount: number;
   totalAmount: number;
   refundAmount?: number;
+  refundDate?: string;
+  refundReason?: string;
+  refundMethod?: string;
   notes?: string;
   paymentMethod?: string;
   paymentReference?: string;

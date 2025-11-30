@@ -58,6 +58,9 @@ export type Invoice = Omit<
   | "discount_amount"
   | "total_amount"
   | "refund_amount"
+  | "refund_date"
+  | "refund_reason"
+  | "refund_method"
   | "payment_method"
   | "payment_reference"
   | "created_at"
@@ -77,6 +80,9 @@ export type Invoice = Omit<
   discountAmount: number;
   totalAmount: number;
   refundAmount: number;
+  refundDate: Date | null;
+  refundReason: string | null;
+  refundMethod: string | null;
   paymentMethod: string | null;
   paymentReference: string | null;
   createdAt: Date;
@@ -195,6 +201,9 @@ function toInvoice(invoice: {
   discount_amount: number;
   total_amount: number;
   refund_amount?: number;
+  refund_date?: Date | null;
+  refund_reason?: string | null;
+  refund_method?: string | null;
   notes: string | null;
   payment_method: string | null;
   payment_reference: string | null;
@@ -218,6 +227,9 @@ function toInvoice(invoice: {
     discountAmount: invoice.discount_amount,
     totalAmount: invoice.total_amount,
     refundAmount: (invoice.refund_amount as number) || 0,
+    refundDate: invoice.refund_date || null,
+    refundReason: invoice.refund_reason || null,
+    refundMethod: invoice.refund_method || null,
     notes: invoice.notes,
     paymentMethod: invoice.payment_method,
     paymentReference: invoice.payment_reference,
@@ -905,11 +917,11 @@ export class InvoiceService {
       .updateTable("invoices")
       .set({
         refund_amount: totalRefundAmount,
+        refund_date: sql`now()`,
+        refund_reason: data.refundReason || null,
+        refund_method: data.refundMethod || "manual",
         status: newStatus,
         updated_at: sql`now()`,
-        notes: data.refundReason
-          ? `${invoice.notes || ""}\n\nRefund: ${data.refundAmount} (${data.refundReason})`.trim()
-          : invoice.notes,
       })
       .where("id", "=", invoiceId)
       .where("company_id", "=", companyId)
@@ -980,15 +992,28 @@ export class InvoiceService {
     }
     // For partial refunds, keep the status as "paid" - the refund_amount field tracks it
 
+    // Determine refund method from payment method
+    let refundMethod = "manual";
+    if (invoice.payment_method) {
+      const paymentMethodLower = invoice.payment_method.toLowerCase();
+      if (paymentMethodLower.includes("square")) {
+        refundMethod = "square";
+      } else if (paymentMethodLower.includes("stripe")) {
+        refundMethod = "stripe";
+      } else if (paymentMethodLower.includes("paypal")) {
+        refundMethod = "paypal";
+      }
+    }
+
     // Update invoice with refund amount
     const updated = await db
       .updateTable("invoices")
       .set({
         refund_amount: newRefundAmount,
+        refund_date: sql`now()`,
+        refund_reason: refundId ? `Payment provider refund: ${refundId}` : null,
+        refund_method: refundMethod,
         status: newStatus,
-        notes: refundId
-          ? `${invoice.notes || ""}\nRefund recorded: ${refundId} (${refundAmount.toFixed(2)})`.trim()
-          : invoice.notes,
         updated_at: sql`now()`,
       })
       .where("id", "=", invoice.id)
