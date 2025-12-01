@@ -379,29 +379,63 @@ async function runMigrations() {
       const alreadyApplied = await isMigrationApplied(client, file);
       
       if (alreadyApplied) {
-        console.log(`✓ Migration ${file} already applied, skipping`);
-        skippedCount++;
-        continue;
+        // CRITICAL: Verify that tables actually exist before skipping
+        // This catches cases where migration was marked as applied but transaction didn't persist
+        const expectedTables = getExpectedTables(sql, file);
+        if (expectedTables.length > 0) {
+          const missingTables: string[] = [];
+          for (const table of expectedTables) {
+            const exists = await tableExists(client, table);
+            if (!exists) {
+              missingTables.push(table);
+            }
+          }
+          
+          if (missingTables.length > 0) {
+            console.log(`⚠ Migration ${file} marked as applied but tables missing: ${missingTables.join(', ')}`);
+            console.log(`  This indicates the previous migration transaction didn't persist.`);
+            console.log(`  Re-running migration to create missing tables...`);
+            // Fall through to run the migration
+          } else {
+            console.log(`✓ Migration ${file} already applied, skipping`);
+            skippedCount++;
+            continue;
+          }
+        } else {
+          console.log(`✓ Migration ${file} already applied, skipping`);
+          skippedCount++;
+          continue;
+        }
       }
       
       console.log(`Running migration: ${file}`);
       
       // Check for missing table dependencies before running migration
+      // But exclude tables that are created in this same migration
       const referencedTables = extractReferencedTables(sql);
+      const createdTables = getExpectedTables(sql, file);
+      
       if (referencedTables.length > 0) {
-        const missingTables: string[] = [];
-        for (const table of referencedTables) {
-          const exists = await tableExists(client, table);
-          if (!exists) {
-            missingTables.push(table);
-          }
-        }
+        // Filter out tables that are created in this migration
+        const externalDependencies = referencedTables.filter(
+          table => !createdTables.includes(table.toLowerCase())
+        );
         
-        if (missingTables.length > 0) {
-          console.error(`✗ Migration ${file} failed: Missing required tables: ${missingTables.join(', ')}`);
-          console.error(`  This migration references tables that don't exist yet.`);
-          console.error(`  Ensure prerequisite migrations have run successfully.`);
-          throw new Error(`Missing required tables: ${missingTables.join(', ')}`);
+        if (externalDependencies.length > 0) {
+          const missingTables: string[] = [];
+          for (const table of externalDependencies) {
+            const exists = await tableExists(client, table);
+            if (!exists) {
+              missingTables.push(table);
+            }
+          }
+          
+          if (missingTables.length > 0) {
+            console.error(`✗ Migration ${file} failed: Missing required tables: ${missingTables.join(', ')}`);
+            console.error(`  This migration references tables that don't exist yet.`);
+            console.error(`  Ensure prerequisite migrations have run successfully.`);
+            throw new Error(`Missing required tables: ${missingTables.join(', ')}`);
+          }
         }
       }
       
