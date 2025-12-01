@@ -7,6 +7,19 @@ import { UserWithoutPassword } from "../services/user.service.js";
 
 const router = express.Router();
 
+// GET /api/system/maintenance/public - Get maintenance mode status (public, no auth required)
+router.get(
+  "/maintenance/public",
+  asyncHandler(async (req: Request, res: Response) => {
+    const status = await systemSettingsService.getMaintenanceMode();
+    
+    res.json({
+      success: true,
+      data: status,
+    });
+  })
+);
+
 // GET /api/system/maintenance - Get maintenance mode status (superuser only)
 router.get(
   "/maintenance",

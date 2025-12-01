@@ -35,6 +35,7 @@ export interface Database {
   user_roles: UserRoleTable;
   users: UserTable;
   inventory_transfers: InventoryTransferTable;
+  newsletter_subscribers: NewsletterSubscriberTable;
 }
 
 // Table definitions
@@ -387,6 +388,15 @@ export interface SubscriptionPaymentTable {
   billing_period_end: Timestamp;
   location_count: number;
   failure_reason: string | null;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+}
+
+export interface NewsletterSubscriberTable {
+  id: UUID;
+  email: string;
+  subscribed_at: Timestamp;
+  unsubscribed_at: Timestamp | null;
   created_at: Timestamp;
   updated_at: Timestamp;
 }

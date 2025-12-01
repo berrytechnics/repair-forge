@@ -2,7 +2,7 @@
 
 import { getMaintenanceMode, setMaintenanceMode } from "@/lib/api/system.api";
 import { useUser } from "@/lib/UserContext";
-import { BuildingOffice2Icon, EyeIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { BuildingOffice2Icon, EnvelopeIcon, EyeIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -84,6 +84,12 @@ export default function SuperuserSettingsPage() {
       description: "Manage tenants, their locations, and view the system as any tenant",
       href: "/settings/superuser/tenants",
       icon: BuildingOffice2Icon,
+    },
+    {
+      name: "Newsletter Subscribers",
+      description: "View and manage newsletter email subscribers",
+      href: "/settings/superuser/newsletter",
+      icon: EnvelopeIcon,
     },
   ];
 

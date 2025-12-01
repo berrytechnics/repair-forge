@@ -1,11 +1,12 @@
 import express, { Request, Response } from "express";
 import {
-    BadRequestError,
-    NotFoundError,
-    UnauthorizedError,
+  BadRequestError,
+  NotFoundError,
+  UnauthorizedError,
 } from "../config/errors.js";
 import { getPermissionsForRole, getPermissionsMatrix } from "../config/permissions.js";
 import { UserRole } from "../config/types.js";
+import { checkAuthMaintenanceMode } from "../middlewares/auth-maintenance.middleware.js";
 import { validateRequest } from "../middlewares/auth.middleware.js";
 import { authLimiter, sensitiveOperationLimiter } from "../middlewares/rate-limit.middleware.js";
 import { requireAdmin, requireRole } from "../middlewares/rbac.middleware.js";
@@ -54,6 +55,7 @@ function formatUserForResponse(user: UserWithoutPassword) {
 router.post(
   "/login",
   authLimiter,
+  checkAuthMaintenanceMode,
   validate(loginValidation),
   asyncHandler(async (req: Request, res: Response) => {
     const { email, password } = req.body;
@@ -79,6 +81,7 @@ router.post(
 router.post(
   "/register",
   authLimiter,
+  checkAuthMaintenanceMode,
   validate(registerValidation),
   asyncHandler(async (req: Request, res: Response) => {
     const { firstName, lastName, email, password, companyName, invitationToken, role } = req.body;

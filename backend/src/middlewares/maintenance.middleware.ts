@@ -25,8 +25,8 @@ export async function checkMaintenanceMode(
       return next();
     }
 
-    // Allow auth routes (login, register, etc.)
-    if (req.path.startsWith("/api/auth")) {
+    // Allow newsletter routes (public subscription endpoints)
+    if (req.path.startsWith("/api/newsletter")) {
       return next();
     }
 
@@ -34,6 +34,9 @@ export async function checkMaintenanceMode(
     if (req.path.startsWith("/api/system")) {
       return next();
     }
+
+    // Note: Auth routes (login/register) are NOT bypassed here
+    // They have their own maintenance check middleware that allows superusers
 
     // Check if maintenance mode is enabled
     const maintenanceSetting = await db

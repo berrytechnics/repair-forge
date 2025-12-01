@@ -7,7 +7,26 @@ export interface MaintenanceModeStatus {
 }
 
 /**
- * Get maintenance mode status
+ * Get maintenance mode status (public endpoint, no auth required)
+ */
+export async function getMaintenanceModePublic(): Promise<
+  ApiResponse<MaintenanceModeStatus>
+> {
+  const response = await api.get<ApiResponse<MaintenanceModeStatus>>(
+    "/system/maintenance/public"
+  );
+
+  if (response.data.success && response.data.data) {
+    return response.data;
+  }
+
+  throw new Error(
+    response.data.error?.message || "Failed to get maintenance mode status"
+  );
+}
+
+/**
+ * Get maintenance mode status (requires superuser auth)
  */
 export async function getMaintenanceMode(): Promise<
   ApiResponse<MaintenanceModeStatus>
