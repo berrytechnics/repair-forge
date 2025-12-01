@@ -231,8 +231,17 @@ if ! sudo nginx -t; then
 fi
 
 echo -e "${GREEN}Step 8: Setting up SSL certificate...${NC}"
-# Stop nginx temporarily for certbot
+# Stop nginx and kill any orphaned processes
+sudo pkill -9 nginx || true
 sudo systemctl stop nginx || true
+sleep 2
+
+# Verify ports are free
+if netstat -tlnp 2>/dev/null | grep -qE ':(80|443)' || ss -tlnp 2>/dev/null | grep -qE ':(80|443)'; then
+    echo -e "${YELLOW}Warning: Ports 80 or 443 are still in use. Killing processes...${NC}"
+    sudo fuser -k 80/tcp 443/tcp 2>/dev/null || true
+    sleep 2
+fi
 
 # Obtain certificate
 sudo certbot certonly --standalone \
@@ -246,28 +255,39 @@ sudo certbot certonly --standalone \
 }
 
 # Update nginx config with SSL - use certbot nginx plugin for automatic configuration
-if [ -f "/etc/letsencrypt/live/$DOMAIN_NAME/fullchain.pem" ]; then
+if [ -f "/etc/letsencrypt/live/$DOMAIN_NAME/fullchain.pem" ] || [ -f "/etc/letsencrypt/live/$DOMAIN_NAME-0001/fullchain.pem" ]; then
     echo -e "${GREEN}Configuring HTTPS in Nginx...${NC}"
+    
+    # Determine which certificate to use
+    CERT_NAME="$DOMAIN_NAME"
+    if [ ! -f "/etc/letsencrypt/live/$DOMAIN_NAME/fullchain.pem" ] && [ -f "/etc/letsencrypt/live/$DOMAIN_NAME-0001/fullchain.pem" ]; then
+        CERT_NAME="$DOMAIN_NAME-0001"
+    fi
+    
+    # Kill nginx again before certbot runs (in case certbot started it)
+    sudo pkill -9 nginx || true
+    sudo systemctl stop nginx || true
+    sleep 2
     
     # Use certbot's nginx plugin to automatically configure SSL
     # This is more reliable than manual sed edits
     sudo certbot --nginx -d "$DOMAIN_NAME" --non-interactive --agree-tos --email "${SSL_EMAIL:-admin@$DOMAIN_NAME}" --redirect || {
         echo -e "${YELLOW}Certbot nginx plugin failed, trying manual configuration...${NC}"
         
-        # Fallback: Manual configuration using sed
+        # Fallback: Manual configuration - restore clean config first
         sudo cp deployment/hetzner/nginx.conf /etc/nginx/sites-available/circuit-sage
         sudo sed -i "s/yourdomain.com/$DOMAIN_NAME/g" /etc/nginx/sites-available/circuit-sage
         
         # Uncomment HTTPS server block (remove # from lines 73-147)
         sudo sed -i '73,147s/^#//' /etc/nginx/sites-available/circuit-sage
         
-        # Comment out HTTP proxy locations and add redirects
-        sudo sed -i '32,46s/^    \(location\|proxy\|limit_req\)/    # \1/' /etc/nginx/sites-available/circuit-sage
-        sudo sed -i '48,61s/^    \(location\|proxy\|limit_req\)/    # \1/' /etc/nginx/sites-available/circuit-sage
+        # Update SSL certificate paths
+        sudo sed -i "s|/etc/letsencrypt/live/$DOMAIN_NAME/|/etc/letsencrypt/live/$CERT_NAME/|g" /etc/nginx/sites-available/circuit-sage
         
-        # Add redirects before the commented locations
-        sudo sed -i '31a\    location / {\n        return 301 https://$server_name$request_uri;\n    }' /etc/nginx/sites-available/circuit-sage
-        sudo sed -i '47a\    location /api {\n        return 301 https://$server_name$request_uri;\n    }' /etc/nginx/sites-available/circuit-sage
+        # Comment out HTTP proxy locations and uncomment redirects
+        sudo sed -i '32,46s/^/    # /' /etc/nginx/sites-available/circuit-sage
+        sudo sed -i '48,61s/^/    # /' /etc/nginx/sites-available/circuit-sage
+        sudo sed -i '64,69s/^    #\(.*\)/    \1/' /etc/nginx/sites-available/circuit-sage
         
         # Test configuration
         if ! sudo nginx -t; then
