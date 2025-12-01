@@ -47,6 +47,8 @@ services:
       ENCRYPTION_KEY: ${ENCRYPTION_KEY}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
       IS_DOCKER: "true"
+    ports:
+      - "127.0.0.1:4000:4000"
     networks:
       - circuit-sage-network
     logging:
@@ -70,6 +72,8 @@ services:
       HOSTNAME: 0.0.0.0
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
       NEXT_TELEMETRY_DISABLED: "1"
+    ports:
+      - "127.0.0.1:3000:3000"
     networks:
       - circuit-sage-network
     logging:
