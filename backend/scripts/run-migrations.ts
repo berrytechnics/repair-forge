@@ -37,11 +37,35 @@ function calculateChecksum(content: string): string {
  */
 function splitSqlStatements(sql: string): string[] {
   // Remove single-line comments (-- style) but preserve structure
+  // Need to be careful not to remove -- that appears inside strings
   const lines = sql.split('\n');
   const withoutComments = lines
     .map(line => {
-      const commentIndex = line.indexOf('--');
-      return commentIndex >= 0 ? line.substring(0, commentIndex) : line;
+      // Only remove -- if it's not inside a string
+      let inString = false;
+      let stringChar = '';
+      for (let i = 0; i < line.length - 1; i++) {
+        const char = line[i];
+        const nextChar = line[i + 1];
+        
+        if (!inString && (char === '"' || char === "'")) {
+          inString = true;
+          stringChar = char;
+        } else if (inString && char === stringChar) {
+          // Check for PostgreSQL '' escape sequence
+          if (stringChar === "'" && nextChar === "'") {
+            i++; // Skip the second quote
+            continue;
+          } else {
+            inString = false;
+            stringChar = '';
+          }
+        } else if (!inString && char === '-' && nextChar === '-') {
+          // Found -- comment outside of string
+          return line.substring(0, i);
+        }
+      }
+      return line;
     })
     .join('\n');
   
@@ -90,10 +114,23 @@ function splitSqlStatements(sql: string): string[] {
         inString = true;
         stringChar = char;
         currentStatement += char;
-      } else if (inString && char === stringChar && withoutComments[i - 1] !== '\\') {
-        inString = false;
-        stringChar = '';
-        currentStatement += char;
+      } else if (inString && char === stringChar) {
+        // Check for PostgreSQL escape sequence: '' (double single quote) for single quotes
+        // or escaped quote with backslash for double quotes
+        if (stringChar === "'" && i + 1 < withoutComments.length && withoutComments[i + 1] === "'") {
+          // This is an escaped single quote ('') - add both and continue in string
+          currentStatement += "''";
+          i += 2;
+          continue;
+        } else if (stringChar === '"' && i > 0 && withoutComments[i - 1] === '\\') {
+          // Escaped double quote - add it and continue in string
+          currentStatement += char;
+        } else {
+          // This is the closing quote
+          inString = false;
+          stringChar = '';
+          currentStatement += char;
+        }
       } else if (!inString && char === ';') {
         const trimmed = currentStatement.trim();
         if (trimmed.length > 0) {
