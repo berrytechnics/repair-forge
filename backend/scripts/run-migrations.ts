@@ -257,19 +257,33 @@ async function runMigrations() {
       try {
         await client.query("BEGIN");
         
-        // Split SQL into individual statements and execute them one by one
-        const statements = splitSqlStatements(sql);
-        for (let i = 0; i < statements.length; i++) {
-          const statement = statements[i].trim();
-          if (statement) {
-            try {
-              await client.query(statement);
-            } catch (stmtError: any) {
-              // Provide context about which statement failed
-              const statementPreview = statement.substring(0, 100).replace(/\n/g, ' ');
-              console.error(`✗ Statement ${i + 1}/${statements.length} failed in migration ${file}:`);
-              console.error(`  Preview: ${statementPreview}...`);
-              throw stmtError;
+        // Try executing the entire SQL file first (PostgreSQL supports multiple statements)
+        // If that fails, fall back to splitting statements
+        try {
+          await client.query(sql);
+        } catch (error: any) {
+          // If direct execution fails, try splitting into statements
+          console.log(`  Direct execution failed, splitting into statements...`);
+          const statements = splitSqlStatements(sql);
+          
+          for (let i = 0; i < statements.length; i++) {
+            const statement = statements[i].trim();
+            if (statement) {
+              try {
+                await client.query(statement);
+              } catch (stmtError: any) {
+                // Provide context about which statement failed
+                const statementPreview = statement.substring(0, 100).replace(/\n/g, ' ');
+                console.error(`✗ Statement ${i + 1}/${statements.length} failed in migration ${file}:`);
+                console.error(`  Preview: ${statementPreview}...`);
+                console.error(`  Full statement length: ${statement.length} chars`);
+                if (statement.length < 1000) {
+                  console.error(`  Full statement:\n${statement}`);
+                } else {
+                  console.error(`  Full statement (first 500 chars):\n${statement.substring(0, 500)}...`);
+                }
+                throw stmtError;
+              }
             }
           }
         }
