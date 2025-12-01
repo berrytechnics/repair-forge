@@ -23,8 +23,8 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 # Set environment variables for build
 ENV NEXT_TELEMETRY_DISABLED 1
 
-# Build application
-RUN yarn build
+# Build application with increased memory limit for low-memory servers
+RUN NODE_OPTIONS="--max-old-space-size=2048" yarn build
 
 # Production image, copy all the files and run next
 FROM base AS runner
