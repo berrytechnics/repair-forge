@@ -79,10 +79,10 @@ export default function Home() {
       </header>
 
       {/* Launch Notice Banner */}
-      <section className="bg-gradient-to-r from-blue-600 to-blue-800 dark:from-blue-700 dark:to-blue-900 text-white py-3">
+      <section className="bg-gradient-to-r from-blue-700 to-blue-900 dark:from-blue-700 dark:to-blue-900 py-3">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-4xl mx-auto text-center">
-            <p className="text-sm sm:text-base font-medium">
+            <p className="text-sm sm:text-base font-medium text-white drop-shadow-sm">
               🚀 <span className="font-semibold">Launching Q1 2026</span> • Join our newsletter to be notified when we launch and get early access to transform your repair business.
             </p>
           </div>
