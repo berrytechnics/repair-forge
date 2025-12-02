@@ -30,12 +30,13 @@ export const apiLimiter = rateLimit({
 
 /**
  * Strict rate limiter for authentication endpoints
- * Limits: 5 requests per 15 minutes per IP
+ * Limits: 5 requests per 15 minutes per IP (production)
+ *         Disabled in development and test environments
  */
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Limit each IP to 5 login attempts per windowMs
-  skip: () => process.env.NODE_ENV === "test", // Skip rate limiting in test environment
+  max: process.env.NODE_ENV === "production" ? 5 : 1000, // More lenient in development
+  skip: () => process.env.NODE_ENV === "test" || process.env.NODE_ENV === "development", // Skip rate limiting in test and development
   message: {
     success: false,
     error: {

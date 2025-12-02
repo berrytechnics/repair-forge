@@ -54,3 +54,4 @@ COMMENT ON TABLE subscription_payments IS 'Payment history for subscription bill
 COMMENT ON COLUMN locations.is_free IS 'If true, location is exempt from monthly billing charges';
 
 
+

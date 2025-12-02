@@ -21,3 +21,4 @@ COMMENT ON COLUMN invoices.refund_method IS 'Method used for refund: manual, squ
 
 
 
+

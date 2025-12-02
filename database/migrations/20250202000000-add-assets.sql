@@ -38,3 +38,4 @@ WHERE serial_number IS NOT NULL;
 
 
 
+

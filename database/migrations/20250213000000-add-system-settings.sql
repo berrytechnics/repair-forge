@@ -25,3 +25,4 @@ INSERT INTO system_settings (key, value)
 VALUES ('maintenance_mode', '{"enabled": false}'::jsonb)
 ON CONFLICT (key) DO NOTHING;
 
+

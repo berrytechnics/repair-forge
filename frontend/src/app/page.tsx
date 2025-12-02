@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 export default function Home() {
   const [maintenanceEnabled, setMaintenanceEnabled] = useState(false);
   const [isCheckingMaintenance, setIsCheckingMaintenance] = useState(true);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
   useEffect(() => {
     const checkMaintenance = async () => {
@@ -25,6 +26,24 @@ export default function Home() {
 
     checkMaintenance();
   }, []);
+
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setLightboxImage(null);
+      }
+    };
+
+    if (lightboxImage) {
+      document.addEventListener("keydown", handleEscape);
+      document.body.style.overflow = "hidden";
+    }
+
+    return () => {
+      document.removeEventListener("keydown", handleEscape);
+      document.body.style.overflow = "unset";
+    };
+  }, [lightboxImage]);
 
   return (
     <div className="flex flex-col min-h-screen w-full bg-white dark:bg-gray-900">
@@ -216,8 +235,166 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Benefits Section */}
+      {/* Feature Screenshots Section */}
       <section className="py-20 bg-gray-50 dark:bg-gray-800">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-4">
+              See It In Action
+            </h2>
+            <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+              Get a glimpse of how RepairTix works in real repair shops
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto">
+            {/* Dashboard Screenshot */}
+            <div className="bg-white dark:bg-gray-900 rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow">
+              <div 
+                className="aspect-video bg-gray-100 dark:bg-gray-800 overflow-hidden cursor-pointer group relative"
+                onClick={() => setLightboxImage("/dashboard.png")}
+              >
+                <img
+                  src="/dashboard.png"
+                  alt="Dashboard Overview"
+                  className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 dark:bg-gray-800/90 rounded-full p-3">
+                    <svg className="w-6 h-6 text-gray-900 dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+              <div className="p-6">
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                  Comprehensive Dashboard
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Get a complete overview of your business at a glance with real-time stats, charts, and recent activity.
+                </p>
+              </div>
+            </div>
+
+            {/* Ticket Management Screenshot */}
+            <div className="bg-white dark:bg-gray-900 rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow">
+              <div 
+                className="aspect-video bg-gray-100 dark:bg-gray-800 overflow-hidden cursor-pointer group relative"
+                onClick={() => setLightboxImage("/ticket.png")}
+              >
+                <img
+                  src="/ticket.png"
+                  alt="Ticket Management"
+                  className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 dark:bg-gray-800/90 rounded-full p-3">
+                    <svg className="w-6 h-6 text-gray-900 dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+              <div className="p-6">
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                  Ticket Management
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Track repair jobs from intake to completion with detailed status updates and technician assignments.
+                </p>
+              </div>
+            </div>
+
+            {/* Invoice Screenshot */}
+            <div className="bg-white dark:bg-gray-900 rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow">
+              <div 
+                className="aspect-video bg-gray-100 dark:bg-gray-800 overflow-hidden cursor-pointer group relative"
+                onClick={() => setLightboxImage("/invoice.png")}
+              >
+                <img
+                  src="/invoice.png"
+                  alt="Invoice Management"
+                  className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 dark:bg-gray-800/90 rounded-full p-3">
+                    <svg className="w-6 h-6 text-gray-900 dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+              <div className="p-6">
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                  Professional Invoicing
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Create and manage invoices with line items, tax calculations, and payment tracking.
+                </p>
+              </div>
+            </div>
+
+            {/* Invoice PDF Screenshot */}
+            <div className="bg-white dark:bg-gray-900 rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow">
+              <div 
+                className="aspect-video bg-gray-100 dark:bg-gray-800 overflow-hidden cursor-pointer group relative"
+                onClick={() => setLightboxImage("/invoice_pdf.png")}
+              >
+                <img
+                  src="/invoice_pdf.png"
+                  alt="Invoice PDF"
+                  className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 dark:bg-gray-800/90 rounded-full p-3">
+                    <svg className="w-6 h-6 text-gray-900 dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+              <div className="p-6">
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                  PDF Generation
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Generate professional PDF invoices that you can email or print directly for your customers.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Lightbox Modal */}
+          {lightboxImage && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 dark:bg-black/95 p-4"
+              onClick={() => setLightboxImage(null)}
+            >
+              <div className="relative max-w-7xl max-h-full w-full h-full flex items-center justify-center">
+                <button
+                  onClick={() => setLightboxImage(null)}
+                  className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors z-10 bg-black/50 rounded-full p-2 hover:bg-black/70"
+                  aria-label="Close lightbox"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+                <img
+                  src={lightboxImage}
+                  alt="Screenshot"
+                  className="max-w-full max-h-full object-contain rounded-lg"
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Benefits Section */}
+      <section className="py-20 bg-white dark:bg-gray-900">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-16">
