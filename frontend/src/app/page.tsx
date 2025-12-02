@@ -449,7 +449,7 @@ export default function Home() {
                     Secure & Reliable
                   </h3>
                   <p className="text-gray-600 dark:text-gray-400">
-                    Your data is protected with enterprise-grade security. Multi-tenant architecture ensures complete data isolation between companies.
+                    Your data is protected with enterprise-grade security. Complete data isolation ensures your business information stays private and secure.
                   </p>
                 </div>
               </div>
