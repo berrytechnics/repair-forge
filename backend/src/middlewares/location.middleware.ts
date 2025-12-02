@@ -92,6 +92,35 @@ export async function requireLocationContext(
     }
 
     if (!currentLocationId) {
+      // For admins, try to set a default location if available
+      if (user.role === "admin") {
+        // Get the first active location for this company
+        const defaultLocation = await db
+          .selectFrom("locations")
+          .select("id")
+          .where("company_id", "=", companyId)
+          .where("deleted_at", "is", null)
+          .orderBy("created_at", "asc")
+          .limit(1)
+          .executeTakeFirst();
+        
+        if (defaultLocation) {
+          // Set it as the user's current location (async, don't wait for it to complete)
+          const userService = (await import("../services/user.service.js")).default;
+          userService.setCurrentLocation(user.id, defaultLocation.id, companyId).catch((error) => {
+            console.error("Failed to set default location for admin:", error);
+          });
+          
+          // Use the default location for this request
+          req.locationId = defaultLocation.id;
+          return next();
+        }
+        // If no location found, allow admin to proceed without location (services should handle this)
+        // Some endpoints might need location, but admins can access company-wide data
+        return next();
+      }
+      
+      // For non-admins, location is required
       return next(new ForbiddenError("User must have a current location set"));
     }
 

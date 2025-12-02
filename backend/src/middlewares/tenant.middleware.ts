@@ -52,7 +52,9 @@ export async function requireTenantContext(
 
     // Regular users must belong to a company
     if (!user.company_id) {
-      return next(new ForbiddenError("User must belong to a company"));
+      // Log this as it indicates a data integrity issue
+      console.error(`User ${user.id} (${user.email}) does not have a company_id`);
+      return next(new ForbiddenError("User must belong to a company. Please contact support."));
     }
 
     // Attach company_id to request for easy access in services

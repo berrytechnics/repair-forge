@@ -14,6 +14,23 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { setUser } = useUser();
+  
+  // Check for last API error from sessionStorage
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const lastError = sessionStorage.getItem("lastApiError");
+        if (lastError) {
+          const errorData = JSON.parse(lastError);
+          console.error("Last API Error (from sessionStorage):", errorData);
+          // Clear it after logging
+          sessionStorage.removeItem("lastApiError");
+        }
+      } catch (e) {
+        // Ignore
+      }
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

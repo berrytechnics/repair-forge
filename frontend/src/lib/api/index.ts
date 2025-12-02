@@ -156,14 +156,38 @@ api.interceptors.response.use(
       _retry?: boolean;
     };
 
-    // If 401 or 403 (unauthorized/forbidden), token is invalid or expired
-    // Since there's no refresh endpoint yet, redirect to login (but not if already on login page)
-    // Don't logout superusers on impersonation-related errors
+    // Handle 401 (unauthorized) - token is invalid or expired
+    // Only logout on 401, not on 403 (forbidden) which might be permission issues
     if (
-      (error.response?.status === 401 || error.response?.status === 403) &&
+      error.response?.status === 401 &&
       !originalRequest._retry
     ) {
       originalRequest._retry = true;
+
+      // Log error details before redirecting (so we can debug)
+      const errorDetails = {
+        url: originalRequest.url,
+        method: originalRequest.method,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        responseData: error.response?.data,
+        errorMessage: getErrorMessage(error),
+        hasAuthHeader: !!originalRequest.headers?.Authorization,
+      };
+      
+      console.error("API Authorization Error (401 - Invalid Token):", errorDetails);
+      
+      // Store error in sessionStorage so it persists across redirects
+      if (typeof window !== "undefined") {
+        try {
+          sessionStorage.setItem("lastApiError", JSON.stringify({
+            ...errorDetails,
+            timestamp: new Date().toISOString(),
+          }));
+        } catch (e) {
+          // Ignore storage errors
+        }
+      }
 
       // Check if this is an impersonation-related error (superuser might be impersonating)
       const isImpersonating = typeof window !== "undefined" && 
@@ -178,10 +202,25 @@ api.interceptors.response.use(
         if (typeof window !== "undefined") {
           const currentPath = window.location.pathname;
           if (currentPath !== "/login" && currentPath !== "/register") {
-            window.location.href = "/login";
+            // Small delay to ensure error is logged
+            setTimeout(() => {
+              window.location.href = "/login";
+            }, 100);
           }
         }
       }
+    }
+    
+    // Handle 403 (forbidden) - permission denied, but token is valid
+    // Don't logout on 403, just log the error
+    if (error.response?.status === 403) {
+      console.warn("API Permission Error (403 - Forbidden):", {
+        url: originalRequest.url,
+        method: originalRequest.method,
+        status: error.response?.status,
+        responseData: error.response?.data,
+        errorMessage: getErrorMessage(error),
+      });
     }
 
     // Enhance error with user-friendly message

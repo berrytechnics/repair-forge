@@ -8,16 +8,49 @@ import { UserRole } from "../config/types.js";
 class PermissionService {
   /**
    * Get all permissions for a specific role in a company
+   * Falls back to config if database returns empty (e.g., permissions not initialized)
    */
   async getPermissionsForRole(role: UserRole, companyId: string): Promise<string[]> {
-    const permissions = await db
-      .selectFrom("role_permissions")
-      .select("permission")
-      .where("role", "=", role)
-      .where("company_id", "=", companyId)
-      .execute();
+    try {
+      const permissions = await db
+        .selectFrom("role_permissions")
+        .select("permission")
+        .where("role", "=", role)
+        .where("company_id", "=", companyId)
+        .execute();
 
-    return permissions.map((p) => p.permission);
+      const dbPermissions = permissions.map((p) => p.permission);
+      
+      // If database returns empty, fallback to config and try to initialize
+      if (dbPermissions.length === 0) {
+        console.warn(`No permissions found in database for role ${role} in company ${companyId}, using config fallback and attempting initialization`);
+        // Try to initialize permissions for this company
+        try {
+          await this.initializeCompanyPermissions(companyId);
+          // Retry database query after initialization
+          const retryPermissions = await db
+            .selectFrom("role_permissions")
+            .select("permission")
+            .where("role", "=", role)
+            .where("company_id", "=", companyId)
+            .execute();
+          const retryDbPermissions = retryPermissions.map((p) => p.permission);
+          if (retryDbPermissions.length > 0) {
+            return retryDbPermissions;
+          }
+        } catch (initError) {
+          console.error("Failed to initialize permissions:", initError);
+        }
+        // Fallback to config permissions
+        return ROLE_PERMISSIONS[role] || [];
+      }
+      
+      return dbPermissions;
+    } catch (error) {
+      // If database query fails (e.g., table doesn't exist), fallback to config
+      console.warn("Failed to load permissions from database, using config fallback:", error);
+      return ROLE_PERMISSIONS[role] || [];
+    }
   }
 
   /**

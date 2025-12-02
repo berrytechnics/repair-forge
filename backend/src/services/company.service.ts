@@ -157,11 +157,14 @@ export class CompanyService {
       .executeTakeFirstOrThrow();
 
     // Initialize default permissions for the new company
+    // This is critical - if it fails, log error but don't fail company creation
+    // The permission service will fallback to config permissions if DB is empty
     try {
       await permissionService.initializeCompanyPermissions(company.id);
     } catch (error) {
       // Log error but don't fail company creation if permissions table doesn't exist yet
-      console.warn("Failed to initialize permissions for company:", error);
+      console.error("Failed to initialize permissions for company:", error);
+      // Note: Permission service will fallback to config permissions if DB query returns empty
     }
 
     return toCompany(company);

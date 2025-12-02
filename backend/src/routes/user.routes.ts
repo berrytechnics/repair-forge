@@ -4,6 +4,7 @@ import {
   NotFoundError,
   UnauthorizedError,
 } from "../config/errors.js";
+import { db } from "../config/connection.js";
 import { getPermissionsForRole, getPermissionsMatrix } from "../config/permissions.js";
 import { UserRole } from "../config/types.js";
 import { checkAuthMaintenanceMode } from "../middlewares/auth-maintenance.middleware.js";
@@ -63,9 +64,47 @@ router.post(
     if (!user) {
       throw new UnauthorizedError("Invalid credentials");
     }
-    const accessToken = generateNewJWTToken(user);
-    const refreshToken = generateRefreshToken(user);
-    const formattedUser = formatUserForResponse(user);
+    
+    // Ensure permissions are initialized for the company (for existing companies)
+    if (user.company_id && user.role !== "superuser") {
+      try {
+        await permissionService.initializeCompanyPermissions(user.company_id as unknown as string);
+      } catch (error) {
+        // Log but don't fail login - permission service will fallback to config
+        console.warn("Failed to initialize permissions during login:", error);
+      }
+    }
+    
+    // For admins, ensure they have a current location set
+    let userToReturn = user;
+    if (user.role === "admin" && user.company_id && !user.current_location_id) {
+      const companyId = user.company_id as unknown as string;
+      const defaultLocation = await db
+        .selectFrom("locations")
+        .select("id")
+        .where("company_id", "=", companyId)
+        .where("deleted_at", "is", null)
+        .orderBy("created_at", "asc")
+        .limit(1)
+        .executeTakeFirst();
+      
+      if (defaultLocation) {
+        try {
+          await userService.setCurrentLocation(user.id, defaultLocation.id, companyId);
+          // Fetch updated user
+          const updatedUser = await userService.findById(user.id);
+          if (updatedUser) {
+            userToReturn = updatedUser;
+          }
+        } catch (error) {
+          console.warn("Failed to set default location during login:", error);
+        }
+      }
+    }
+    
+    const accessToken = generateNewJWTToken(userToReturn);
+    const refreshToken = generateRefreshToken(userToReturn);
+    const formattedUser = formatUserForResponse(userToReturn);
     
     res.json({
       success: true,
@@ -223,13 +262,61 @@ router.get(
       throw new UnauthorizedError("Company context required");
     }
     
+    // Ensure permissions are initialized for this company (for existing companies)
+    try {
+      await permissionService.initializeCompanyPermissions(companyId);
+    } catch (error) {
+      // Log but don't fail - permission service will fallback to config
+      console.warn("Failed to initialize permissions in /me endpoint:", error);
+    }
+    
+    // For admins, ensure they have a current location set
+    // If they don't have one, set the first available location as default
+    let userToReturn = user;
+    if (user.role === "admin" && !user.current_location_id) {
+      try {
+        const defaultLocation = await db
+          .selectFrom("locations")
+          .select("id")
+          .where("company_id", "=", companyId)
+          .where("deleted_at", "is", null)
+          .orderBy("created_at", "asc")
+          .limit(1)
+          .executeTakeFirst();
+        
+        if (defaultLocation) {
+          await userService.setCurrentLocation(user.id, defaultLocation.id, companyId);
+          // Fetch updated user
+          const updatedUser = await userService.findById(user.id);
+          if (updatedUser) {
+            userToReturn = updatedUser;
+          }
+        }
+      } catch (error) {
+        // Log but don't fail - location middleware will handle it
+        console.warn("Failed to set default location in /me endpoint:", error);
+      }
+    }
+    
     // Get permissions for user's role in their company
-    const permissions = await getPermissionsForRole(user.role, companyId);
+    // This will fallback to config if database fails
+    let permissions: string[] = [];
+    try {
+      permissions = await getPermissionsForRole(userToReturn.role, companyId);
+    } catch (error) {
+      // This should not happen due to fallback, but just in case
+      console.error("Failed to get permissions in /me endpoint:", error);
+      // Fallback to empty array - frontend will handle missing permissions
+      permissions = [];
+    }
+    
+    // Format the user (use updated user if location was set)
+    const finalFormattedUser = formatUserForResponse(userToReturn);
     
     res.json({
       success: true,
       data: {
-        ...formattedUser,
+        ...finalFormattedUser,
         permissions,
       },
     });

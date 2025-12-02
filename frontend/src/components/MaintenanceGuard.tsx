@@ -1,6 +1,6 @@
 "use client";
 
-import { getMaintenanceMode } from "@/lib/api/system.api";
+import { getMaintenanceMode, getMaintenanceModePublic } from "@/lib/api/system.api";
 import { useUser } from "@/lib/UserContext";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import { usePathname, useRouter } from "next/navigation";
@@ -36,13 +36,24 @@ export default function MaintenanceGuard({ children }: MaintenanceGuardProps) {
 
       // Superusers can always access everything
       if (isSuperuser) {
-        setCheckingMaintenance(false);
-        setMaintenanceEnabled(false); // Don't show banner for superusers
+        try {
+          // Superusers can use the authenticated endpoint
+          const response = await getMaintenanceMode();
+          const enabled = response.data?.enabled === true;
+          setMaintenanceEnabled(enabled);
+        } catch (error) {
+          // If superuser check fails, allow access
+          console.error("Error checking maintenance mode (superuser):", error);
+          setMaintenanceEnabled(false);
+        } finally {
+          setCheckingMaintenance(false);
+        }
         return;
       }
 
+      // Regular users use the public endpoint (no auth required)
       try {
-        const response = await getMaintenanceMode();
+        const response = await getMaintenanceModePublic();
         const enabled = response.data?.enabled === true;
         setMaintenanceEnabled(enabled);
 
@@ -51,7 +62,7 @@ export default function MaintenanceGuard({ children }: MaintenanceGuardProps) {
           router.push("/");
         }
       } catch (error) {
-        // If we can't check maintenance mode (e.g., not authenticated), allow access
+        // If we can't check maintenance mode, allow access
         // The backend will handle blocking if maintenance is enabled
         console.error("Error checking maintenance mode:", error);
         setMaintenanceEnabled(false);
