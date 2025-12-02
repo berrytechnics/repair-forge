@@ -3,7 +3,6 @@ import { sql } from "kysely";
 import { v4 as uuidv4 } from "uuid";
 import { db } from "../config/connection.js";
 import { BadRequestError, NotFoundError } from "../config/errors.js";
-import { NewsletterSubscriberTable } from "../config/types.js";
 
 export interface NewsletterSubscriber {
   id: string;

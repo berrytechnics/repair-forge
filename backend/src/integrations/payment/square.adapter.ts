@@ -587,6 +587,8 @@ export class SquareAdapter {
         environment: environment,
       });
 
+      // Square SDK types may not be fully up to date
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const response = await (client.customers as any).createCustomer({
         givenName: customerData.givenName,
         familyName: customerData.familyName,
@@ -634,6 +636,8 @@ export class SquareAdapter {
         environment: environment,
       });
 
+      // Square SDK types may not be fully up to date
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const response = await (client.subscriptions as any).createSubscription({
         idempotencyKey: subscriptionData.idempotencyKey,
         locationId: subscriptionData.locationId,
@@ -701,6 +705,8 @@ export class SquareAdapter {
         updateData.cardId = subscriptionData.cardId;
       }
 
+      // Square SDK types may not be fully up to date
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const response = await (client.subscriptions as any).updateSubscription({
         subscriptionId: subscriptionData.subscriptionId,
         ...updateData,
@@ -756,6 +762,8 @@ export class SquareAdapter {
         environment: environment,
       });
 
+      // Square SDK types may not be fully up to date
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (client.subscriptions as any).cancelSubscription({
         subscriptionId,
       });
@@ -788,6 +796,8 @@ export class SquareAdapter {
         environment: environment,
       });
 
+      // Square SDK types may not be fully up to date
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const response = await (client.subscriptions as any).retrieveSubscription({
         subscriptionId,
       });
@@ -853,6 +863,8 @@ export class SquareAdapter {
       });
 
       // Create a card from the token
+      // Square SDK types may not be fully up to date
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const response = await (client.cards as any).createCard({
         sourceId: cardToken,
         card: {
