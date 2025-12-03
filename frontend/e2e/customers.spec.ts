@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { loginAsRole } from './helpers/auth';
+import { isAuthenticated, loginAsRole } from './helpers/auth';
 import { createTestCustomer, deleteCustomer, getCustomer } from './helpers/fixtures';
 
 test.describe('Customer CRUD Operations', () => {
@@ -43,7 +43,17 @@ test.describe('Customer CRUD Operations', () => {
 
   test('should create a new customer', async ({ page }) => {
     await loginAsRole(page, 'admin');
+    
+    // Verify authentication before proceeding
+    const isAuthBefore = await isAuthenticated(page);
+    if (!isAuthBefore) {
+      throw new Error('Not authenticated before creating customer');
+    }
+    
     await page.goto('/customers/new');
+    
+    // Wait for page to load
+    await page.waitForLoadState('networkidle');
 
     // Fill in customer form
     await page.getByLabel(/first name/i).fill('John');
@@ -51,11 +61,29 @@ test.describe('Customer CRUD Operations', () => {
     await page.getByLabel(/email/i).fill('john.doe@example.com');
     await page.getByLabel(/phone/i).fill('555-1234');
 
+    // Verify still authenticated before submission
+    const isAuthBeforeSubmit = await isAuthenticated(page);
+    if (!isAuthBeforeSubmit) {
+      throw new Error('Authentication lost before form submission');
+    }
+
     // Submit form
     await page.getByRole('button', { name: /save|create|submit/i }).click();
 
     // Wait for redirect to customer detail page or list
     await page.waitForURL(/.*customers.*/, { timeout: 10000 });
+    
+    // Wait for page to fully load after redirect
+    await page.waitForLoadState('networkidle');
+    
+    // Verify still authenticated after redirect
+    const isAuthAfter = await isAuthenticated(page);
+    if (!isAuthAfter) {
+      throw new Error('Authentication lost after form submission');
+    }
+    
+    // Verify we're not on login page
+    await expect(page).not.toHaveURL(/.*login/);
     
     // Verify success - should see customer name or success message
     await expect(
@@ -87,6 +115,12 @@ test.describe('Customer CRUD Operations', () => {
   test('should edit customer', async ({ page }) => {
     await loginAsRole(page, 'admin');
     
+    // Verify authentication before proceeding
+    const isAuthBefore = await isAuthenticated(page);
+    if (!isAuthBefore) {
+      throw new Error('Not authenticated before editing customer');
+    }
+    
     // Create a customer via API
     const customerId = await createTestCustomer(page, {
       firstName: 'Bob',
@@ -97,20 +131,41 @@ test.describe('Customer CRUD Operations', () => {
 
     // Navigate to edit page
     await page.goto(`/customers/${customerId}/edit`);
+    
+    // Wait for page to load
+    await page.waitForLoadState('networkidle');
 
     // Update customer information
     await page.getByLabel(/first name/i).clear();
     await page.getByLabel(/first name/i).fill('Robert');
     await page.getByLabel(/phone/i).fill('555-9999');
 
+    // Verify still authenticated before submission
+    const isAuthBeforeSubmit = await isAuthenticated(page);
+    if (!isAuthBeforeSubmit) {
+      throw new Error('Authentication lost before form submission');
+    }
+
     // Save changes
     await page.getByRole('button', { name: /save|update/i }).click();
 
     // Wait for redirect
     await page.waitForURL(/.*customers.*/, { timeout: 10000 });
+    
+    // Wait for page to fully load after redirect
+    await page.waitForLoadState('networkidle');
+    
+    // Verify still authenticated after redirect
+    const isAuthAfter = await isAuthenticated(page);
+    if (!isAuthAfter) {
+      throw new Error('Authentication lost after form submission');
+    }
+    
+    // Verify we're not on login page
+    await expect(page).not.toHaveURL(/.*login/);
 
     // Verify changes were saved (use .first() to handle multiple matches)
-    await expect(page.getByText(/robert/i).first()).toBeVisible();
+    await expect(page.getByText(/robert/i).first()).toBeVisible({ timeout: 5000 });
   });
 
   test('should delete customer', async ({ page }) => {

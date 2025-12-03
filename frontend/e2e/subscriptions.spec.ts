@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { loginAsRole } from './helpers/auth';
 import { getAuthToken } from './helpers/auth';
+import { clearStorageWebKitSafe } from './helpers/webkit-workarounds';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
@@ -44,22 +45,24 @@ async function apiRequest(
 }
 
 test.describe('Subscription Management', () => {
-  test.beforeEach(async ({ page }) => {
-    await loginAsRole(page, 'admin');
-  });
-
   test('should redirect to login when not authenticated', async ({ page }) => {
-    await page.goto('/subscriptions');
+    // Clear auth state before testing redirect
+    await page.context().clearCookies();
+    await clearStorageWebKitSafe(page);
+    await page.goto('/billing');
     await expect(page).toHaveURL(/.*login/);
   });
 
   test('should display subscription status when authenticated', async ({ page }) => {
-    await page.goto('/subscriptions');
+    await loginAsRole(page, 'admin');
+    await page.goto('/billing');
     
-    // Should show subscription information
-    // The exact content depends on your subscription page implementation
+    // Wait for page to load
+    await page.waitForLoadState('networkidle');
+    
+    // Should show "Billing & Subscription" heading
     await expect(
-      page.getByText(/subscription|billing|status/i).first()
+      page.getByRole('heading', { name: /billing.*subscription|subscription.*billing/i })
     ).toBeVisible({ timeout: 10000 });
   });
 

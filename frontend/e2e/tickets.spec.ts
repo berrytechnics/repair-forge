@@ -84,7 +84,8 @@ test.describe('Ticket CRUD Operations', () => {
     // Wait for page to load first
     await page.waitForLoadState('networkidle');
     
-    const customerSearch = page.getByLabel(/search.*customer/i).or(page.locator('input#customerSearch'));
+    // Find customer search input by ID (more reliable)
+    const customerSearch = page.locator('input#customerSearch');
     await customerSearch.waitFor({ state: 'visible', timeout: 10000 });
     await customerSearch.fill('Ticket Customer');
     
@@ -95,13 +96,17 @@ test.describe('Ticket CRUD Operations', () => {
     }
     
     // Click search button
-    const searchButton = page.getByRole('button', { name: /search/i });
+    const searchButton = page.getByRole('button', { name: /^search$/i });
     await searchButton.waitFor({ state: 'visible', timeout: 10000 });
     await searchButton.click();
     
-    // Wait for search results to appear - use more specific selector
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(1000); // Give time for results to render
+    // Wait for search results to appear - wait for the ul list to be visible
+    // The results appear in a ul with class containing "divide-y"
+    const customerList = page.locator('ul').filter({ hasText: /ticket customer/i });
+    await customerList.waitFor({ state: 'visible', timeout: 10000 });
+    
+    // Wait a bit more for results to fully render
+    await page.waitForTimeout(500);
     
     // Verify still authenticated after search
     const isAuthAfterSearch = await isAuthenticated(page);
@@ -112,11 +117,12 @@ test.describe('Ticket CRUD Operations', () => {
     // Verify we're still on the ticket form page (not redirected to login)
     await expect(page).toHaveURL(/.*tickets.*new/, { timeout: 5000 });
     
-    // Click the customer from the list (should be in a clickable list item)
-    // Try multiple selectors to find the customer list item
-    const customerListItem = page.locator('ul li').filter({ hasText: /ticket customer/i }).or(
-      page.getByText(/ticket customer/i).locator('..')
-    ).first();
+    // Click the customer from the list - find li that contains "Ticket Customer"
+    // The li has onClick handler and contains customer name
+    const customerListItem = customerList.locator('li').filter({ 
+      hasText: /ticket customer/i 
+    }).first();
+    
     await customerListItem.waitFor({ state: 'visible', timeout: 10000 });
     await customerListItem.click();
     
@@ -138,11 +144,29 @@ test.describe('Ticket CRUD Operations', () => {
     await page.getByLabel(/device model/i).fill('XPS 13');
     await page.getByLabel(/issue|description/i).fill('Screen not working');
 
+    // Verify still authenticated before submission
+    const isAuthBeforeSubmit = await isAuthenticated(page);
+    if (!isAuthBeforeSubmit) {
+      throw new Error('Authentication lost before ticket form submission');
+    }
+
     // Submit form
     await page.getByRole('button', { name: /save|create|submit/i }).click();
 
     // Wait for redirect
     await page.waitForURL(/.*tickets.*/, { timeout: 10000 });
+    
+    // Wait for page to fully load after redirect
+    await page.waitForLoadState('networkidle');
+    
+    // Verify still authenticated after redirect
+    const isAuthAfter = await isAuthenticated(page);
+    if (!isAuthAfter) {
+      throw new Error('Authentication lost after ticket form submission');
+    }
+    
+    // Verify we're not on login page
+    await expect(page).not.toHaveURL(/.*login/);
     
     // Verify success
     await expect(
