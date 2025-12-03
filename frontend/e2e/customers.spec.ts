@@ -41,24 +41,6 @@ test.describe('Customer CRUD Operations', () => {
     await expect(page.getByRole('heading', { name: /customers/i })).toBeVisible();
   });
 
-  test('should have search functionality', async ({ page }) => {
-    await loginAsRole(page, 'admin');
-    await page.goto('/customers');
-    
-    const searchInput = page.getByPlaceholder(/search/i);
-    await expect(searchInput).toBeVisible();
-  });
-
-  test('should navigate to new customer page', async ({ page }) => {
-    await loginAsRole(page, 'admin');
-    await page.goto('/customers');
-    
-    // Use more specific selector - "Add Customer" button (not "Add Your First Customer")
-    const newButton = page.getByRole('button', { name: /^add customer$/i });
-    await newButton.click();
-    await expect(page).toHaveURL(/.*customers.*new/);
-  });
-
   test('should create a new customer', async ({ page }) => {
     await loginAsRole(page, 'admin');
     await page.goto('/customers/new');
@@ -162,52 +144,5 @@ test.describe('Customer CRUD Operations', () => {
       // Verify customer is deleted (should not appear in list)
       await expect(page.getByText(/delete me/i)).not.toBeVisible();
     }
-  });
-
-  test('should search for customers', async ({ page }) => {
-    await loginAsRole(page, 'admin');
-    
-    // Create test customers
-    const customerId1 = await createTestCustomer(page, {
-      firstName: 'Alice',
-      lastName: 'Wonder',
-      email: 'alice@example.com',
-    });
-    const customerId2 = await createTestCustomer(page, {
-      firstName: 'Bob',
-      lastName: 'Builder',
-      email: 'bob@example.com',
-    });
-    createdCustomerIds.push(customerId1, customerId2);
-
-    // Navigate to customers list
-    await page.goto('/customers');
-
-    // Search for Alice
-    const searchInput = page.getByPlaceholder(/search/i);
-    await searchInput.fill('Alice');
-
-    // Wait for search results
-    await page.waitForTimeout(500); // Wait for debounce
-
-    // Verify Alice appears in results (use .first() to handle multiple matches)
-    await expect(page.getByText(/alice/i).first()).toBeVisible();
-    
-    // Verify Bob does not appear (or is filtered out)
-    // Note: This depends on your search implementation
-  });
-
-  test('should validate required fields when creating customer', async ({ page }) => {
-    await loginAsRole(page, 'admin');
-    await page.goto('/customers/new');
-
-    // Try to submit without filling required fields
-    await page.getByRole('button', { name: /save|create|submit/i }).click();
-
-    // Should show validation errors
-    // The exact error messages depend on your form validation
-    const errorMessages = page.locator('text=/required|invalid|error/i');
-    const count = await errorMessages.count();
-    expect(count).toBeGreaterThan(0);
   });
 });

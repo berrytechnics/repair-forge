@@ -182,6 +182,13 @@ export async function cleanupTestData(testIds: {
       .where("id", "in", testIds.locationIds)
       .execute();
   }
+  // Delete inventory items before deleting locations (due to foreign key constraint)
+  if (testIds.companyIds && testIds.companyIds.length > 0) {
+    await db
+      .deleteFrom("inventory_items")
+      .where("company_id", "in", testIds.companyIds)
+      .execute();
+  }
   // Then delete all remaining locations for companies we're cleaning up
   if (testIds.companyIds && testIds.companyIds.length > 0) {
     await db

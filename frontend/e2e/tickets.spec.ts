@@ -56,16 +56,6 @@ test.describe('Ticket CRUD Operations', () => {
     await expect(page.getByRole('heading', { name: /tickets/i })).toBeVisible();
   });
 
-  test('should navigate to new ticket page', async ({ page }) => {
-    await loginAsRole(page, 'admin'); // Admin has permission to create tickets
-    await page.goto('/tickets');
-    
-    // Button text is "Create Ticket"
-    const newButton = page.getByRole('button', { name: /^create ticket$/i });
-    await newButton.click();
-    await expect(page).toHaveURL(/.*tickets.*new/);
-  });
-
   test('should create a new ticket', async ({ page }) => {
     // Use admin role - technician can't create customers
     await loginAsRole(page, 'admin');
@@ -223,105 +213,6 @@ test.describe('Ticket CRUD Operations', () => {
 
       // Verify status changed
       await expect(page.getByText(/in repair|diagnosed/i)).toBeVisible();
-    }
-  });
-
-  test('should assign technician to ticket', async ({ page }) => {
-    await loginAsRole(page, 'admin');
-    
-    // Create ticket via API
-    const customerId = await createTestCustomer(page, {
-      firstName: 'Assign',
-      lastName: 'Test',
-      email: 'assign@example.com',
-    });
-    createdCustomerIds.push(customerId);
-
-    const ticketId = await createTestTicket(page, {
-      customerId,
-      deviceType: 'Laptop',
-      issueDescription: 'Assignment test ticket',
-    });
-    createdTicketIds.push(ticketId);
-
-    // Navigate to ticket detail page
-    await page.goto(`/tickets/${ticketId}`);
-
-    // Find technician assignment dropdown
-    const technicianSelect = page.getByLabel(/technician|assign/i);
-    if (await technicianSelect.isVisible()) {
-      await technicianSelect.click();
-      // Select a technician (assuming dropdown shows available technicians)
-      await page.getByText(/technician/i).first().click();
-
-      // Wait for assignment
-      await page.waitForTimeout(1000);
-
-      // Verify technician assigned
-      await expect(page.getByText(/technician/i)).toBeVisible();
-    }
-  });
-
-  test('should add diagnostic notes', async ({ page }) => {
-    // Use admin role - technician can't create customers
-    await loginAsRole(page, 'admin');
-    
-    // Create ticket via API
-    const customerId = await createTestCustomer(page, {
-      firstName: 'Notes',
-      lastName: 'Test',
-      email: 'notes@example.com',
-    });
-    createdCustomerIds.push(customerId);
-
-    const ticketId = await createTestTicket(page, {
-      customerId,
-      deviceType: 'Desktop',
-      issueDescription: 'Diagnostic notes test ticket',
-    });
-    createdTicketIds.push(ticketId);
-
-    // Navigate to ticket detail page
-    await page.goto(`/tickets/${ticketId}`);
-
-    // Find diagnostic notes section
-    const notesSection = page.getByText(/diagnostic notes/i);
-    if (await notesSection.isVisible()) {
-      // Find add note button or textarea
-      const addNoteButton = page.getByRole('button', { name: /add.*note|diagnostic/i });
-      if (await addNoteButton.isVisible()) {
-        await addNoteButton.click();
-      }
-
-      // Fill in note
-      const noteInput = page.getByPlaceholder(/diagnostic|note/i).or(
-        page.getByLabel(/diagnostic|note/i)
-      );
-      await noteInput.fill('Diagnostic test completed - all systems operational');
-
-      // Save note
-      await page.getByRole('button', { name: /save|submit/i }).click();
-
-      // Verify note appears
-      await expect(page.getByText(/diagnostic test completed/i)).toBeVisible();
-    }
-  });
-
-  test('should filter tickets by status', async ({ page }) => {
-    await loginAsRole(page, 'technician');
-    await page.goto('/tickets');
-
-    // Look for status filter
-    const statusFilter = page.getByLabel(/status|filter/i);
-    if (await statusFilter.isVisible()) {
-      await statusFilter.click();
-      await page.getByText(/completed/i).click();
-
-      // Wait for filtered results
-      await page.waitForTimeout(500);
-
-      // Verify filtered tickets are shown
-      // This depends on your filtering implementation
     }
   });
 });

@@ -160,11 +160,6 @@ app.get("/health", async (req: Request, res: Response) => {
   }
 });
 
-// Debug endpoint for testing Sentry error reporting
-app.get("/debug-sentry", function mainHandler(req: Request, res: Response) {
-  throw new Error("My first Sentry error!");
-});
-
 // 404 handler
 app.use((req: Request, res: Response) => {
   res.status(404).json({ message: "Not Found" });

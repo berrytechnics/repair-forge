@@ -397,6 +397,17 @@ If deployment fails:
 - **Secrets**: Rotate JWT_SECRET and ENCRYPTION_KEY periodically
 - **SSL**: Ensure SSL certificates are valid
 
+### Encryption Configuration
+
+For production deployments, ensure proper encryption is configured:
+
+- **Database Connection Encryption**: Enable SSL/TLS for PostgreSQL connections (see [Security Guide](./docs/SECURITY.md#database-connection-encryption))
+- **Database Encryption at Rest**: Use encrypted filesystem volumes for database data
+- **Application-Level Encryption**: Encryption key configured via `ENCRYPTION_KEY` environment variable
+- **Filesystem Encryption**: Verify host filesystem encryption is enabled
+
+See [Security Guide](./docs/SECURITY.md) for detailed encryption recommendations and configuration steps.
+
 ## Additional Resources
 
 - [Security Guide](./docs/SECURITY.md)

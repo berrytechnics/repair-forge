@@ -5,7 +5,9 @@ import { db } from "../config/connection.js";
 import { BadRequestError, ForbiddenError, NotFoundError } from "../config/errors.js";
 import { InvoiceItemTable, InvoiceStatus, InvoiceTable } from "../config/types.js";
 import emailService from "../integrations/email/email.service.js";
+import logger from "../config/logger.js";
 import customerService from "./customer.service.js";
+import inventoryService from "./inventory.service.js";
 
 // Input DTOs
 export interface CreateInvoiceDto {
@@ -655,7 +657,9 @@ export class InvoiceService {
       if (data.unitPrice === 0 || !data.unitPrice) {
         data.unitPrice = inventoryItem.selling_price;
       }
-      if (!data.type || data.type === "service") {
+      // Only auto-set type to "part" if type is not explicitly provided
+      // If user explicitly sets type to "service", respect that choice
+      if (!data.type) {
         data.type = "part";
       }
     }
@@ -689,6 +693,36 @@ export class InvoiceService {
 
     // Recalculate invoice totals
     await this.recalculateInvoiceTotals(data.invoiceId, companyId);
+
+    // Deduct inventory if this is a part item with inventory tracking
+    if (data.inventoryItemId && data.type === "part") {
+      try {
+        // Get inventory item to check track_quantity
+        const inventoryItem = await db
+          .selectFrom("inventory_items")
+          .select(["track_quantity"])
+          .where("id", "=", data.inventoryItemId)
+          .where("company_id", "=", companyId)
+          .where("deleted_at", "is", null)
+          .executeTakeFirst();
+
+        if (inventoryItem?.track_quantity) {
+          await inventoryService.adjustQuantity(
+            data.inventoryItemId,
+            -data.quantity,
+            companyId
+          );
+          logger.info(
+            `Inventory deducted: ${data.quantity} units of inventory item ${data.inventoryItemId} for invoice item ${item.id}`
+          );
+        }
+      } catch (error) {
+        // Log error but don't fail invoice item creation
+        logger.warn(
+          `Failed to deduct inventory for invoice item ${item.id}: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+    }
 
     return toInvoiceItem(item);
   }
@@ -750,6 +784,117 @@ export class InvoiceService {
     const type = data.type ?? existingItem.type;
     const inventoryItemId = data.inventoryItemId !== undefined ? data.inventoryItemId : existingItem.inventory_item_id;
 
+    // Handle inventory adjustments if inventory item or quantity changed
+    const inventoryChanged = 
+      inventoryItemId !== existingItem.inventory_item_id ||
+      quantity !== existingItem.quantity ||
+      type !== existingItem.type;
+
+    if (inventoryChanged) {
+      try {
+        // Case 1: Same inventory item, just quantity changed - adjust the difference
+        if (
+          existingItem.inventory_item_id &&
+          inventoryItemId === existingItem.inventory_item_id &&
+          existingItem.type === "part" &&
+          type === "part" &&
+          quantity !== existingItem.quantity
+        ) {
+          const quantityDelta = quantity - existingItem.quantity;
+          const inventoryItem = await db
+            .selectFrom("inventory_items")
+            .selectAll()
+            .where("id", "=", inventoryItemId)
+            .where("company_id", "=", companyId)
+            .where("deleted_at", "is", null)
+            .executeTakeFirst();
+
+          if (inventoryItem) {
+            // Validate sufficient quantity available if increasing
+            if (quantityDelta > 0 && quantity > inventoryItem.quantity) {
+              throw new BadRequestError(
+                `Insufficient stock. Available: ${inventoryItem.quantity}, Requested: ${quantity}`
+              );
+            }
+
+            if (inventoryItem.track_quantity) {
+              await inventoryService.adjustQuantity(
+                inventoryItemId,
+                -quantityDelta,
+                companyId
+              );
+              logger.info(
+                `Inventory adjusted: ${quantityDelta > 0 ? 'deducted' : 'restored'} ${Math.abs(quantityDelta)} units of inventory item ${inventoryItemId} for invoice item ${itemId}`
+              );
+            }
+          }
+        } else {
+          // Case 2: Different inventory item or type changed - restore old, deduct new
+          // Restore old inventory if it was a part item with inventory
+          if (existingItem.inventory_item_id && existingItem.type === "part") {
+            const oldInventoryItem = await db
+              .selectFrom("inventory_items")
+              .select(["track_quantity"])
+              .where("id", "=", existingItem.inventory_item_id)
+              .where("company_id", "=", companyId)
+              .where("deleted_at", "is", null)
+              .executeTakeFirst();
+
+            if (oldInventoryItem?.track_quantity) {
+              await inventoryService.adjustQuantity(
+                existingItem.inventory_item_id,
+                existingItem.quantity,
+                companyId
+              );
+              logger.info(
+                `Inventory restored: ${existingItem.quantity} units of inventory item ${existingItem.inventory_item_id} for invoice item ${itemId}`
+              );
+            }
+          }
+
+          // Deduct new inventory if it's a part item with inventory
+          if (inventoryItemId && type === "part") {
+            const newInventoryItem = await db
+              .selectFrom("inventory_items")
+              .selectAll()
+              .where("id", "=", inventoryItemId)
+              .where("company_id", "=", companyId)
+              .where("deleted_at", "is", null)
+              .executeTakeFirst();
+
+            if (newInventoryItem) {
+              // Validate sufficient quantity available
+              if (quantity > newInventoryItem.quantity) {
+                throw new BadRequestError(
+                  `Insufficient stock. Available: ${newInventoryItem.quantity}, Requested: ${quantity}`
+                );
+              }
+
+              if (newInventoryItem.track_quantity) {
+                await inventoryService.adjustQuantity(
+                  inventoryItemId,
+                  -quantity,
+                  companyId
+                );
+                logger.info(
+                  `Inventory deducted: ${quantity} units of inventory item ${inventoryItemId} for invoice item ${itemId}`
+                );
+              }
+            }
+          }
+        }
+      } catch (error) {
+        // If it's a BadRequestError (insufficient stock), rethrow it
+        if (error instanceof BadRequestError) {
+          throw error;
+        }
+        // Otherwise, log error but don't fail invoice item update
+        logger.warn(
+          `Failed to adjust inventory for invoice item ${itemId}: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+    }
+
     // Recalculate item subtotal
     const itemSubtotal = quantity * unitPrice;
     const discountAmount = itemSubtotal * (discountPercent / 100);
@@ -786,16 +931,45 @@ export class InvoiceService {
       throw new NotFoundError("Invoice not found");
     }
 
-    // Validate item exists
+    // Validate item exists and get full details for inventory restoration
     const existingItem = await db
       .selectFrom("invoice_items")
-      .select("id")
+      .selectAll()
       .where("id", "=", itemId)
       .where("invoice_id", "=", invoiceId)
       .executeTakeFirst();
 
     if (!existingItem) {
       throw new NotFoundError("Invoice item not found");
+    }
+
+    // Restore inventory if this was a part item with inventory tracking
+    if (existingItem.inventory_item_id && existingItem.type === "part") {
+      try {
+        const inventoryItem = await db
+          .selectFrom("inventory_items")
+          .select(["track_quantity"])
+          .where("id", "=", existingItem.inventory_item_id)
+          .where("company_id", "=", companyId)
+          .where("deleted_at", "is", null)
+          .executeTakeFirst();
+
+        if (inventoryItem?.track_quantity) {
+          await inventoryService.adjustQuantity(
+            existingItem.inventory_item_id,
+            existingItem.quantity,
+            companyId
+          );
+          logger.info(
+            `Inventory restored: ${existingItem.quantity} units of inventory item ${existingItem.inventory_item_id} for deleted invoice item ${itemId}`
+          );
+        }
+      } catch (error) {
+        // Log error but don't fail invoice item deletion
+        logger.warn(
+          `Failed to restore inventory for deleted invoice item ${itemId}: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
     }
 
     // Delete item

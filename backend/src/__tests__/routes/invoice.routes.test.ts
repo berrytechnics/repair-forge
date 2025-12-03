@@ -1,7 +1,8 @@
 import request from "supertest";
 import app from "../../app.js";
+import { db } from "../../config/connection.js";
 import { cleanupTestData } from "../helpers/db.helper.js";
-import { createTestCompany, createTestCustomer, createTestInvoice, createTestInvoiceItem, createTestTicket } from "../helpers/seed.helper.js";
+import { createTestCompany, createTestCustomer, createTestInvoice, createTestInvoiceItem, createTestTicket, createTestInventoryItem } from "../helpers/seed.helper.js";
 import { createTestUsersWithRoles, createAuthenticatedUser, getAuthHeader } from "../helpers/auth.helper.js";
 
 describe("Invoice Routes Integration Tests", () => {
@@ -541,6 +542,336 @@ describe("Invoice Routes Integration Tests", () => {
       expect(response.status).toBe(404);
       expect(response.body.success).toBe(false);
       expect(response.body.error.message).toBe("Invoice item not found");
+    });
+  });
+
+  describe("Inventory Deduction", () => {
+    it("should deduct inventory when creating invoice item with inventory", async () => {
+      const customerId = await createTestCustomer(testCompanyId);
+      testCustomerIds.push(customerId);
+
+      const invoiceId = await createTestInvoice(testCompanyId, customerId, {
+        locationId: testLocationId,
+      });
+      testInvoiceIds.push(invoiceId);
+
+      // Create inventory item with quantity tracking
+      const inventoryItemId = await createTestInventoryItem(testCompanyId, testLocationId, {
+        name: "Test Part",
+        quantity: 100,
+        trackQuantity: true,
+      });
+
+      // Get initial quantity
+      const initialInventory = await db
+        .selectFrom("inventory_items")
+        .select("quantity")
+        .where("id", "=", inventoryItemId)
+        .executeTakeFirstOrThrow();
+
+      expect(initialInventory.quantity).toBe(100);
+
+      // Create invoice item with inventory
+      const itemData = {
+        inventoryItemId: inventoryItemId,
+        description: "Test Part",
+        quantity: 5,
+        unitPrice: 50.0,
+        type: "part" as const,
+      };
+
+      const response = await request(app)
+        .post(`/api/invoices/${invoiceId}/items`)
+        .set(getAuthHeader(managerToken))
+        .send(itemData);
+
+      expect(response.status).toBe(201);
+      expect(response.body.success).toBe(true);
+
+      // Verify inventory was deducted
+      const updatedInventory = await db
+        .selectFrom("inventory_items")
+        .select("quantity")
+        .where("id", "=", inventoryItemId)
+        .executeTakeFirstOrThrow();
+
+      expect(updatedInventory.quantity).toBe(95); // 100 - 5 = 95
+    });
+
+    it("should not deduct inventory for service-type items", async () => {
+      const customerId = await createTestCustomer(testCompanyId);
+      testCustomerIds.push(customerId);
+
+      const invoiceId = await createTestInvoice(testCompanyId, customerId, {
+        locationId: testLocationId,
+      });
+      testInvoiceIds.push(invoiceId);
+
+      const inventoryItemId = await createTestInventoryItem(testCompanyId, testLocationId, {
+        quantity: 100,
+        trackQuantity: true,
+      });
+
+      const initialInventory = await db
+        .selectFrom("inventory_items")
+        .select("quantity")
+        .where("id", "=", inventoryItemId)
+        .executeTakeFirstOrThrow();
+
+      // Create service item (should not deduct inventory)
+      const itemData = {
+        inventoryItemId: inventoryItemId,
+        description: "Repair Service",
+        quantity: 1,
+        unitPrice: 100.0,
+        type: "service" as const,
+      };
+
+      const response = await request(app)
+        .post(`/api/invoices/${invoiceId}/items`)
+        .set(getAuthHeader(managerToken))
+        .send(itemData);
+
+      expect(response.status).toBe(201);
+
+      // Verify inventory was NOT deducted
+      const updatedInventory = await db
+        .selectFrom("inventory_items")
+        .select("quantity")
+        .where("id", "=", inventoryItemId)
+        .executeTakeFirstOrThrow();
+
+      expect(updatedInventory.quantity).toBe(initialInventory.quantity);
+    });
+
+    it("should not deduct inventory if track_quantity is false", async () => {
+      const customerId = await createTestCustomer(testCompanyId);
+      testCustomerIds.push(customerId);
+
+      const invoiceId = await createTestInvoice(testCompanyId, customerId, {
+        locationId: testLocationId,
+      });
+      testInvoiceIds.push(invoiceId);
+
+      // Create inventory item without quantity tracking
+      const inventoryItemId = await createTestInventoryItem(testCompanyId, testLocationId, {
+        quantity: 100,
+        trackQuantity: false,
+      });
+
+      // Update track_quantity to false
+      await db
+        .updateTable("inventory_items")
+        .set({ track_quantity: false })
+        .where("id", "=", inventoryItemId)
+        .execute();
+
+      const initialInventory = await db
+        .selectFrom("inventory_items")
+        .select("quantity")
+        .where("id", "=", inventoryItemId)
+        .executeTakeFirstOrThrow();
+
+      // Create invoice item
+      const itemData = {
+        inventoryItemId: inventoryItemId,
+        description: "Test Part",
+        quantity: 5,
+        unitPrice: 50.0,
+        type: "part" as const,
+      };
+
+      const response = await request(app)
+        .post(`/api/invoices/${invoiceId}/items`)
+        .set(getAuthHeader(managerToken))
+        .send(itemData);
+
+      expect(response.status).toBe(201);
+
+      // Verify inventory was NOT deducted
+      const updatedInventory = await db
+        .selectFrom("inventory_items")
+        .select("quantity")
+        .where("id", "=", inventoryItemId)
+        .executeTakeFirstOrThrow();
+
+      expect(updatedInventory.quantity).toBe(initialInventory.quantity);
+    });
+
+    it("should restore inventory when deleting invoice item", async () => {
+      const customerId = await createTestCustomer(testCompanyId);
+      testCustomerIds.push(customerId);
+
+      const invoiceId = await createTestInvoice(testCompanyId, customerId, {
+        locationId: testLocationId,
+      });
+      testInvoiceIds.push(invoiceId);
+
+      const inventoryItemId = await createTestInventoryItem(testCompanyId, testLocationId, {
+        quantity: 100,
+        trackQuantity: true,
+      });
+
+      // Create invoice item via API (deducts 5)
+      const createResponse = await request(app)
+        .post(`/api/invoices/${invoiceId}/items`)
+        .set(getAuthHeader(managerToken))
+        .send({
+          inventoryItemId: inventoryItemId,
+          description: "Test Part",
+          quantity: 5,
+          unitPrice: 50.0,
+          type: "part",
+        });
+
+      expect(createResponse.status).toBe(201);
+      const itemId = createResponse.body.data.id;
+      testInvoiceItemIds.push(itemId);
+
+      // Verify inventory was deducted
+      const afterCreate = await db
+        .selectFrom("inventory_items")
+        .select("quantity")
+        .where("id", "=", inventoryItemId)
+        .executeTakeFirstOrThrow();
+      expect(afterCreate.quantity).toBe(95);
+
+      // Delete invoice item
+      const response = await request(app)
+        .delete(`/api/invoices/${invoiceId}/items/${itemId}`)
+        .set(getAuthHeader(managerToken));
+
+      expect(response.status).toBe(200);
+
+      // Verify inventory was restored
+      const afterDelete = await db
+        .selectFrom("inventory_items")
+        .select("quantity")
+        .where("id", "=", inventoryItemId)
+        .executeTakeFirstOrThrow();
+      expect(afterDelete.quantity).toBe(100); // 95 + 5 = 100
+    });
+
+    it("should adjust inventory when updating invoice item quantity", async () => {
+      const customerId = await createTestCustomer(testCompanyId);
+      testCustomerIds.push(customerId);
+
+      const invoiceId = await createTestInvoice(testCompanyId, customerId, {
+        locationId: testLocationId,
+      });
+      testInvoiceIds.push(invoiceId);
+
+      const inventoryItemId = await createTestInventoryItem(testCompanyId, testLocationId, {
+        quantity: 100,
+        trackQuantity: true,
+      });
+
+      // Create invoice item via API with quantity 5
+      const createResponse = await request(app)
+        .post(`/api/invoices/${invoiceId}/items`)
+        .set(getAuthHeader(managerToken))
+        .send({
+          inventoryItemId: inventoryItemId,
+          description: "Test Part",
+          quantity: 5,
+          unitPrice: 50.0,
+          type: "part",
+        });
+
+      expect(createResponse.status).toBe(201);
+      const itemId = createResponse.body.data.id;
+      testInvoiceItemIds.push(itemId);
+
+      // Verify initial deduction
+      const afterCreate = await db
+        .selectFrom("inventory_items")
+        .select("quantity")
+        .where("id", "=", inventoryItemId)
+        .executeTakeFirstOrThrow();
+      expect(afterCreate.quantity).toBe(95);
+
+      // Update quantity to 8 (should restore 5, deduct 8)
+      const response = await request(app)
+        .put(`/api/invoices/${invoiceId}/items/${itemId}`)
+        .set(getAuthHeader(managerToken))
+        .send({ quantity: 8 });
+
+      expect(response.status).toBe(200);
+
+      // Verify inventory adjustment: 95 + 5 - 8 = 92
+      const afterUpdate = await db
+        .selectFrom("inventory_items")
+        .select("quantity")
+        .where("id", "=", inventoryItemId)
+        .executeTakeFirstOrThrow();
+      expect(afterUpdate.quantity).toBe(92);
+    });
+
+    it("should handle inventory adjustment when changing inventory item", async () => {
+      const customerId = await createTestCustomer(testCompanyId);
+      testCustomerIds.push(customerId);
+
+      const invoiceId = await createTestInvoice(testCompanyId, customerId, {
+        locationId: testLocationId,
+      });
+      testInvoiceIds.push(invoiceId);
+
+      const inventoryItem1Id = await createTestInventoryItem(testCompanyId, testLocationId, {
+        quantity: 100,
+        trackQuantity: true,
+      });
+
+      const inventoryItem2Id = await createTestInventoryItem(testCompanyId, testLocationId, {
+        quantity: 50,
+        trackQuantity: true,
+      });
+
+      // Create invoice item via API with first inventory item
+      const createResponse = await request(app)
+        .post(`/api/invoices/${invoiceId}/items`)
+        .set(getAuthHeader(managerToken))
+        .send({
+          inventoryItemId: inventoryItem1Id,
+          description: "Test Part 1",
+          quantity: 5,
+          unitPrice: 50.0,
+          type: "part",
+        });
+
+      expect(createResponse.status).toBe(201);
+      const itemId = createResponse.body.data.id;
+      testInvoiceItemIds.push(itemId);
+
+      // Verify first item was deducted
+      const item1AfterCreate = await db
+        .selectFrom("inventory_items")
+        .select("quantity")
+        .where("id", "=", inventoryItem1Id)
+        .executeTakeFirstOrThrow();
+      expect(item1AfterCreate.quantity).toBe(95);
+
+      // Change to second inventory item
+      const response = await request(app)
+        .put(`/api/invoices/${invoiceId}/items/${itemId}`)
+        .set(getAuthHeader(managerToken))
+        .send({ inventoryItemId: inventoryItem2Id, quantity: 3 });
+
+      expect(response.status).toBe(200);
+
+      // Verify first item was restored, second item was deducted
+      const item1AfterUpdate = await db
+        .selectFrom("inventory_items")
+        .select("quantity")
+        .where("id", "=", inventoryItem1Id)
+        .executeTakeFirstOrThrow();
+      expect(item1AfterUpdate.quantity).toBe(100); // Restored
+
+      const item2AfterUpdate = await db
+        .selectFrom("inventory_items")
+        .select("quantity")
+        .where("id", "=", inventoryItem2Id)
+        .executeTakeFirstOrThrow();
+      expect(item2AfterUpdate.quantity).toBe(47); // 50 - 3 = 47
     });
   });
 
