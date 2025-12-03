@@ -76,6 +76,14 @@ const nextConfig = {
       path.resolve(__dirname, "node_modules"),
     ];
 
+    // Ensure Sentry modules can be resolved
+    if (isServer) {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        "@sentry/nextjs": path.resolve(__dirname, "node_modules/@sentry/nextjs"),
+      };
+    }
+
     // Ensure proper module resolution for ES modules
     // Prioritize browser builds for client-side code
     if (!isServer) {

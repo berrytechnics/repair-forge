@@ -7,7 +7,9 @@ import logger from "./config/logger.js";
 import billingScheduler from "./services/billing-scheduler.service.js";
 
 // Load environment variables
-dotenv.config();
+// dotenv.config() looks for .env in the current working directory
+// In Docker, this is /app (which is mounted from ./backend)
+dotenv.config({ path: process.cwd() + "/.env" });
 
 // Initialize Sentry before anything else
 if (process.env.SENTRY_DSN) {
@@ -21,7 +23,9 @@ if (process.env.SENTRY_DSN) {
       Sentry.httpIntegration(),
     ],
   });
-  logger.info("Sentry initialized");
+  logger.info("Sentry initialized with DSN:", process.env.SENTRY_DSN.substring(0, 20) + "...");
+} else {
+  logger.warn("SENTRY_DSN not set - Sentry error tracking disabled");
 }
 
 const PORT = process.env.PORT || 4000;

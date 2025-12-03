@@ -160,6 +160,11 @@ app.get("/health", async (req: Request, res: Response) => {
   }
 });
 
+// Debug endpoint for testing Sentry error reporting
+app.get("/debug-sentry", function mainHandler(req: Request, res: Response) {
+  throw new Error("My first Sentry error!");
+});
+
 // 404 handler
 app.use((req: Request, res: Response) => {
   res.status(404).json({ message: "Not Found" });
@@ -182,18 +187,22 @@ app.use((err: Error | HttpError, req: Request, res: Response, _next: NextFunctio
     userAgent: req.get("user-agent"),
   });
   
-  // Send error to Sentry (only for non-validation errors and 500s)
+  // Send error to Sentry (capture all errors for debugging, filter in production)
   if (process.env.SENTRY_DSN) {
     const httpError = err instanceof HttpError ? err : new HttpError(err.message || "Internal Server Error", 500);
-    if (httpError.statusCode >= 500) {
+    // Capture all errors in development, or only 500+ in production
+    const shouldCapture = process.env.NODE_ENV === "development" || httpError.statusCode >= 500;
+    if (shouldCapture) {
       Sentry.captureException(err, {
         tags: {
           path: req.path,
           method: req.method,
+          statusCode: httpError.statusCode.toString(),
         },
         extra: {
           ip: req.ip,
           userAgent: req.get("user-agent"),
+          url: req.url,
         },
       });
     }

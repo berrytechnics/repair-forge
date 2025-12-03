@@ -48,6 +48,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:-your_jwt_secret_key}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-your-encryption-key-minimum-32-characters-long-change-in-production}
       IS_DOCKER: "true"
+      SENTRY_DSN: ${SENTRY_DSN:-}
     ports:
       - "4000:4000"
     volumes:
