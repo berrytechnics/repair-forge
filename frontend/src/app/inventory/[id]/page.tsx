@@ -5,6 +5,7 @@ import {
   deleteInventoryItem,
   InventoryItem,
 } from "@/lib/api/inventory.api";
+import { getLocations, Location } from "@/lib/api/location.api";
 import { useUser } from "@/lib/UserContext";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -18,6 +19,7 @@ export default function InventoryDetailPage({
   const router = useRouter();
   const { user, hasPermission, isLoading: userLoading } = useUser();
   const [item, setItem] = useState<InventoryItem | null>(null);
+  const [locations, setLocations] = useState<Location[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [, setError] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
@@ -30,15 +32,21 @@ export default function InventoryDetailPage({
   }, [user, userLoading, hasPermission, router]);
 
   useEffect(() => {
-    const fetchItem = async () => {
+    const fetchData = async () => {
       setIsLoading(true);
       try {
-        const response = await getInventoryItem(params.id);
-        if (response.data) {
-          setItem(response.data);
+        const [itemResponse, locationsResponse] = await Promise.all([
+          getInventoryItem(params.id),
+          getLocations(),
+        ]);
+        if (itemResponse.data) {
+          setItem(itemResponse.data);
+        }
+        if (locationsResponse.data) {
+          setLocations(locationsResponse.data);
         }
       } catch (err) {
-        console.error("Error fetching inventory item:", err);
+        console.error("Error fetching data:", err);
         setError(
           err instanceof Error
             ? err.message
@@ -49,12 +57,17 @@ export default function InventoryDetailPage({
       }
     };
 
-    fetchItem();
+    fetchData();
   }, [params.id]);
+
+  // Check if item can be deleted (all location quantities must be 0)
+  const canDelete = item?.locationQuantities?.every((lq) => lq.quantity === 0) ?? true;
+  const hasNonZeroQuantity = item?.locationQuantities?.some((lq) => lq.quantity !== 0) ?? false;
 
   const handleDelete = async () => {
     if (!item) return;
-    if (!confirm("Are you sure you want to delete this inventory item? This can only be done when quantity is 0.")) {
+    
+    if (!confirm("Are you sure you want to delete this inventory item? This can only be done when all location quantities are 0.")) {
       return;
     }
 
@@ -149,7 +162,7 @@ export default function InventoryDetailPage({
             </Link>
             <button
               onClick={handleDelete}
-              disabled={isDeleting || item.quantity !== 0}
+              disabled={isDeleting || !canDelete}
               className="inline-flex items-center rounded-md border border-red-300 dark:border-red-600 bg-white dark:bg-gray-700 px-4 py-2 text-sm font-medium text-red-700 dark:text-red-400 shadow-sm hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50"
             >
               {isDeleting ? "Deleting..." : "Delete"}
@@ -157,9 +170,9 @@ export default function InventoryDetailPage({
           </div>
         </div>
 
-        {item.quantity !== 0 && (
+        {hasNonZeroQuantity && (
           <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 rounded-md">
-            Cannot delete inventory item with non-zero quantity. Current quantity: {item.quantity}
+            Cannot delete inventory item with non-zero quantities at one or more locations. All location quantities must be 0.
           </div>
         )}
 
@@ -223,22 +236,6 @@ export default function InventoryDetailPage({
             </h2>
             <dl className="space-y-3">
               <div>
-                <dt className="text-sm text-gray-500 dark:text-gray-400">Quantity</dt>
-                <dd
-                  className={`text-sm font-medium ${
-                    item.quantity < 0
-                      ? "text-orange-600 dark:text-orange-400"
-                      : item.quantity < item.reorderLevel
-                      ? "text-red-600 dark:text-red-400"
-                      : "text-gray-900 dark:text-gray-100"
-                  }`}
-                >
-                  {item.quantity}
-                  {item.quantity < 0 && " (Backordered)"}
-                  {item.quantity >= 0 && item.quantity < item.reorderLevel && " (Low Stock)"}
-                </dd>
-              </div>
-              <div>
                 <dt className="text-sm text-gray-500 dark:text-gray-400">
                   Reorder Level
                 </dt>
@@ -296,6 +293,74 @@ export default function InventoryDetailPage({
           </div>
         </div>
       </div>
+
+      {item.trackQuantity && item.locationQuantities && item.locationQuantities.length > 0 && (
+        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+            Quantities by Location
+          </h2>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-900">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Location
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Quantity
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Status
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                {item.locationQuantities.map((lq) => {
+                  const location = locations.find((loc) => loc.id === lq.locationId);
+                  const isLowStock = lq.quantity >= 0 && lq.quantity < item.reorderLevel;
+                  const isBackordered = lq.quantity < 0;
+                  
+                  return (
+                    <tr key={lq.locationId}>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {location?.name || "Unknown Location"}
+                      </td>
+                      <td
+                        className={`px-4 py-3 whitespace-nowrap text-sm font-medium ${
+                          isBackordered
+                            ? "text-orange-600 dark:text-orange-400"
+                            : isLowStock
+                            ? "text-red-600 dark:text-red-400"
+                            : "text-gray-900 dark:text-gray-100"
+                        }`}
+                      >
+                        {lq.quantity}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        {isBackordered && (
+                          <span className="inline-flex items-center rounded-full bg-orange-100 dark:bg-orange-900/30 px-2 py-0.5 text-xs font-medium text-orange-800 dark:text-orange-300">
+                            Backordered
+                          </span>
+                        )}
+                        {!isBackordered && isLowStock && (
+                          <span className="inline-flex items-center rounded-full bg-red-100 dark:bg-red-900/30 px-2 py-0.5 text-xs font-medium text-red-800 dark:text-red-300">
+                            Low Stock
+                          </span>
+                        )}
+                        {!isBackordered && !isLowStock && (
+                          <span className="inline-flex items-center rounded-full bg-green-100 dark:bg-green-900/30 px-2 py-0.5 text-xs font-medium text-green-800 dark:text-green-300">
+                            In Stock
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

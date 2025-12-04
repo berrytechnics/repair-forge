@@ -20,6 +20,7 @@ export interface Database {
   diagnostic_checklist_items: DiagnosticChecklistItemTable;
   diagnostic_checklist_responses: DiagnosticChecklistResponseTable;
   inventory_items: InventoryItemTable;
+  inventory_location_quantities: InventoryLocationQuantityTable;
   invoices: InvoiceTable;
   invoice_items: InvoiceItemTable;
   invitations: InvitationTable;
@@ -85,7 +86,6 @@ export interface CustomerTable {
 export interface InventoryItemTable {
   id: UUID;
   company_id: UUID;
-  location_id: UUID | null;
   sku: string;
   name: string;
   description: string | null;
@@ -96,7 +96,6 @@ export interface InventoryItemTable {
   compatible_with: string[] | null;
   cost_price: number;
   selling_price: number;
-  quantity: number;
   reorder_level: number;
   location: string | null;
   supplier: string | null;
@@ -107,6 +106,15 @@ export interface InventoryItemTable {
   created_at: Timestamp;
   updated_at: Timestamp;
   deleted_at: SoftDelete;
+}
+
+export interface InventoryLocationQuantityTable {
+  id: UUID;
+  inventory_item_id: UUID;
+  location_id: UUID;
+  quantity: number;
+  created_at: Timestamp;
+  updated_at: Timestamp;
 }
 
 export type InvoiceStatus =

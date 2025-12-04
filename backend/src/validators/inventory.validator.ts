@@ -6,13 +6,17 @@ import { body } from "express-validator";
  */
 export const createInventoryValidation = [
   body("sku")
-    .exists()
-    .withMessage("SKU is required")
+    .optional()
     .trim()
-    .notEmpty()
-    .withMessage("SKU is required")
-    .isLength({ min: 1, max: 50 })
-    .withMessage("SKU must be between 1 and 50 characters"),
+    .custom((value) => {
+      // If provided, validate it
+      if (value && value !== "") {
+        if (value.length < 1 || value.length > 50) {
+          throw new Error("SKU must be between 1 and 50 characters");
+        }
+      }
+      return true;
+    }),
   body("name")
     .exists()
     .withMessage("Name is required")
@@ -39,10 +43,6 @@ export const createInventoryValidation = [
     .withMessage("Selling price is required")
     .isFloat({ min: 0 })
     .withMessage("Selling price must be a positive number"),
-  body("quantity")
-    .optional()
-    .isInt()
-    .withMessage("Quantity must be an integer (negative values allowed for backordered items)"),
   body("reorderLevel")
     .exists()
     .withMessage("Reorder level is required")
@@ -106,19 +106,5 @@ export const updateInventoryValidation = [
     .optional()
     .isBoolean()
     .withMessage("trackQuantity must be a boolean"),
-  body("locationId")
-    .optional({ values: "falsy" })
-    .custom((value) => {
-      // If empty string, null, or undefined, skip validation (allows unsetting location)
-      if (!value || value === "") {
-        return true;
-      }
-      // Otherwise, validate as UUID
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      if (!uuidRegex.test(value)) {
-        throw new Error("Location ID must be a valid UUID");
-      }
-      return true;
-    }),
 ];
 

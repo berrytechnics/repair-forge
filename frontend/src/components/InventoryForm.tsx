@@ -4,9 +4,13 @@ import {
   createInventoryItem,
   updateInventoryItem,
   getInventoryItem,
+  updateLocationQuantity,
   CreateInventoryItemData,
   UpdateInventoryItemData,
+  InventoryItem,
+  LocationQuantity,
 } from "@/lib/api/inventory.api";
+import { getLocations, Location } from "@/lib/api/location.api";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -20,6 +24,9 @@ export default function InventoryForm({ itemId }: InventoryFormProps) {
   const [isLoading, setIsLoading] = useState(isEditMode);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [locationQuantities, setLocationQuantities] = useState<LocationQuantity[]>([]);
+  const [editingQuantities, setEditingQuantities] = useState<Record<string, number>>({});
 
   const [formData, setFormData] = useState({
     sku: "",
@@ -32,15 +39,27 @@ export default function InventoryForm({ itemId }: InventoryFormProps) {
     compatibleWith: [] as string[],
     costPrice: 0,
     sellingPrice: 0,
-    quantity: 0,
     reorderLevel: 5,
-    location: "",
     supplier: "",
     supplierPartNumber: "",
     isActive: true,
     isTaxable: true,
     trackQuantity: true,
   });
+
+  useEffect(() => {
+    const fetchLocations = async () => {
+      try {
+        const response = await getLocations();
+        if (response.data) {
+          setLocations(response.data);
+        }
+      } catch (err) {
+        console.error("Error fetching locations:", err);
+      }
+    };
+    fetchLocations();
+  }, []);
 
   useEffect(() => {
     if (isEditMode && itemId) {
@@ -61,15 +80,22 @@ export default function InventoryForm({ itemId }: InventoryFormProps) {
               compatibleWith: item.compatibleWith || [],
               costPrice: item.costPrice,
               sellingPrice: item.sellingPrice,
-              quantity: item.quantity,
               reorderLevel: item.reorderLevel,
-              location: item.location || "",
               supplier: item.supplier || "",
               supplierPartNumber: item.supplierPartNumber || "",
               isActive: item.isActive,
               isTaxable: item.isTaxable !== undefined ? item.isTaxable : true,
               trackQuantity: item.trackQuantity !== undefined ? item.trackQuantity : true,
             });
+            // Set location quantities
+            if (item.locationQuantities) {
+              setLocationQuantities(item.locationQuantities);
+              const quantitiesMap: Record<string, number> = {};
+              item.locationQuantities.forEach((lq) => {
+                quantitiesMap[lq.locationId] = lq.quantity;
+              });
+              setEditingQuantities(quantitiesMap);
+            }
           }
         } catch (err) {
           console.error("Error fetching inventory item:", err);
@@ -101,7 +127,7 @@ export default function InventoryForm({ itemId }: InventoryFormProps) {
           costPrice: formData.costPrice,
           sellingPrice: formData.sellingPrice,
           reorderLevel: formData.reorderLevel,
-          location: formData.location || null,
+          location: null,
           supplier: formData.supplier || null,
           supplierPartNumber: formData.supplierPartNumber || null,
           isActive: formData.isActive,
@@ -114,7 +140,7 @@ export default function InventoryForm({ itemId }: InventoryFormProps) {
         }
       } else {
         const createData: CreateInventoryItemData = {
-          sku: formData.sku,
+          sku: formData.sku.trim() || undefined,
           name: formData.name,
           description: formData.description || null,
           category: formData.category,
@@ -124,9 +150,8 @@ export default function InventoryForm({ itemId }: InventoryFormProps) {
           compatibleWith: formData.compatibleWith.length > 0 ? formData.compatibleWith : null,
           costPrice: formData.costPrice,
           sellingPrice: formData.sellingPrice,
-          quantity: formData.quantity,
           reorderLevel: formData.reorderLevel,
-          location: formData.location || null,
+          location: null,
           supplier: formData.supplier || null,
           supplierPartNumber: formData.supplierPartNumber || null,
           isActive: formData.isActive,
@@ -181,15 +206,18 @@ export default function InventoryForm({ itemId }: InventoryFormProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                SKU *
+                SKU
               </label>
               <input
                 type="text"
-                required
                 value={formData.sku}
                 onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
                 className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                placeholder="Leave empty to auto-generate"
               />
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                Leave empty to automatically generate a unique SKU
+              </p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -299,26 +327,6 @@ export default function InventoryForm({ itemId }: InventoryFormProps) {
                 className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
               />
             </div>
-            {!isEditMode && formData.trackQuantity && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Initial Quantity (negative values allowed for backordered items)
-                </label>
-                <input
-                  type="number"
-                  value={formData.quantity}
-                  onChange={(e) =>
-                    setFormData({ ...formData, quantity: parseInt(e.target.value) || 0 })
-                  }
-                  className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                />
-                {formData.quantity < 0 && (
-                  <p className="mt-1 text-sm text-orange-600 dark:text-orange-400">
-                    Negative quantity indicates backordered items
-                  </p>
-                )}
-              </div>
-            )}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Reorder Level *
@@ -331,17 +339,6 @@ export default function InventoryForm({ itemId }: InventoryFormProps) {
                 onChange={(e) =>
                   setFormData({ ...formData, reorderLevel: parseInt(e.target.value) || 0 })
                 }
-                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Location
-              </label>
-              <input
-                type="text"
-                value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                 className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
               />
             </div>
@@ -410,6 +407,97 @@ export default function InventoryForm({ itemId }: InventoryFormProps) {
             </div>
           </div>
         </div>
+
+        {isEditMode && formData.trackQuantity && locationQuantities.length > 0 && (
+          <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              Quantities by Location
+            </h2>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-900">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Location
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Quantity
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                  {locationQuantities.map((lq) => {
+                    const location = locations.find((loc) => loc.id === lq.locationId);
+                    const currentQty = editingQuantities[lq.locationId] ?? lq.quantity;
+                    const hasChanges = currentQty !== lq.quantity;
+
+                    const handleUpdateQuantity = async () => {
+                      if (!itemId) return;
+                      try {
+                        await updateLocationQuantity(itemId, lq.locationId, currentQty);
+                        setLocationQuantities((prev) =>
+                          prev.map((item) =>
+                            item.locationId === lq.locationId
+                              ? { ...item, quantity: currentQty }
+                              : item
+                          )
+                        );
+                        // Clear from editing state
+                        setEditingQuantities((prev) => {
+                          const newState = { ...prev };
+                          delete newState[lq.locationId];
+                          return newState;
+                        });
+                      } catch (err) {
+                        console.error("Error updating quantity:", err);
+                        setError(err instanceof Error ? err.message : "Failed to update quantity");
+                      }
+                    };
+
+                    return (
+                      <tr key={lq.locationId}>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                          {location?.name || "Unknown Location"}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <input
+                            type="number"
+                            value={currentQty}
+                            onChange={(e) => {
+                              const newQty = parseInt(e.target.value) || 0;
+                              setEditingQuantities((prev) => ({
+                                ...prev,
+                                [lq.locationId]: newQty,
+                              }));
+                            }}
+                            className="w-24 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                          />
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          {hasChanges && (
+                            <button
+                              type="button"
+                              onClick={handleUpdateQuantity}
+                              className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+                            >
+                              Save
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+              Update quantities for each location. Changes are saved individually.
+            </p>
+          </div>
+        )}
 
         <div className="flex justify-end gap-4">
           <button

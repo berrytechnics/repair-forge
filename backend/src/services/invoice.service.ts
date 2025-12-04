@@ -632,19 +632,18 @@ export class InvoiceService {
         throw new NotFoundError("Inventory item not found or does not belong to company");
       }
 
-      // Validate inventory item belongs to invoice's location (or user's current location)
-      if (invoice.locationId && inventoryItem.location_id) {
-        const inventoryLocationId = inventoryItem.location_id as unknown as string;
-        if (inventoryLocationId !== invoice.locationId) {
-          throw new BadRequestError("Inventory item does not belong to the invoice's location");
-        }
-      }
-
-      // Validate sufficient quantity available
-      if (data.quantity > inventoryItem.quantity) {
-        throw new BadRequestError(
-          `Insufficient stock. Available: ${inventoryItem.quantity}, Requested: ${data.quantity}`
+      // Validate sufficient quantity available at invoice's location
+      if (invoice.locationId) {
+        const availableQuantity = await inventoryService.getQuantityForLocation(
+          data.inventoryItemId,
+          invoice.locationId,
+          companyId
         );
+        if (data.quantity > availableQuantity) {
+          throw new BadRequestError(
+            `Insufficient stock. Available: ${availableQuantity}, Requested: ${data.quantity}`
+          );
+        }
       }
 
       // Use inventory item's taxable status
@@ -706,14 +705,15 @@ export class InvoiceService {
           .where("deleted_at", "is", null)
           .executeTakeFirst();
 
-        if (inventoryItem?.track_quantity) {
-          await inventoryService.adjustQuantity(
+        if (inventoryItem?.track_quantity && invoice.locationId) {
+          await inventoryService.adjustQuantityForLocation(
             data.inventoryItemId,
+            invoice.locationId,
             -data.quantity,
             companyId
           );
           logger.info(
-            `Inventory deducted: ${data.quantity} units of inventory item ${data.inventoryItemId} for invoice item ${item.id}`
+            `Inventory deducted: ${data.quantity} units of inventory item ${data.inventoryItemId} at location ${invoice.locationId} for invoice item ${item.id}`
           );
         }
       } catch (error) {
@@ -792,6 +792,12 @@ export class InvoiceService {
 
     if (inventoryChanged) {
       try {
+        // Get invoice to get locationId
+        const invoice = await this.findById(data.invoiceId, companyId);
+        if (!invoice || !invoice.locationId) {
+          throw new BadRequestError("Invoice location is required for inventory operations");
+        }
+
         // Case 1: Same inventory item, just quantity changed - adjust the difference
         if (
           existingItem.inventory_item_id &&
@@ -803,7 +809,7 @@ export class InvoiceService {
           const quantityDelta = quantity - existingItem.quantity;
           const inventoryItem = await db
             .selectFrom("inventory_items")
-            .selectAll()
+            .select(["track_quantity"])
             .where("id", "=", inventoryItemId)
             .where("company_id", "=", companyId)
             .where("deleted_at", "is", null)
@@ -811,20 +817,28 @@ export class InvoiceService {
 
           if (inventoryItem) {
             // Validate sufficient quantity available if increasing
-            if (quantityDelta > 0 && quantity > inventoryItem.quantity) {
-              throw new BadRequestError(
-                `Insufficient stock. Available: ${inventoryItem.quantity}, Requested: ${quantity}`
+            if (quantityDelta > 0) {
+              const availableQuantity = await inventoryService.getQuantityForLocation(
+                inventoryItemId,
+                invoice.locationId,
+                companyId
               );
+              if (quantity > availableQuantity) {
+                throw new BadRequestError(
+                  `Insufficient stock. Available: ${availableQuantity}, Requested: ${quantity}`
+                );
+              }
             }
 
             if (inventoryItem.track_quantity) {
-              await inventoryService.adjustQuantity(
+              await inventoryService.adjustQuantityForLocation(
                 inventoryItemId,
+                invoice.locationId,
                 -quantityDelta,
                 companyId
               );
               logger.info(
-                `Inventory adjusted: ${quantityDelta > 0 ? 'deducted' : 'restored'} ${Math.abs(quantityDelta)} units of inventory item ${inventoryItemId} for invoice item ${itemId}`
+                `Inventory adjusted: ${quantityDelta > 0 ? 'deducted' : 'restored'} ${Math.abs(quantityDelta)} units of inventory item ${inventoryItemId} at location ${invoice.locationId} for invoice item ${itemId}`
               );
             }
           }
@@ -841,13 +855,14 @@ export class InvoiceService {
               .executeTakeFirst();
 
             if (oldInventoryItem?.track_quantity) {
-              await inventoryService.adjustQuantity(
+              await inventoryService.adjustQuantityForLocation(
                 existingItem.inventory_item_id,
+                invoice.locationId,
                 existingItem.quantity,
                 companyId
               );
               logger.info(
-                `Inventory restored: ${existingItem.quantity} units of inventory item ${existingItem.inventory_item_id} for invoice item ${itemId}`
+                `Inventory restored: ${existingItem.quantity} units of inventory item ${existingItem.inventory_item_id} at location ${invoice.locationId} for invoice item ${itemId}`
               );
             }
           }
@@ -856,7 +871,7 @@ export class InvoiceService {
           if (inventoryItemId && type === "part") {
             const newInventoryItem = await db
               .selectFrom("inventory_items")
-              .selectAll()
+              .select(["track_quantity"])
               .where("id", "=", inventoryItemId)
               .where("company_id", "=", companyId)
               .where("deleted_at", "is", null)
@@ -864,20 +879,26 @@ export class InvoiceService {
 
             if (newInventoryItem) {
               // Validate sufficient quantity available
-              if (quantity > newInventoryItem.quantity) {
+              const availableQuantity = await inventoryService.getQuantityForLocation(
+                inventoryItemId,
+                invoice.locationId,
+                companyId
+              );
+              if (quantity > availableQuantity) {
                 throw new BadRequestError(
-                  `Insufficient stock. Available: ${newInventoryItem.quantity}, Requested: ${quantity}`
+                  `Insufficient stock. Available: ${availableQuantity}, Requested: ${quantity}`
                 );
               }
 
               if (newInventoryItem.track_quantity) {
-                await inventoryService.adjustQuantity(
+                await inventoryService.adjustQuantityForLocation(
                   inventoryItemId,
+                  invoice.locationId,
                   -quantity,
                   companyId
                 );
                 logger.info(
-                  `Inventory deducted: ${quantity} units of inventory item ${inventoryItemId} for invoice item ${itemId}`
+                  `Inventory deducted: ${quantity} units of inventory item ${inventoryItemId} at location ${invoice.locationId} for invoice item ${itemId}`
                 );
               }
             }
@@ -946,23 +967,35 @@ export class InvoiceService {
     // Restore inventory if this was a part item with inventory tracking
     if (existingItem.inventory_item_id && existingItem.type === "part") {
       try {
-        const inventoryItem = await db
-          .selectFrom("inventory_items")
-          .select(["track_quantity"])
-          .where("id", "=", existingItem.inventory_item_id)
+        // Get invoice to get locationId
+        const invoice = await db
+          .selectFrom("invoices")
+          .select("location_id")
+          .where("id", "=", existingItem.invoice_id)
           .where("company_id", "=", companyId)
           .where("deleted_at", "is", null)
           .executeTakeFirst();
 
-        if (inventoryItem?.track_quantity) {
-          await inventoryService.adjustQuantity(
-            existingItem.inventory_item_id,
-            existingItem.quantity,
-            companyId
-          );
-          logger.info(
-            `Inventory restored: ${existingItem.quantity} units of inventory item ${existingItem.inventory_item_id} for deleted invoice item ${itemId}`
-          );
+        if (invoice?.location_id) {
+          const inventoryItem = await db
+            .selectFrom("inventory_items")
+            .select(["track_quantity"])
+            .where("id", "=", existingItem.inventory_item_id)
+            .where("company_id", "=", companyId)
+            .where("deleted_at", "is", null)
+            .executeTakeFirst();
+
+          if (inventoryItem?.track_quantity) {
+            await inventoryService.adjustQuantityForLocation(
+              existingItem.inventory_item_id,
+              invoice.location_id as string,
+              existingItem.quantity,
+              companyId
+            );
+            logger.info(
+              `Inventory restored: ${existingItem.quantity} units of inventory item ${existingItem.inventory_item_id} at location ${invoice.location_id} for deleted invoice item ${itemId}`
+            );
+          }
         }
       } catch (error) {
         // Log error but don't fail invoice item deletion

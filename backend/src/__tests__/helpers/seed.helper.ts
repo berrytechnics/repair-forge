@@ -469,6 +469,7 @@ export async function createTestAsset(
 
 /**
  * Create a test inventory item in the database
+ * Creates product for all locations, with quantity at the specified location
  */
 export async function createTestInventoryItem(
   companyId: string,
@@ -495,12 +496,12 @@ export async function createTestInventoryItem(
   const itemId = uuidv4();
   const sku = overrides?.sku || `TEST-SKU-${itemId.slice(0, 8)}`;
 
+  // Create the product (company-wide)
   await db
     .insertInto("inventory_items")
     .values({
       id: itemId,
       company_id: companyId,
-      location_id: locationId,
       sku: sku,
       name: overrides?.name || "Test Inventory Item",
       description: overrides?.description || null,
@@ -511,7 +512,6 @@ export async function createTestInventoryItem(
       compatible_with: overrides?.compatibleWith || null,
       cost_price: overrides?.costPrice ?? 10.0,
       selling_price: overrides?.sellingPrice ?? 20.0,
-      quantity: overrides?.quantity ?? 100,
       reorder_level: overrides?.reorderLevel ?? 10,
       location: overrides?.location || null,
       supplier: overrides?.supplier || null,
@@ -524,6 +524,32 @@ export async function createTestInventoryItem(
       deleted_at: null,
     })
     .execute();
+
+  // Get all locations for the company
+  const allLocations = await db
+    .selectFrom("locations")
+    .select("id")
+    .where("company_id", "=", companyId)
+    .where("deleted_at", "is", null)
+    .execute();
+
+  // Create junction table entries for all locations
+  const initialQuantity = overrides?.quantity ?? 100;
+  const junctionEntries = allLocations.map((loc) => ({
+    id: uuidv4(),
+    inventory_item_id: itemId,
+    location_id: loc.id,
+    quantity: loc.id === locationId ? initialQuantity : 0,
+    created_at: sql`now()`,
+    updated_at: sql`now()`,
+  }));
+
+  if (junctionEntries.length > 0) {
+    await db
+      .insertInto("inventory_location_quantities")
+      .values(junctionEntries)
+      .execute();
+  }
 
   return itemId;
 }

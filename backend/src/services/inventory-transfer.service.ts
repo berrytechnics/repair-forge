@@ -310,15 +310,15 @@ export class InventoryTransferService {
       throw new BadRequestError("Inventory item not found or does not belong to company");
     }
 
-    // Validate inventory item is at the source location
-    if (inventoryItem.location_id !== data.fromLocationId) {
-      throw new BadRequestError("Inventory item is not at the source location");
-    }
-
     // Validate sufficient quantity at source location
-    if (inventoryItem.quantity < data.quantity) {
+    const availableQuantity = await inventoryService.getQuantityForLocation(
+      data.inventoryItemId,
+      data.fromLocationId,
+      companyId
+    );
+    if (availableQuantity < data.quantity) {
       throw new BadRequestError(
-        `Insufficient quantity. Available: ${inventoryItem.quantity}, Requested: ${data.quantity}`
+        `Insufficient quantity. Available: ${availableQuantity}, Requested: ${data.quantity}`
       );
     }
 
@@ -341,8 +341,9 @@ export class InventoryTransferService {
       .executeTakeFirstOrThrow();
 
     // Immediately deduct quantity from source location (reserve it)
-    await inventoryService.adjustQuantity(
+    await inventoryService.adjustQuantityForLocation(
       data.inventoryItemId,
+      data.fromLocationId,
       -data.quantity,
       companyId
     );
@@ -374,7 +375,7 @@ export class InventoryTransferService {
     // Get the inventory item being transferred
     const inventoryItem = await db
       .selectFrom("inventory_items")
-      .selectAll()
+      .select("id")
       .where("id", "=", transfer.inventory_item_id)
       .where("company_id", "=", companyId)
       .where("deleted_at", "is", null)
@@ -384,43 +385,13 @@ export class InventoryTransferService {
       throw new BadRequestError("Inventory item not found");
     }
 
-    // Check if an item with the same SKU exists at destination location
-    const itemAtDestination = await db
-      .selectFrom("inventory_items")
-      .selectAll()
-      .where("sku", "=", inventoryItem.sku)
-      .where("location_id", "=", transfer.to_location_id)
-      .where("company_id", "=", companyId)
-      .where("deleted_at", "is", null)
-      .executeTakeFirst();
-
-    if (itemAtDestination && itemAtDestination.id !== inventoryItem.id) {
-      // Item with same SKU exists at destination, add quantity to that item
-      await inventoryService.adjustQuantity(
-        itemAtDestination.id,
-        transfer.quantity,
-        companyId
-      );
-    } else {
-      // No item at destination with same SKU, move current item to destination
-      // Update location_id to destination
-      await db
-        .updateTable("inventory_items")
-        .set({
-          location_id: transfer.to_location_id,
-          updated_at: sql`now()`,
-        })
-        .where("id", "=", transfer.inventory_item_id)
-        .where("company_id", "=", companyId)
-        .execute();
-      
-      // Add quantity back (we deducted it when creating the transfer)
-      await inventoryService.adjustQuantity(
-        transfer.inventory_item_id,
-        transfer.quantity,
-        companyId
-      );
-    }
+    // Add quantity to destination location (product is company-wide, just update junction table)
+    await inventoryService.adjustQuantityForLocation(
+      transfer.inventory_item_id,
+      transfer.to_location_id,
+      transfer.quantity,
+      companyId
+    );
 
     // Update transfer status
     const updated = await db

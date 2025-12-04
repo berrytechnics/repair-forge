@@ -2,6 +2,7 @@ import express, { Request, Response } from "express";
 import { NotFoundError } from "../config/errors.js";
 import { PurchaseOrderStatus } from "../config/types.js";
 import { validateRequest } from "../middlewares/auth.middleware.js";
+import { requireLocationContext } from "../middlewares/location.middleware.js";
 import { requireManagerOrAdmin, requireRole } from "../middlewares/rbac.middleware.js";
 import { requireTenantContext } from "../middlewares/tenant.middleware.js";
 import { validate } from "../middlewares/validation.middleware.js";
@@ -106,12 +107,14 @@ router.post(
 // POST /api/purchase-orders/:id/receive - Receive purchase order and update inventory (admin/manager only)
 router.post(
   "/:id/receive",
+  requireLocationContext,
   validate(receivePurchaseOrderValidation),
   requireManagerOrAdmin(),
   asyncHandler(async (req: Request, res: Response) => {
     const companyId = req.companyId!;
+    const locationId = req.locationId!;
     const { id } = req.params;
-    const po = await purchaseOrderService.receive(id, req.body, companyId);
+    const po = await purchaseOrderService.receive(id, req.body, companyId, locationId);
     res.json({ success: true, data: po });
   })
 );

@@ -1,6 +1,11 @@
 import api, { ApiResponse } from ".";
 
 // Inventory interfaces
+export interface LocationQuantity {
+  locationId: string;
+  quantity: number;
+}
+
 export interface InventoryItem {
   id: string;
   sku: string;
@@ -13,9 +18,9 @@ export interface InventoryItem {
   compatibleWith: string[] | null;
   costPrice: number;
   sellingPrice: number;
-  quantity: number;
+  quantity?: number; // Quantity for specific location when filtered
   reorderLevel: number;
-  location: string | null;
+  location: string | null; // Physical location description
   supplier: string | null;
   supplierPartNumber: string | null;
   isActive: boolean;
@@ -23,6 +28,7 @@ export interface InventoryItem {
   trackQuantity: boolean;
   createdAt: string;
   updatedAt: string;
+  locationQuantities: LocationQuantity[];
 }
 
 // Inventory API functions
@@ -68,7 +74,7 @@ export const getInventoryItem = async (
 };
 
 export interface CreateInventoryItemData {
-  sku: string;
+  sku?: string;
   name: string;
   description?: string | null;
   category: string;
@@ -78,7 +84,6 @@ export interface CreateInventoryItemData {
   compatibleWith?: string[] | null;
   costPrice: number;
   sellingPrice: number;
-  quantity?: number;
   reorderLevel?: number;
   location?: string | null;
   supplier?: string | null;
@@ -156,6 +161,25 @@ export const deleteInventoryItem = async (
 
   throw new Error(
     response.data.error?.message || "Failed to delete inventory item"
+  );
+};
+
+export const updateLocationQuantity = async (
+  inventoryItemId: string,
+  locationId: string,
+  quantity: number
+): Promise<ApiResponse<InventoryItem>> => {
+  const response = await api.put<ApiResponse<InventoryItem>>(
+    `/inventory/${inventoryItemId}/locations/${locationId}/quantity`,
+    { quantity }
+  );
+
+  if (response.data.success) {
+    return response.data;
+  }
+
+  throw new Error(
+    response.data.error?.message || "Failed to update location quantity"
   );
 };
 

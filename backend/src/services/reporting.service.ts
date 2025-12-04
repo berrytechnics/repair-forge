@@ -85,24 +85,38 @@ export class ReportingService {
     const revenueResult = await revenueQuery.executeTakeFirst();
     const monthlyRevenue = Number(revenueResult?.total || 0);
 
-    // Count low stock items
-    let lowStockQuery = db
-      .selectFrom("inventory_items")
-      .select((eb) => eb.fn.count<number>("id").as("count"))
-      .where("company_id", "=", companyId)
-      .where((eb) => eb("quantity", "<", eb.ref("reorder_level")))
-      .where("deleted_at", "is", null);
+    // Count low stock items using junction table
+    let lowStockCount = 0;
+    
+    if (locationId !== undefined && locationId !== null) {
+      const lowStockQuery = db
+        .selectFrom("inventory_items")
+        .innerJoin("inventory_location_quantities", "inventory_location_quantities.inventory_item_id", "inventory_items.id")
+        .select((eb) => eb.fn.count<number>("inventory_items.id").as("count"))
+        .where("inventory_items.company_id", "=", companyId)
+        .where((eb) => 
+          eb("inventory_location_quantities.quantity", "<", eb.ref("inventory_items.reorder_level"))
+        )
+        .where("inventory_location_quantities.location_id", "=", locationId)
+        .where("inventory_items.deleted_at", "is", null);
 
-    if (locationId !== undefined) {
-      if (locationId === null) {
-        lowStockQuery = lowStockQuery.where("location_id", "is", null);
-      } else {
-        lowStockQuery = lowStockQuery.where("location_id", "=", locationId);
-      }
+      const lowStockResult = await lowStockQuery.executeTakeFirst();
+      lowStockCount = Number(lowStockResult?.count || 0);
+    } else if (locationId === undefined) {
+      // Count across all locations (distinct items)
+      const lowStockQuery = db
+        .selectFrom("inventory_items")
+        .innerJoin("inventory_location_quantities", "inventory_location_quantities.inventory_item_id", "inventory_items.id")
+        .select((eb) => eb.fn.count<number>(eb.fn.distinct("inventory_items.id")).as("count"))
+        .where("inventory_items.company_id", "=", companyId)
+        .where((eb) => 
+          eb("inventory_location_quantities.quantity", "<", eb.ref("inventory_items.reorder_level"))
+        )
+        .where("inventory_items.deleted_at", "is", null);
+
+      const lowStockResult = await lowStockQuery.executeTakeFirst();
+      lowStockCount = Number(lowStockResult?.count || 0);
     }
-
-    const lowStockResult = await lowStockQuery.executeTakeFirst();
-    const lowStockCount = Number(lowStockResult?.count || 0);
 
     // Count active tickets (not completed or cancelled)
     let ticketsQuery = db

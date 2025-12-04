@@ -201,6 +201,33 @@ export class LocationService {
       .returningAll()
       .executeTakeFirstOrThrow();
 
+    // Auto-create inventory_location_quantities entries for all existing products
+    const allInventoryItems = await db
+      .selectFrom("inventory_items")
+      .select("id")
+      .where("company_id", "=", companyId)
+      .where("deleted_at", "is", null)
+      .execute();
+
+    if (allInventoryItems.length > 0) {
+      const junctionEntries = allInventoryItems.map((item) => ({
+        id: uuidv4(),
+        inventory_item_id: item.id,
+        location_id: location.id,
+        quantity: 0,
+        created_at: sql`now()`,
+        updated_at: sql`now()`,
+      }));
+
+      await db
+        .insertInto("inventory_location_quantities")
+        .values(junctionEntries)
+        .onConflict((oc) =>
+          oc.columns(["inventory_item_id", "location_id"]).doNothing()
+        )
+        .execute();
+    }
+
     return toLocation(location);
   }
 

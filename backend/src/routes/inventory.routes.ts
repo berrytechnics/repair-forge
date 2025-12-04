@@ -1,5 +1,5 @@
 import express, { Request, Response } from "express";
-import { NotFoundError } from "../config/errors.js";
+import { BadRequestError, NotFoundError } from "../config/errors.js";
 import { validateRequest } from "../middlewares/auth.middleware.js";
 import { requireLocationContext } from "../middlewares/location.middleware.js";
 import { requireManagerOrAdmin, requireRole } from "../middlewares/rbac.middleware.js";
@@ -93,6 +93,26 @@ router.put(
     if (!item) {
       throw new NotFoundError("Inventory item not found");
     }
+    res.json({ success: true, data: item });
+  })
+);
+
+// PUT /api/inventory/:id/locations/:locationId/quantity - Update quantity for specific location
+router.put(
+  "/:id/locations/:locationId/quantity",
+  requireLocationContext,
+  requireManagerOrAdmin(),
+  asyncHandler(async (req: Request, res: Response) => {
+    const companyId = req.companyId!;
+    const { id, locationId } = req.params;
+    const { quantity } = req.body;
+    
+    if (typeof quantity !== "number") {
+      throw new BadRequestError("Quantity must be a number");
+    }
+    
+    await inventoryService.updateQuantityForLocation(id, locationId, quantity, companyId);
+    const item = await inventoryService.findById(id, companyId);
     res.json({ success: true, data: item });
   })
 );

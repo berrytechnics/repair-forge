@@ -11,7 +11,8 @@
     "lint": "eslint src --ext .ts",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest",
     "migrate:prod": "node dist/scripts/run-migrations.js",
-    "migrate:dev": "tsx scripts/run-migrations.ts"
+    "migrate:dev": "tsx scripts/run-migrations.ts",
+    "reset:db": "tsx scripts/reset-db.ts"
   },
   "dependencies": {
     "@paypal/checkout-server-sdk": "^1.0.3",

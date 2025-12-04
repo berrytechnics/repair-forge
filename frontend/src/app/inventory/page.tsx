@@ -5,6 +5,7 @@ import {
   InventoryItem,
   searchInventory,
 } from "@/lib/api/inventory.api";
+import { getLocations, Location } from "@/lib/api/location.api";
 import { useUser } from "@/lib/UserContext";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
@@ -13,10 +14,12 @@ export default function InventoryPage() {
   const router = useRouter();
   const { user, hasPermission, isLoading: userLoading } = useUser();
   const [items, setItems] = useState<InventoryItem[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
+  const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
 
   // Check if user has permission to access this page
   useEffect(() => {
@@ -47,8 +50,22 @@ export default function InventoryPage() {
 
   // Initial load
   useEffect(() => {
-    setIsLoading(true);
-    fetchAllItems().finally(() => setIsLoading(false));
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        await Promise.all([
+          fetchAllItems(),
+          getLocations().then((response) => {
+            if (response.data) {
+              setLocations(response.data);
+            }
+          }),
+        ]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
   }, []);
 
   const handleSearch = async (e: React.FormEvent) => {
@@ -92,9 +109,27 @@ export default function InventoryPage() {
     }).format(amount);
   };
 
-  // Check if item is low stock
+  // Get quantity for current location
+  const getCurrentLocationQuantity = (item: InventoryItem): number => {
+    if (!user?.currentLocationId || !item.locationQuantities) {
+      return item.quantity ?? 0;
+    }
+    const locationQty = item.locationQuantities.find(
+      (lq) => lq.locationId === user.currentLocationId
+    );
+    return locationQty?.quantity ?? 0;
+  };
+
+  // Check if item is low stock at current location
   const isLowStock = (item: InventoryItem) => {
-    return item.quantity < item.reorderLevel;
+    const currentQty = getCurrentLocationQuantity(item);
+    return currentQty >= 0 && currentQty < item.reorderLevel;
+  };
+
+  // Check if item is backordered at current location
+  const isBackordered = (item: InventoryItem) => {
+    const currentQty = getCurrentLocationQuantity(item);
+    return currentQty < 0;
   };
 
   if (userLoading) {
@@ -186,7 +221,7 @@ export default function InventoryPage() {
       )}
 
       {/* Inventory List */}
-      <div className="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-md">
+      <div className="bg-white dark:bg-gray-800 shadow sm:rounded-md overflow-visible">
         {isLoading ? (
           <div className="p-6 text-center text-gray-500 dark:text-gray-400">
             <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent mb-3"></div>
@@ -215,7 +250,7 @@ export default function InventoryPage() {
         ) : (
           <ul className="divide-y divide-gray-200 dark:divide-gray-700">
             {items.map((item) => (
-              <li key={item.id}>
+              <li key={item.id} className="relative">
                 <div
                   className="block hover:bg-gray-50 dark:hover:bg-gray-700/50 px-4 py-4 sm:px-6 cursor-pointer"
                   onClick={() => {
@@ -239,7 +274,7 @@ export default function InventoryPage() {
                               Low Stock
                             </span>
                           )}
-                          {item.quantity < 0 && (
+                          {isBackordered(item) && (
                             <span className="inline-flex items-center rounded-full bg-orange-100 dark:bg-orange-900/30 px-2 py-0.5 text-xs font-medium text-orange-800 dark:text-orange-300">
                               Backordered
                             </span>
@@ -273,17 +308,57 @@ export default function InventoryPage() {
                     </div>
                     <div className="ml-4 flex flex-col sm:flex-row sm:items-end gap-2 text-sm">
                       <div className="text-right">
-                        <p
-                          className={`font-medium ${
-                            item.quantity < 0
-                              ? "text-orange-600 dark:text-orange-400"
-                              : isLowStock(item)
-                              ? "text-red-600 dark:text-red-400"
-                              : "text-gray-900 dark:text-gray-100"
-                          }`}
+                        <div
+                          className="relative inline-block"
+                          onMouseEnter={() => setHoveredItemId(item.id)}
+                          onMouseLeave={() => setHoveredItemId(null)}
                         >
-                          Qty: {item.quantity}
-                        </p>
+                          <p
+                            className={`font-medium ${
+                              isBackordered(item)
+                                ? "text-orange-600 dark:text-orange-400"
+                                : isLowStock(item)
+                                ? "text-red-600 dark:text-red-400"
+                                : "text-gray-900 dark:text-gray-100"
+                            }`}
+                          >
+                            Qty: {getCurrentLocationQuantity(item)}
+                          </p>
+                          {hoveredItemId === item.id &&
+                            item.locationQuantities &&
+                            item.locationQuantities.length > 1 && (
+                              <div className="absolute right-0 bottom-full mb-2 z-[9999] w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-2xl p-3 pointer-events-none">
+                                <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                  Quantities by Location:
+                                </div>
+                                <div className="space-y-1 max-h-48 overflow-y-auto">
+                                  {item.locationQuantities.map((lq) => {
+                                    const location = locations.find(
+                                      (loc) => loc.id === lq.locationId
+                                    );
+                                    const isCurrentLocation =
+                                      lq.locationId === user?.currentLocationId;
+                                    return (
+                                      <div
+                                        key={lq.locationId}
+                                        className={`flex justify-between text-xs ${
+                                          isCurrentLocation
+                                            ? "font-semibold text-blue-600 dark:text-blue-400"
+                                            : "text-gray-600 dark:text-gray-400"
+                                        }`}
+                                      >
+                                        <span>
+                                          {location?.name || "Unknown Location"}
+                                          {isCurrentLocation && " (Current)"}
+                                        </span>
+                                        <span className="ml-2">{lq.quantity}</span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                        </div>
                         {isLowStock(item) && (
                           <p className="text-xs text-red-600 dark:text-red-400">
                             Reorder at {item.reorderLevel}

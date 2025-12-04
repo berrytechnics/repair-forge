@@ -430,7 +430,7 @@ export class PurchaseOrderService {
     return !!result;
   }
 
-  async receive(id: string, data: ReceivePurchaseOrderDto, companyId: string): Promise<PurchaseOrder> {
+  async receive(id: string, data: ReceivePurchaseOrderDto, companyId: string, locationId: string): Promise<PurchaseOrder> {
     // Get purchase order
     const po = await db
       .selectFrom("purchase_orders")
@@ -487,9 +487,10 @@ export class PurchaseOrderService {
         .where("id", "=", receivedItem.id)
         .execute();
 
-      // Update inventory quantity
-      await inventoryService.adjustQuantity(
+      // Update inventory quantity at receiving location
+      await inventoryService.adjustQuantityForLocation(
         item.inventory_item_id,
+        locationId,
         receivedItem.quantityReceived,
         companyId
       );
@@ -499,7 +500,8 @@ export class PurchaseOrderService {
         item.inventory_item_id,
         receivedItem.quantityReceived,
         item.unit_cost,
-        companyId
+        companyId,
+        locationId
       );
     }
 

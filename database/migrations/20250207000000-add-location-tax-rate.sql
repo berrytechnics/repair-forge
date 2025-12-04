@@ -12,3 +12,4 @@ COMMENT ON COLUMN locations.tax_rate IS 'Tax rate percentage for this location (
 
 
 
+
