@@ -14,6 +14,7 @@ export type SoftDelete = ColumnType<
 // Database interface
 export interface Database {
   assets: AssetTable;
+  cash_drawer_sessions: CashDrawerSessionTable;
   companies: CompanyTable;
   customers: CustomerTable;
   diagnostic_checklist_templates: DiagnosticChecklistTemplateTable;
@@ -130,7 +131,7 @@ export interface InvoiceTable {
   company_id: UUID;
   location_id: UUID | null;
   invoice_number: string;
-  customer_id: UUID;
+  customer_id: UUID | null;
   ticket_id: UUID | null;
   status: InvoiceStatus;
   issue_date: Timestamp | null;
@@ -148,6 +149,7 @@ export interface InvoiceTable {
   notes: string | null;
   payment_method: string | null;
   payment_reference: string | null;
+  cash_drawer_session_id: UUID | null;
   created_at: Timestamp;
   updated_at: Timestamp;
   deleted_at: SoftDelete;
@@ -428,6 +430,26 @@ export interface SystemSettingsTable {
   value: Record<string, unknown>;
   updated_at: Timestamp;
   updated_by: UUID | null;
+}
+
+export type CashDrawerSessionStatus = "open" | "closed";
+
+export interface CashDrawerSessionTable {
+  id: UUID;
+  company_id: UUID;
+  location_id: UUID | null;
+  user_id: UUID;
+  opening_amount: number;
+  closing_amount: number | null;
+  expected_amount: number | null;
+  variance: number | null;
+  status: CashDrawerSessionStatus;
+  opened_at: Timestamp;
+  closed_at: Timestamp | null;
+  notes: string | null;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+  deleted_at: SoftDelete;
 }
 
 // Extend Express Request interface to include user, companyId, and locationId property

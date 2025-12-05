@@ -3,6 +3,7 @@
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { getIntegration, IntegrationConfig } from "@/lib/api/integration.api";
 import { getInventory, InventoryItem as InventoryItemType, searchInventory } from "@/lib/api/inventory.api";
+import { getPosEnabled } from "@/lib/api/feature-flags.api";
 import {
   addInvoiceItem,
   getInvoiceById,
@@ -48,6 +49,7 @@ export default function InvoiceDetailPage({
   const [showRefundModal, setShowRefundModal] = useState(false);
   const [isPaymentConfigured, setIsPaymentConfigured] = useState(false);
   const [paymentProvider, setPaymentProvider] = useState<string | null>(null);
+  const [posEnabled, setPosEnabled] = useState<boolean | null>(null);
   const [paymentConfig, setPaymentConfig] = useState<IntegrationConfig | null>(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [inventoryItems, setInventoryItems] = useState<InventoryItemType[]>([]);
@@ -106,6 +108,20 @@ export default function InvoiceDetailPage({
 
     fetchInvoice();
   }, [params.id]);
+
+  // Check if POS is enabled
+  useEffect(() => {
+    const checkPosEnabled = async () => {
+      try {
+        const response = await getPosEnabled();
+        setPosEnabled(response.data?.enabled === true);
+      } catch (err) {
+        console.error("Error checking POS feature flag:", err);
+        setPosEnabled(false);
+      }
+    };
+    checkPosEnabled();
+  }, []);
 
   // Check if payment integration is configured
   useEffect(() => {
@@ -422,6 +438,20 @@ export default function InvoiceDetailPage({
   }) => {
     if (!invoice) return;
 
+    // Check if POS is enabled - if so, redirect to POS instead
+    try {
+      const posResponse = await getPosEnabled();
+      if (posResponse.data?.enabled === true) {
+        // Redirect to POS with invoice ID
+        router.push(`/pos?invoiceId=${invoice.id}`);
+        return;
+      }
+    } catch (err) {
+      // If we can't check POS flag, continue with normal flow
+      console.error("Error checking POS feature flag:", err);
+    }
+
+    // Normal flow: mark as paid directly
     setIsProcessing(true);
     try {
       await markInvoiceAsPaid(invoice.id, paymentData);
@@ -676,7 +706,15 @@ export default function InvoiceDetailPage({
                 )}
                 {hasPermission("invoices.markPaid") && (
                   <button
-                    onClick={() => setShowMarkPaidModal(true)}
+                    onClick={() => {
+                      // If POS is enabled, redirect to POS page with invoice preloaded
+                      if (posEnabled === true && invoice) {
+                        router.push(`/pos?invoiceId=${invoice.id}`);
+                      } else {
+                        // Otherwise, show the mark as paid modal
+                        setShowMarkPaidModal(true);
+                      }
+                    }}
                     disabled={isProcessing}
                     className="inline-flex items-center justify-center rounded-md border border-transparent bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50"
                   >

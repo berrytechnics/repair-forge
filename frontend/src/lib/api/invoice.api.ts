@@ -22,7 +22,7 @@ export interface InvoiceItem {
 export interface Invoice {
   id: string;
   invoiceNumber: string;
-  customerId: string;
+  customerId: string | null;
   customer?: Customer;
   ticketId?: string;
   ticket?: Ticket;
@@ -43,13 +43,14 @@ export interface Invoice {
   notes?: string;
   paymentMethod?: string;
   paymentReference?: string;
+  cashDrawerSessionId?: string | null;
   invoiceItems?: InvoiceItem[];
   createdAt: string;
   updatedAt: string;
 }
 
 export interface CreateInvoiceData {
-  customerId: string;
+  customerId?: string | null;
   ticketId?: string;
   status?: "draft" | "issued" | "paid" | "overdue" | "cancelled";
   dueDate?: string;

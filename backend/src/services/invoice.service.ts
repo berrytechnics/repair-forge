@@ -8,10 +8,11 @@ import emailService from "../integrations/email/email.service.js";
 import logger from "../config/logger.js";
 import customerService from "./customer.service.js";
 import inventoryService from "./inventory.service.js";
+import cashDrawerService from "./cash-drawer.service.js";
 
 // Input DTOs
 export interface CreateInvoiceDto {
-  customerId: string;
+  customerId?: string | null;
   ticketId?: string | null;
   status?: InvoiceStatus;
   subtotal?: number;
@@ -65,6 +66,7 @@ export type Invoice = Omit<
   | "refund_method"
   | "payment_method"
   | "payment_reference"
+  | "cash_drawer_session_id"
   | "created_at"
   | "updated_at"
   | "deleted_at"
@@ -72,7 +74,7 @@ export type Invoice = Omit<
   id: string;
   locationId: string | null;
   invoiceNumber: string;
-  customerId: string;
+  customerId: string | null;
   ticketId: string | null;
   issueDate: Date | null;
   dueDate: Date | null;
@@ -85,10 +87,11 @@ export type Invoice = Omit<
   refundDate: Date | null;
   refundReason: string | null;
   refundMethod: string | null;
-  paymentMethod: string | null;
-  paymentReference: string | null;
-  createdAt: Date;
-  updatedAt: Date;
+    paymentMethod: string | null;
+    paymentReference: string | null;
+    cashDrawerSessionId: string | null;
+    createdAt: Date;
+    updatedAt: Date;
 };
 
 // Invoice Item DTOs
@@ -193,7 +196,7 @@ function toInvoice(invoice: {
   company_id: string;
   location_id: string | null;
   invoice_number: string;
-  customer_id: string;
+  customer_id: string | null;
   ticket_id: string | null;
   status: InvoiceStatus;
   issue_date: Date | null;
@@ -237,6 +240,7 @@ function toInvoice(invoice: {
     notes: invoice.notes,
     paymentMethod: invoice.payment_method,
     paymentReference: invoice.payment_reference,
+    cashDrawerSessionId: invoice.cash_drawer_session_id || null,
     createdAt: invoice.created_at,
     updatedAt: invoice.updated_at,
   };
@@ -272,7 +276,8 @@ export class InvoiceService {
     customerId?: string,
     status?: InvoiceStatus,
     locationId?: string | null,
-    ticketId?: string
+    ticketId?: string,
+    searchQuery?: string
   ): Promise<Invoice[]> {
     let query = db
       .selectFrom("invoices")
@@ -298,6 +303,10 @@ export class InvoiceService {
 
     if (ticketId) {
       query = query.where("ticket_id", "=", ticketId);
+    }
+
+    if (searchQuery) {
+      query = query.where("invoice_number", "ilike", `%${searchQuery}%`);
     }
 
     const invoices = await query.execute();
@@ -395,7 +404,7 @@ export class InvoiceService {
         company_id: companyId,
         location_id: locationId,
         invoice_number: invoiceNumber,
-        customer_id: data.customerId,
+        customer_id: data.customerId || null,
         ticket_id: data.ticketId || null,
         status: data.status || "draft",
         issue_date: issueDate,
@@ -422,9 +431,11 @@ export class InvoiceService {
     // Send email notification if invoice is issued (not draft)
     if (createdInvoice.status === 'issued' || createdInvoice.status === 'paid') {
       try {
-        const customer = await customerService.findById(createdInvoice.customerId, companyId);
-        if (customer) {
-          await emailService.sendInvoiceEmail(companyId, createdInvoice, customer);
+        if (createdInvoice.customerId) {
+          const customer = await customerService.findById(createdInvoice.customerId, companyId);
+          if (customer) {
+            await emailService.sendInvoiceEmail(companyId, createdInvoice, customer);
+          }
         }
       } catch {
         // Don't fail invoice creation if email fails - just log error
@@ -526,9 +537,11 @@ export class InvoiceService {
     // Send email notification if status changed to issued or paid
     if (data.status === 'issued' || data.status === 'paid') {
       try {
-        const customer = await customerService.findById(invoiceData.customerId, companyId);
-        if (customer) {
-          await emailService.sendInvoiceEmail(companyId, invoiceData, customer);
+        if (invoiceData.customerId) {
+          const customer = await customerService.findById(invoiceData.customerId, companyId);
+          if (customer) {
+            await emailService.sendInvoiceEmail(companyId, invoiceData, customer);
+          }
         }
       } catch {
         // Don't fail invoice update if email fails - just log error
@@ -1094,6 +1107,25 @@ export class InvoiceService {
       throw new NotFoundError("Invoice not found");
     }
 
+    // If payment is cash, try to link to current drawer session
+    let cashDrawerSessionId: string | null = null;
+    if (data.paymentMethod === "Cash" && invoice.locationId) {
+      try {
+        const currentDrawer = await cashDrawerService.getCurrentDrawerSession(
+          companyId,
+          invoice.locationId
+        );
+        if (currentDrawer) {
+          cashDrawerSessionId = currentDrawer.id;
+        }
+      } catch (error) {
+        // Log but don't fail - drawer linking is optional
+        logger.warn(
+          `Failed to link invoice ${invoiceId} to drawer session: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+    }
+
     // Update invoice
     const paidDate = data.paidDate ? new Date(data.paidDate).toISOString() : new Date().toISOString();
 
@@ -1104,6 +1136,7 @@ export class InvoiceService {
         paid_date: paidDate,
         payment_method: data.paymentMethod,
         payment_reference: data.paymentReference || null,
+        cash_drawer_session_id: cashDrawerSessionId,
         notes: data.notes || invoice.notes || null,
         updated_at: sql`now()`,
       })
@@ -1132,9 +1165,11 @@ export class InvoiceService {
 
     // Send email notification for payment confirmation
     try {
-      const customer = await customerService.findById(invoiceData.customerId, companyId);
-      if (customer) {
-        await emailService.sendInvoiceEmail(companyId, invoiceData, customer);
+      if (invoiceData.customerId) {
+        const customer = await customerService.findById(invoiceData.customerId, companyId);
+        if (customer) {
+          await emailService.sendInvoiceEmail(companyId, invoiceData, customer);
+        }
       }
     } catch {
       // Don't fail payment if email fails - just log error

@@ -5,10 +5,19 @@ import { body } from "express-validator";
  */
 export const createInvoiceValidation = [
   body("customerId")
-    .exists()
-    .withMessage("Customer ID is required")
-    .isUUID()
-    .withMessage("Customer ID must be a valid UUID"),
+    .optional({ values: "falsy" })
+    .custom((value) => {
+      // If empty string, null, or undefined, skip validation (allows no customer)
+      if (!value || value === "") {
+        return true;
+      }
+      // Otherwise, validate as UUID
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(value)) {
+        throw new Error("Customer ID must be a valid UUID");
+      }
+      return true;
+    }),
   body("ticketId")
     .optional()
     .isUUID()

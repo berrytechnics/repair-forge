@@ -2,29 +2,31 @@
 
 // components/Sidebar.tsx
 import { logout } from "@/lib/api";
+import { getPosEnabled } from "@/lib/api/feature-flags.api";
 import { useTheme } from "@/lib/ThemeContext";
 import { useUser } from "@/lib/UserContext";
 import { cn } from "@/lib/utils";
 import {
-    ArrowPathIcon,
-    ArrowRightEndOnRectangleIcon,
-    Bars3Icon,
-    ChartBarIcon,
-    ClipboardDocumentIcon,
-    Cog6ToothIcon,
-    DocumentTextIcon,
-    EyeIcon,
-    MoonIcon,
-    ShoppingBagIcon,
-    Squares2X2Icon,
-    SunIcon,
-    TicketIcon,
-    UsersIcon,
-    XMarkIcon,
+  ArrowPathIcon,
+  ArrowRightEndOnRectangleIcon,
+  Bars3Icon,
+  ChartBarIcon,
+  ClipboardDocumentIcon,
+  Cog6ToothIcon,
+  CreditCardIcon,
+  DocumentTextIcon,
+  EyeIcon,
+  MoonIcon,
+  ShoppingBagIcon,
+  Squares2X2Icon,
+  SunIcon,
+  TicketIcon,
+  UsersIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import LocationSwitcher from "./LocationSwitcher";
 
 interface SidebarLinkProps {
@@ -55,10 +57,29 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
+  const [posEnabled, setPosEnabled] = useState(false);
   const { user, isLoading, setUser, hasPermission, isSuperuser, impersonatedCompanyId, stopImpersonating } = useUser();
   const { theme, toggleTheme } = useTheme();
 
   const toggleSidebar = () => setIsOpen(!isOpen);
+
+  // Load POS feature flag
+  useEffect(() => {
+    const loadPosFlag = async () => {
+      if (isLoading || !user) return;
+      
+      try {
+        const response = await getPosEnabled();
+        setPosEnabled(response.data?.enabled === true);
+      } catch (err) {
+        // If we can't check the flag, default to false (fail closed for sidebar)
+        console.error("Error loading POS feature flag:", err);
+        setPosEnabled(false);
+      }
+    };
+
+    loadPosFlag();
+  }, [isLoading, user]);
 
   const handleLogout = () => {
     logout();
@@ -79,6 +100,7 @@ export default function Sidebar() {
     icon: React.ReactNode;
     permission: string;
     adminOnly?: boolean;
+    requiresPosEnabled?: boolean;
   }
 
   const allNavigationItems: NavigationItem[] = [
@@ -125,6 +147,13 @@ export default function Sidebar() {
       permission: "invoices.read",
     },
     {
+      href: "/pos",
+      label: "Point of Sale",
+      icon: <CreditCardIcon className="w-6 h-6" />,
+      permission: "invoices.read",
+      requiresPosEnabled: true,
+    },
+    {
       href: "/reporting",
       label: "Reports",
       icon: <ChartBarIcon className="w-6 h-6" />,
@@ -161,6 +190,12 @@ export default function Sidebar() {
     if (item.adminOnly && user.role !== "admin") {
       return false;
     }
+    
+    // Check POS feature flag
+    if (item.requiresPosEnabled && !posEnabled) {
+      return false;
+    }
+    
     return hasPermission(item.permission);
   });
 

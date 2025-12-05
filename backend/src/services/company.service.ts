@@ -213,6 +213,41 @@ export class CompanyService {
 
     return !!result;
   }
+
+  /**
+   * Get POS feature flag status for a company
+   * Returns true if enabled, false if disabled or not set (defaults to false)
+   */
+  async getPosEnabled(companyId: string): Promise<boolean> {
+    const company = await this.findById(companyId);
+    if (!company || !company.settings) {
+      return false;
+    }
+    return (company.settings.posEnabled as boolean) === true;
+  }
+
+  /**
+   * Set POS feature flag status for a company
+   */
+  async setPosEnabled(companyId: string, enabled: boolean): Promise<boolean> {
+    const company = await this.findById(companyId);
+    if (!company) {
+      throw new Error("Company not found");
+    }
+
+    const currentSettings = company.settings || {};
+    const updatedSettings = {
+      ...currentSettings,
+      posEnabled: enabled,
+    };
+
+    const updated = await this.update(companyId, { settings: updatedSettings });
+    if (!updated) {
+      throw new Error("Failed to update company settings");
+    }
+
+    return enabled;
+  }
 }
 
 export default new CompanyService();

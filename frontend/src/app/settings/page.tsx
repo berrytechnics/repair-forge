@@ -6,6 +6,7 @@ import {
   Cog6ToothIcon,
   CreditCardIcon,
   EnvelopeIcon,
+  FlagIcon,
   MapPinIcon,
   ShieldCheckIcon,
   UserCircleIcon,
@@ -84,6 +85,14 @@ export default function SettingsPage() {
       href: "/settings/integrations/payment",
       icon: CreditCardIcon,
       permission: "payments.configure",
+      adminOnly: true,
+    },
+    {
+      name: "Feature Flags",
+      description: "Enable or disable features for your organization",
+      href: "/settings/feature-flags",
+      icon: FlagIcon,
+      permission: "settings.access",
       adminOnly: true,
     },
     {

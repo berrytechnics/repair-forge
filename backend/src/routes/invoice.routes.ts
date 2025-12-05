@@ -36,12 +36,14 @@ router.get(
     const customerId = req.query.customerId as string | undefined;
     const status = req.query.status as InvoiceStatus | undefined;
     const ticketId = req.query.ticketId as string | undefined;
+    const searchQuery = req.query.search as string | undefined;
     const invoices = await invoiceService.findAll(
       companyId,
       customerId,
       status,
       locationId || undefined,
-      ticketId
+      ticketId,
+      searchQuery
     );
     res.json({ success: true, data: invoices });
   })
