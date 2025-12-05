@@ -169,7 +169,7 @@ export class TicketService {
   async findAll(
     companyId: string,
     customerId?: string,
-    status?: TicketStatus,
+    status?: TicketStatus | TicketStatus[],
     locationId?: string | null
   ): Promise<Ticket[]> {
     let query = db
@@ -183,7 +183,13 @@ export class TicketService {
     }
 
     if (status) {
-      query = query.where("status", "=", status);
+      if (Array.isArray(status)) {
+        if (status.length > 0) {
+          query = query.where("status", "in", status);
+        }
+      } else {
+        query = query.where("status", "=", status);
+      }
     }
 
     if (locationId !== undefined) {

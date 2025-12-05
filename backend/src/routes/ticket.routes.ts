@@ -55,7 +55,27 @@ router.get(
     const companyId = req.companyId!;
     const locationId = req.locationId; // May be undefined for superusers impersonating
     const customerId = req.query.customerId as string | undefined;
-    const status = req.query.status as TicketStatus | undefined;
+    const statusParam = req.query.status;
+    let status: TicketStatus | TicketStatus[] | undefined;
+    
+    // Handle multiple statuses (can be array or comma-separated string)
+    if (statusParam) {
+      if (Array.isArray(statusParam)) {
+        status = statusParam.filter((s): s is TicketStatus => 
+          ["new", "assigned", "in_progress", "on_hold", "completed", "cancelled"].includes(s as string)
+        ) as TicketStatus[];
+      } else if (typeof statusParam === "string") {
+        const statuses = statusParam.split(",").map(s => s.trim()).filter(s => s);
+        if (statuses.length === 1) {
+          status = statuses[0] as TicketStatus;
+        } else if (statuses.length > 1) {
+          status = statuses.filter((s): s is TicketStatus => 
+            ["new", "assigned", "in_progress", "on_hold", "completed", "cancelled"].includes(s)
+          ) as TicketStatus[];
+        }
+      }
+    }
+    
     const tickets = await ticketService.findAll(
       companyId,
       customerId,

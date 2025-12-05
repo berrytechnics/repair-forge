@@ -5,7 +5,7 @@ import { useUser } from "@/lib/UserContext";
 import { formatPriority, formatStatus, getPriorityColor, getStatusColor } from "@/lib/utils/ticketUtils";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 // Define ticket interface based on your model
 interface Ticket {
@@ -39,9 +39,11 @@ export default function TicketsListPage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
-  const [filterStatus, setFilterStatus] = useState("");
+  const [filterStatus, setFilterStatus] = useState<string[]>(["new", "assigned", "in_progress", "on_hold"]);
   const [filterPriority, setFilterPriority] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
+  const statusDropdownRef = useRef<HTMLDivElement>(null);
 
   // Check if user has permission to access this page
   useEffect(() => {
@@ -56,7 +58,9 @@ export default function TicketsListPage() {
       try {
         // Build query params for filtering
         const params = new URLSearchParams();
-        if (filterStatus) params.append("status", filterStatus);
+        if (filterStatus.length > 0) {
+          params.append("status", filterStatus.join(","));
+        }
         if (filterPriority) params.append("priority", filterPriority);
 
         const response = await getTickets(params);
@@ -75,6 +79,23 @@ export default function TicketsListPage() {
 
     fetchTickets();
   }, [filterStatus, filterPriority]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target as Node)) {
+        setShowStatusDropdown(false);
+      }
+    };
+
+    if (showStatusDropdown) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showStatusDropdown]);
 
 
   // Function to format date
@@ -152,19 +173,51 @@ export default function TicketsListPage() {
             />
           </div>
           <div className="mt-3 sm:mt-0 sm:flex sm:items-center gap-3">
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 py-2 pl-3 pr-10 text-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-            >
-              <option value="">All Statuses</option>
-              <option value="new">New</option>
-              <option value="assigned">Assigned</option>
-              <option value="in_progress">In Progress</option>
-              <option value="on_hold">On Hold</option>
-              <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
+            <div className="relative" ref={statusDropdownRef}>
+              <button
+                type="button"
+                className="rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 py-2 pl-3 pr-10 text-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 text-left w-full sm:w-auto min-w-[150px]"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setShowStatusDropdown(!showStatusDropdown);
+                }}
+              >
+                Status ({filterStatus.length})
+              </button>
+              {showStatusDropdown && (
+                <div className="absolute z-10 mt-1 w-56 rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                  <div className="py-1" role="menu">
+                    {[
+                      { value: "new", label: "New" },
+                      { value: "assigned", label: "Assigned" },
+                      { value: "in_progress", label: "In Progress" },
+                      { value: "on_hold", label: "On Hold" },
+                      { value: "completed", label: "Completed" },
+                      { value: "cancelled", label: "Cancelled" },
+                    ].map((status) => (
+                      <label
+                        key={status.value}
+                        className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={filterStatus.includes(status.value)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setFilterStatus([...filterStatus, status.value]);
+                            } else {
+                              setFilterStatus(filterStatus.filter((s) => s !== status.value));
+                            }
+                          }}
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        />
+                        <span className="ml-2">{status.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
             <select
               value={filterPriority}
               onChange={(e) => setFilterPriority(e.target.value)}
