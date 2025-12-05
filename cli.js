@@ -687,6 +687,32 @@ program
     }
   });
 
+program
+  .command("e2e")
+  .description("Run E2E tests")
+  .option("--skip-build", "Skip building frontend before running tests")
+  .action((options) => {
+    log("Running E2E tests...", "green");
+    
+    // Check if frontend is built
+    const frontendBuildPath = path.join(process.cwd(), "frontend", ".next");
+    if (!options.skipBuild && !fs.existsSync(frontendBuildPath)) {
+      log("Frontend not built. Building frontend...", "yellow");
+      executeCommand("yarn build", {
+        cwd: path.join(process.cwd(), "frontend"),
+      });
+    }
+    
+    // Run E2E tests
+    log("Running Playwright E2E tests...", "blue");
+    executeCommand("yarn test:e2e", {
+      cwd: path.join(process.cwd(), "frontend"),
+    });
+    
+    // Only reached if tests passed (executeCommand exits on failure)
+    log("All E2E tests passed!", "green");
+  });
+
 // Build commands
 program
   .command("build")
