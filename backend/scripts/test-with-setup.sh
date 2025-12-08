@@ -7,15 +7,20 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKEND_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
+# Store test exit code in a way that survives trap
+# This will be set after tests run, or remain unset if script fails before tests
+TEST_EXIT_CODE=""
+
 # Cleanup function to ensure teardown happens even on failure
 cleanup() {
-  EXIT_CODE=$?
+  # Use TEST_EXIT_CODE if set (from test execution), otherwise use $? (from set -e failure)
+  local exit_code=${TEST_EXIT_CODE:-$?}
   echo ""
   echo "Cleaning up test database..."
   "${SCRIPT_DIR}/teardown-test-db.sh" || true
-  # Exit with the captured exit code to propagate failures
+  # Exit with the appropriate exit code to propagate failures
   # (Failure messages are already printed by the main script)
-  exit $EXIT_CODE
+  exit $exit_code
 }
 
 # Set trap to ensure cleanup happens
@@ -52,17 +57,29 @@ export JWT_SECRET=test_secret_for_ci_only
 # Run tests and capture exit code
 # Temporarily disable set -e to capture exit code even on failure
 set +e
-yarn test
+TEST_OUTPUT=$(yarn test 2>&1)
 TEST_EXIT_CODE=$?
 set -e
 
-# Only print success message if tests actually passed
-if [ $TEST_EXIT_CODE -eq 0 ]; then
+# Check Jest output for failures (Jest sometimes exits with 0 even when tests fail)
+# Look for patterns like "Test Suites: X failed" or "Tests: X failed"
+if echo "$TEST_OUTPUT" | grep -qE "Test Suites:.*[1-9][0-9]* failed" || \
+   echo "$TEST_OUTPUT" | grep -qE "Tests:.*[1-9][0-9]* failed"; then
+  # Tests failed - set exit code to 1
+  TEST_EXIT_CODE=1
+  echo "$TEST_OUTPUT"
+  echo ""
+  echo "========================================="
+  echo "Tests failed (detected from output)"
+  echo "========================================="
+elif [ $TEST_EXIT_CODE -eq 0 ]; then
+  echo "$TEST_OUTPUT"
   echo ""
   echo "========================================="
   echo "All tests passed!"
   echo "========================================="
 else
+  echo "$TEST_OUTPUT"
   echo ""
   echo "========================================="
   echo "Tests failed with exit code $TEST_EXIT_CODE"
@@ -70,5 +87,6 @@ else
 fi
 
 # Exit with the test exit code to propagate failures
+# The cleanup trap will use TEST_EXIT_CODE variable
 exit $TEST_EXIT_CODE
 

@@ -16,11 +16,19 @@ export const db = new Kysely<Database>({
       port: parseInt(process.env.DB_PORT || "5432", 10),
       // Connection pool settings
       // Increase pool size for tests to handle parallel test execution
-      max: process.env.NODE_ENV === "test" ? 20 : 10,
-      // Reduce idle timeout in test environment to help Jest exit faster
-      idleTimeoutMillis: process.env.NODE_ENV === "test" ? 1000 : 30000,
-      // Increase connection timeout for tests to handle database startup delays
-      connectionTimeoutMillis: process.env.NODE_ENV === "test" ? 5000 : 2000,
+      // Use higher value to prevent connection pool exhaustion during parallel test runs
+      max: process.env.NODE_ENV === "test" ? 50 : 10,
+      // Don't set min connections - let the pool create connections on demand
+      // Setting min can cause issues if connections can't be established immediately
+      // The pool will create connections as needed up to max
+      // Idle timeout: how long a connection can be idle before being closed
+      // Too short causes premature connection closure and pool exhaustion
+      // Too long keeps connections open unnecessarily
+      // 10 seconds is a good balance for tests - allows reuse without keeping connections too long
+      idleTimeoutMillis: process.env.NODE_ENV === "test" ? 10000 : 30000,
+      // Connection timeout: how long to wait for a connection from the pool
+      // Increase for tests to handle database startup delays and parallel execution
+      connectionTimeoutMillis: process.env.NODE_ENV === "test" ? 10000 : 2000,
     }),
   }),
   // Add query logging

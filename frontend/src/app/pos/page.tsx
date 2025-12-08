@@ -9,6 +9,7 @@ import {
     getCustomerById,
     searchCustomers
 } from "@/lib/api/customer.api";
+import { getIntegration, IntegrationConfig } from "@/lib/api/integration.api";
 import { getPosEnabled } from "@/lib/api/feature-flags.api";
 import { InventoryItem, searchInventory } from "@/lib/api/inventory.api";
 import {
@@ -18,6 +19,7 @@ import {
     getInvoiceById,
     getInvoices,
     Invoice,
+    markInvoiceAsPaid,
     removeInvoiceItem
 } from "@/lib/api/invoice.api";
 import { processPayment } from "@/lib/api/payment.api";
@@ -63,9 +65,12 @@ export default function POSPage() {
   );
   const [showCashModal, setShowCashModal] = useState(false);
   const [showCardPayment, setShowCardPayment] = useState(false);
+  const [showManualCardForm, setShowManualCardForm] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [error, setError] = useState("");
   const [posEnabled, setPosEnabled] = useState<boolean | null>(null);
+  const [isPaymentConfigured, setIsPaymentConfigured] = useState(false);
+  const [paymentConfig, setPaymentConfig] = useState<IntegrationConfig | null>(null);
 
   // Check permissions and feature flag
   useEffect(() => {
@@ -95,6 +100,26 @@ export default function POSPage() {
 
     checkAccess();
   }, [user, userLoading, hasPermission, router]);
+
+  // Check if payment integration is configured
+  useEffect(() => {
+    const checkPaymentIntegration = async () => {
+      try {
+        const response = await getIntegration("payment");
+        if (response && response.data) {
+          setIsPaymentConfigured(response.data.enabled === true);
+          setPaymentConfig(response.data);
+        } else {
+          setIsPaymentConfigured(false);
+          setPaymentConfig(null);
+        }
+      } catch {
+        setIsPaymentConfigured(false);
+        setPaymentConfig(null);
+      }
+    };
+    checkPaymentIntegration();
+  }, []);
 
   // Search customers
   const handleCustomerSearch = async () => {
@@ -416,6 +441,42 @@ export default function POSPage() {
     }
     setShowCashModal(false);
     setPaymentMethod(null);
+  };
+
+  // Handle manual card payment (when payment integration is not configured)
+  const handleManualCardPayment = async (paymentData: {
+    paymentMethod: string;
+    paymentReference?: string;
+    paidDate?: string;
+    notes?: string;
+  }) => {
+    if (!invoice) return;
+
+    setIsProcessingPayment(true);
+    setError("");
+    try {
+      await markInvoiceAsPaid(invoice.id, {
+        ...paymentData,
+        paymentMethod: paymentData.paymentMethod || "Card",
+      });
+
+      // Refresh invoice
+      const response = await getInvoiceById(invoice.id);
+      if (response.data) {
+        const normalizedInvoice = normalizeInvoice(response.data);
+        setInvoice(normalizedInvoice);
+      }
+
+      setShowManualCardForm(false);
+      setPaymentMethod(null);
+    } catch (err) {
+      console.error("Error recording card payment:", err);
+      setError(
+        err instanceof Error ? err.message : "Failed to record card payment"
+      );
+    } finally {
+      setIsProcessingPayment(false);
+    }
   };
 
   // Start new transaction
@@ -837,22 +898,44 @@ export default function POSPage() {
                 {/* Card Payment */}
                 {paymentMethod === "card" && (
                   <div>
-                    <SquarePaymentForm
-                      onPaymentSuccess={handleCardTokenized}
-                      onError={(err) => setError(err)}
-                      disabled={isProcessingPayment}
-                      amount={invoice.totalAmount}
-                      isProcessing={isProcessingPayment}
-                    />
-                    <button
-                      onClick={() => {
-                        setPaymentMethod(null);
-                        setShowCardPayment(false);
-                      }}
-                      className="w-full mt-2 px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
-                    >
-                      Cancel
-                    </button>
+                    {isPaymentConfigured ? (
+                      <>
+                        <SquarePaymentForm
+                          onPaymentSuccess={handleCardTokenized}
+                          onError={(err) => setError(err)}
+                          disabled={isProcessingPayment}
+                          amount={invoice.totalAmount}
+                          isProcessing={isProcessingPayment}
+                        />
+                        <button
+                          onClick={() => {
+                            setPaymentMethod(null);
+                            setShowCardPayment(false);
+                          }}
+                          className="w-full mt-2 px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                        >
+                          Cancel
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => setShowManualCardForm(true)}
+                          className="w-full px-4 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
+                        >
+                          Record Card Payment
+                        </button>
+                        <button
+                          onClick={() => {
+                            setPaymentMethod(null);
+                            setShowManualCardForm(false);
+                          }}
+                          className="w-full mt-2 px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                        >
+                          Cancel
+                        </button>
+                      </>
+                    )}
                   </div>
                 )}
 
@@ -882,6 +965,165 @@ export default function POSPage() {
           onSuccess={handlePaymentSuccess}
         />
       )}
+
+      {/* Manual Card Payment Form Modal */}
+      {invoice && (
+        <ManualCardPaymentModal
+          invoice={invoice}
+          isOpen={showManualCardForm}
+          onClose={() => {
+            setShowManualCardForm(false);
+            setPaymentMethod(null);
+          }}
+          onConfirm={handleManualCardPayment}
+          isProcessing={isProcessingPayment}
+        />
+      )}
+    </div>
+  );
+}
+
+// Manual Card Payment Modal Component
+function ManualCardPaymentModal({
+  invoice,
+  isOpen,
+  onClose,
+  onConfirm,
+  isProcessing,
+}: {
+  invoice: Invoice;
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: (data: {
+    paymentMethod: string;
+    paymentReference?: string;
+    paidDate?: string;
+    notes?: string;
+  }) => void;
+  isProcessing: boolean;
+}) {
+  const [formData, setFormData] = useState({
+    paymentMethod: "Card",
+    paymentReference: "",
+    paidDate: new Date().toISOString().split("T")[0],
+    notes: "",
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.paymentMethod.trim()) {
+      alert("Payment method is required");
+      return;
+    }
+    onConfirm({
+      paymentMethod: formData.paymentMethod,
+      paymentReference: formData.paymentReference || undefined,
+      paidDate: formData.paidDate || undefined,
+      notes: formData.notes || undefined,
+    });
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 overflow-y-auto z-50 flex items-center justify-center">
+      <div className="fixed inset-0 bg-black opacity-30" onClick={onClose}></div>
+      <div className="relative bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6 shadow-xl">
+        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+          Record Card Payment
+        </h3>
+        <form onSubmit={handleSubmit}>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Payment Method *
+              </label>
+              <select
+                required
+                value={formData.paymentMethod}
+                onChange={(e) =>
+                  setFormData({ ...formData, paymentMethod: e.target.value })
+                }
+                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+              >
+                <option value="Card">Card</option>
+                <option value="Credit Card">Credit Card</option>
+                <option value="Debit Card">Debit Card</option>
+                <option value="Visa">Visa</option>
+                <option value="Mastercard">Mastercard</option>
+                <option value="American Express">American Express</option>
+                <option value="Discover">Discover</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Payment Reference
+              </label>
+              <input
+                type="text"
+                value={formData.paymentReference}
+                onChange={(e) =>
+                  setFormData({ ...formData, paymentReference: e.target.value })
+                }
+                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                placeholder="Optional reference number"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Paid Date
+              </label>
+              <input
+                type="date"
+                value={formData.paidDate}
+                onChange={(e) =>
+                  setFormData({ ...formData, paidDate: e.target.value })
+                }
+                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Notes
+              </label>
+              <textarea
+                value={formData.notes}
+                onChange={(e) =>
+                  setFormData({ ...formData, notes: e.target.value })
+                }
+                rows={3}
+                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                placeholder="Optional notes"
+              />
+            </div>
+            <div className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-md">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600 dark:text-gray-400">Total Amount:</span>
+                <span className="font-medium text-gray-900 dark:text-gray-100">
+                  ${invoice.totalAmount.toFixed(2)}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="mt-6 flex gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isProcessing}
+              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isProcessing}
+              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+            >
+              {isProcessing ? "Processing..." : "Record Payment"}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

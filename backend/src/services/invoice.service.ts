@@ -214,6 +214,7 @@ function toInvoice(invoice: {
   notes: string | null;
   payment_method: string | null;
   payment_reference: string | null;
+  cash_drawer_session_id?: string | null;
   created_at: Date;
   updated_at: Date;
   deleted_at: Date | null;

@@ -3,7 +3,7 @@ import { sql } from "kysely";
 import { v4 as uuidv4 } from "uuid";
 import { db } from "../config/connection.js";
 import { BadRequestError, NotFoundError } from "../config/errors.js";
-import { CashDrawerSessionStatus, CashDrawerSessionTable } from "../config/types.js";
+import { CashDrawerSessionStatus } from "../config/types.js";
 import logger from "../config/logger.js";
 
 // Input DTOs
@@ -36,7 +36,22 @@ export interface CashDrawerSession {
 
 // Helper function to convert database row to DTO
 function toCashDrawerSession(
-  row: CashDrawerSessionTable
+  row: {
+    id: string;
+    company_id: string;
+    location_id: string | null;
+    user_id: string;
+    opening_amount: number;
+    closing_amount: number | null;
+    expected_amount: number | null;
+    variance: number | null;
+    status: CashDrawerSessionStatus;
+    opened_at: Date | string;
+    closed_at: Date | string | null;
+    notes: string | null;
+    created_at: Date | string;
+    updated_at: Date | string;
+  }
 ): CashDrawerSession {
   return {
     id: row.id,
@@ -48,11 +63,11 @@ function toCashDrawerSession(
     expectedAmount: row.expected_amount ? Number(row.expected_amount) : null,
     variance: row.variance ? Number(row.variance) : null,
     status: row.status,
-    openedAt: new Date(row.opened_at),
-    closedAt: row.closed_at ? new Date(row.closed_at) : null,
+    openedAt: row.opened_at instanceof Date ? row.opened_at : new Date(row.opened_at),
+    closedAt: row.closed_at ? (row.closed_at instanceof Date ? row.closed_at : new Date(row.closed_at)) : null,
     notes: row.notes,
-    createdAt: new Date(row.created_at),
-    updatedAt: new Date(row.updated_at),
+    createdAt: row.created_at instanceof Date ? row.created_at : new Date(row.created_at),
+    updatedAt: row.updated_at instanceof Date ? row.updated_at : new Date(row.updated_at),
   };
 }
 
@@ -230,8 +245,8 @@ export class CashDrawerService {
     locationId?: string | null,
     startDate?: string,
     endDate?: string,
-    limit: number = 50,
-    offset: number = 0
+    limit = 50,
+    offset = 0
   ): Promise<CashDrawerSession[]> {
     let query = db
       .selectFrom("cash_drawer_sessions")
@@ -251,11 +266,11 @@ export class CashDrawerService {
     }
 
     if (startDate) {
-      query = query.where("opened_at", ">=", startDate);
+      query = query.where("opened_at", ">=", new Date(startDate));
     }
 
     if (endDate) {
-      query = query.where("opened_at", "<=", endDate);
+      query = query.where("opened_at", "<=", new Date(endDate));
     }
 
     const sessions = await query.execute();
@@ -285,19 +300,6 @@ export class CashDrawerService {
     }
 
     const openingAmount = Number(session.opening_amount);
-
-    // Get session opened_at timestamp
-    const sessionData = await db
-      .selectFrom("cash_drawer_sessions")
-      .select(["opened_at"])
-      .where("id", "=", sessionId)
-      .executeTakeFirst();
-
-    if (!sessionData) {
-      return openingAmount;
-    }
-
-    const openedAt = new Date(sessionData.opened_at);
 
     // Calculate cash sales (invoices paid with cash during this session)
     const cashSalesResult = await db
@@ -350,4 +352,6 @@ export class CashDrawerService {
 }
 
 export default new CashDrawerService();
+
+
 

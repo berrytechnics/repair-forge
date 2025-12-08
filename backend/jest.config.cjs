@@ -37,5 +37,8 @@ module.exports = {
   forceExit: true,
   // Inject Jest globals for ES modules
   injectGlobals: true,
+  // Limit max workers to reduce database connection pool pressure
+  // This helps prevent connection pool exhaustion during parallel test execution
+  maxWorkers: process.env.CI ? 2 : '50%',
 };
 

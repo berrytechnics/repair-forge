@@ -7,6 +7,42 @@ import { UserRole, TicketStatus, TicketPriority, InvoiceStatus, InventoryTransfe
 import { db } from "../../config/connection.js";
 
 /**
+ * Retry a database operation with exponential backoff
+ * Useful for handling connection pool exhaustion during parallel test execution
+ */
+async function retryDbOperation<T>(
+  operation: () => Promise<T>,
+  maxRetries = 3,
+  initialDelay = 100
+): Promise<T> {
+  let lastError: Error | undefined;
+  
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error: any) {
+      lastError = error;
+      // Check if it's a connection pool error
+      const isConnectionError = 
+        error?.message?.includes('timeout') ||
+        error?.message?.includes('connection') ||
+        error?.name === 'AggregateError' ||
+        error?.code === 'ECONNREFUSED';
+      
+      if (isConnectionError && attempt < maxRetries - 1) {
+        // Exponential backoff: wait longer between retries
+        const delay = initialDelay * Math.pow(2, attempt);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+      throw error;
+    }
+  }
+  
+  throw lastError || new Error('Operation failed after retries');
+}
+
+/**
  * Create a test company in the database
  */
 export async function createTestCompany(
@@ -21,22 +57,23 @@ export async function createTestCompany(
   // Generate unique subdomain if not provided to avoid constraint violations
   const subdomain = overrides?.subdomain || `test-company-${companyId.slice(0, 8)}`;
   
-  await db
-    .insertInto("companies")
-    .values({
-      id: companyId,
-      name: overrides?.name || "Test Company",
-      subdomain: subdomain,
-      plan: overrides?.plan || "free",
-      status: overrides?.status || "active",
-      settings: {},
-      created_at: sql`now()`,
-      updated_at: sql`now()`,
-      deleted_at: null,
-    })
-    .execute();
-
-  return companyId;
+  return await retryDbOperation(async () => {
+    await db
+      .insertInto("companies")
+      .values({
+        id: companyId,
+        name: overrides?.name || "Test Company",
+        subdomain: subdomain,
+        plan: overrides?.plan || "free",
+        status: overrides?.status || "active",
+        settings: {},
+        created_at: sql`now()`,
+        updated_at: sql`now()`,
+        deleted_at: null,
+      })
+      .execute();
+    return companyId;
+  });
 }
 
 /**

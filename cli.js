@@ -38,9 +38,8 @@ function executeCommand(command, options = {}) {
       
       // Use spawnSync to capture both stdout and stderr synchronously
       // This is necessary because Jest writes to stderr, and execSync only captures stderr on error
-      const [cmd, ...args] = command.split(" ");
-      
-      const result = spawnSync(cmd, args, {
+      // When shell: true, pass command as a single string
+      const result = spawnSync(command, {
         cwd: options.cwd || process.cwd(),
         shell: true,
         stdio: ["inherit", "pipe", "pipe"],

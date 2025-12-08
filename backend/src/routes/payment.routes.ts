@@ -138,6 +138,11 @@ router.post(
     // Use provided amount or invoice total
     const paymentAmount = amount || invoice.totalAmount;
 
+    // Validate customerId is present
+    if (!invoice.customerId) {
+      throw new BadRequestError('Invoice must have a customer to process payment');
+    }
+
     // Process payment
     try {
       const result = await paymentService.processPayment(companyId, {
@@ -271,6 +276,11 @@ router.post(
 
     // Use provided amount or invoice total
     const checkoutAmount = amount || invoice.totalAmount;
+
+    // Validate customerId is present
+    if (!invoice.customerId) {
+      throw new BadRequestError('Invoice must have a customer to process payment');
+    }
 
     // Create terminal checkout
     try {

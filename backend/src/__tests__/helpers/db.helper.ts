@@ -4,6 +4,42 @@ import { Database } from "../../config/types.js";
 import { db } from "../../config/connection.js";
 
 /**
+ * Retry a database operation with exponential backoff
+ * Useful for handling connection pool exhaustion during parallel test execution
+ */
+async function retryDbOperation<T>(
+  operation: () => Promise<T>,
+  maxRetries = 3,
+  initialDelay = 100
+): Promise<T> {
+  let lastError: Error | undefined;
+  
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error: any) {
+      lastError = error;
+      // Check if it's a connection pool error
+      const isConnectionError = 
+        error?.message?.includes('timeout') ||
+        error?.message?.includes('connection') ||
+        error?.name === 'AggregateError' ||
+        error?.code === 'ECONNREFUSED';
+      
+      if (isConnectionError && attempt < maxRetries - 1) {
+        // Exponential backoff: wait longer between retries
+        const delay = initialDelay * Math.pow(2, attempt);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+      throw error;
+    }
+  }
+  
+  throw lastError || new Error('Operation failed after retries');
+}
+
+/**
  * Clean up test data by deleting records created during tests
  * This ensures test isolation by removing all test data after each test
  */
@@ -20,6 +56,52 @@ export async function cleanupTestData(testIds: {
   inventoryItemIds?: string[];
   inventoryTransferIds?: string[];
 }): Promise<void> {
+  // Wrap cleanup in try-catch to handle connection pool exhaustion gracefully
+  try {
+    await cleanupTestDataInternal(testIds);
+  } catch (error: any) {
+    // If cleanup fails due to connection issues, log but don't throw
+    // This prevents one test's cleanup failure from affecting other tests
+    const isConnectionError = 
+      error?.message?.includes('timeout') ||
+      error?.message?.includes('connection') ||
+      error?.name === 'AggregateError' ||
+      error?.code === 'ECONNREFUSED';
+    
+    if (isConnectionError) {
+      console.warn('Cleanup failed due to connection pool exhaustion, retrying after delay...');
+      // Wait a bit for connections to be released, then retry once
+      await new Promise(resolve => setTimeout(resolve, 500));
+      try {
+        await cleanupTestDataInternal(testIds);
+      } catch (retryError) {
+        // If retry also fails, log but don't throw - allow test to continue
+        console.warn('Cleanup retry also failed, continuing anyway:', retryError);
+      }
+    } else {
+      // Re-throw non-connection errors
+      throw error;
+    }
+  }
+}
+
+async function cleanupTestDataInternal(testIds: {
+  companyIds?: string[];
+  userIds?: string[];
+  customerIds?: string[];
+  ticketIds?: string[];
+  invoiceIds?: string[];
+  invoiceItemIds?: string[];
+  invitationIds?: string[];
+  locationIds?: string[];
+  assetIds?: string[];
+  inventoryItemIds?: string[];
+  inventoryTransferIds?: string[];
+}): Promise<void> {
+  // Ensure all previous database operations are complete before starting cleanup
+  // This helps prevent connection pool exhaustion by ensuring connections are released
+  await new Promise(resolve => setImmediate(resolve));
+  
   // Delete in reverse order of dependencies
   // 1. Delete inventory transfers first (they depend on inventory items and locations)
   if (testIds.inventoryTransferIds && testIds.inventoryTransferIds.length > 0) {
@@ -164,17 +246,21 @@ export async function cleanupTestData(testIds: {
   // 10. Delete users (must delete ALL users for companies, not just tracked ones)
   // First delete tracked users
   if (testIds.userIds && testIds.userIds.length > 0) {
-    await db
-      .deleteFrom("users")
-      .where("id", "in", testIds.userIds)
-      .execute();
+    await retryDbOperation(() =>
+      db
+        .deleteFrom("users")
+        .where("id", "in", testIds.userIds!)
+        .execute()
+    );
   }
   // Then delete all remaining users for companies we're cleaning up
   if (testIds.companyIds && testIds.companyIds.length > 0) {
-    await db
-      .deleteFrom("users")
-      .where("company_id", "in", testIds.companyIds)
-      .execute();
+    await retryDbOperation(() =>
+      db
+        .deleteFrom("users")
+        .where("company_id", "in", testIds.companyIds!)
+        .execute()
+    );
   }
   // 11. Delete locations (they depend on companies)
   // First delete tracked locations
@@ -205,6 +291,10 @@ export async function cleanupTestData(testIds: {
       .where("id", "in", testIds.companyIds)
       .execute();
   }
+  
+  // Small delay to ensure all connections are released back to the pool
+  // This helps prevent connection pool exhaustion in parallel test execution
+  await new Promise(resolve => setImmediate(resolve));
 }
 
 /**
