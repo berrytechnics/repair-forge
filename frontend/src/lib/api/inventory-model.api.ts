@@ -104,4 +104,3 @@ export const deleteInventoryModel = async (
     response.data.error?.message || "Failed to delete inventory model"
   );
 };
-

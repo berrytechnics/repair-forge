@@ -14,7 +14,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { setUser } = useUser();
-  
+
   // Check for last API error from sessionStorage
   React.useEffect(() => {
     if (typeof window !== "undefined") {
@@ -40,11 +40,11 @@ export default function LoginPage() {
     try {
       // Login to get the token (pass rememberMe preference)
       await login({ email, password }, rememberMe);
-      
+
       // Fetch the full user profile with permissions
       const userWithPermissions = await getCurrentUser();
       setUser(userWithPermissions);
-      
+
       // Redirect superusers to superuser settings page, others to dashboard
       if (userWithPermissions.role === "superuser") {
         router.push("/settings/superuser");

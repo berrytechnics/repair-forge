@@ -36,7 +36,7 @@ describe("Invoice Routes Integration Tests", () => {
     const users = await createTestUsersWithRoles(testCompanyId);
     testUserIds.push(users.admin.userId, users.frontdesk.userId, users.technician.userId);
     testLocationId = users.locationId; // Store location ID for use in tests
-    
+
     authToken = users.technician.token;
     adminToken = users.admin.token;
 
@@ -254,7 +254,7 @@ describe("Invoice Routes Integration Tests", () => {
       expect(response.body.success).toBe(true);
       expect(response.body.data.customerId).toBe(customerId);
       expect(response.body.data.ticketId).toBe(ticketId);
-      
+
       if (response.body.data.id) {
         testInvoiceIds.push(response.body.data.id);
       }
@@ -383,7 +383,7 @@ describe("Invoice Routes Integration Tests", () => {
       expect(response.body.data.quantity).toBe(1);
       // API returns numeric values as strings
       expect(Number(response.body.data.unitPrice)).toBe(100.0);
-      
+
       if (response.body.data.id) {
         testInvoiceItemIds.push(response.body.data.id);
       }

@@ -37,4 +37,3 @@ if (!process.env.DB_NAME) {
 
 // Export empty object to make this a proper ES module
 export {};
-

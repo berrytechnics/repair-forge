@@ -68,17 +68,17 @@ api.interceptors.request.use(
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    
+
     // Add impersonation header if present (for superuser tenant impersonation)
     if (typeof window !== "undefined" && config.headers) {
-      const impersonateCompanyId = localStorage.getItem("impersonateCompanyId") || 
+      const impersonateCompanyId = localStorage.getItem("impersonateCompanyId") ||
                                     sessionStorage.getItem("impersonateCompanyId");
       if (impersonateCompanyId) {
         // Express normalizes headers to lowercase, so use lowercase key
         config.headers["x-impersonate-company"] = impersonateCompanyId;
       }
     }
-    
+
     return config;
   },
   (error) => Promise.reject(error)
@@ -88,24 +88,24 @@ api.interceptors.request.use(
 export const getErrorMessage = (error: unknown): string => {
   if (error && typeof error === "object" && "response" in error) {
     const axiosError = error as AxiosError<ApiResponse<unknown>>;
-    
+
     // Check if it's an API error response with our format
     if (axiosError.response?.data) {
       const apiError = axiosError.response.data;
-      
+
       // If it's our API error format
       if (!apiError.success && apiError.error) {
         // If there are validation errors, combine them
         if (apiError.error.errors) {
           const errorMessages = Object.values(apiError.error.errors);
-          return errorMessages.length > 0 
+          return errorMessages.length > 0
             ? errorMessages.join(", ")
             : apiError.error.message;
         }
         return apiError.error.message;
       }
     }
-    
+
     // Handle HTTP status codes
     if (axiosError.response?.status) {
       switch (axiosError.response.status) {
@@ -129,7 +129,7 @@ export const getErrorMessage = (error: unknown): string => {
           return axiosError.message || "An unexpected error occurred.";
       }
     }
-    
+
     // Network errors
     if (axiosError.code === "ECONNABORTED") {
       return "Request timeout. Please try again.";
@@ -138,12 +138,12 @@ export const getErrorMessage = (error: unknown): string => {
       return "Network error. Please check your connection and try again.";
     }
   }
-  
+
   // If it's a regular Error object
   if (error instanceof Error) {
     return error.message;
   }
-  
+
   // Fallback
   return "An unexpected error occurred. Please try again.";
 };
@@ -174,9 +174,9 @@ api.interceptors.response.use(
         errorMessage: getErrorMessage(error),
         hasAuthHeader: !!originalRequest.headers?.Authorization,
       };
-      
+
       console.error("API Authorization Error (401 - Invalid Token):", errorDetails);
-      
+
       // Store error in sessionStorage so it persists across redirects
       if (typeof window !== "undefined") {
         try {
@@ -190,14 +190,14 @@ api.interceptors.response.use(
       }
 
       // Check if this is an impersonation-related error (superuser might be impersonating)
-      const isImpersonating = typeof window !== "undefined" && 
+      const isImpersonating = typeof window !== "undefined" &&
         (localStorage.getItem("impersonateCompanyId") || sessionStorage.getItem("impersonateCompanyId"));
-      
+
       // Only logout if not impersonating (impersonation errors might be temporary)
       if (!isImpersonating) {
         // Logout
         logout();
-        
+
         // Redirect to login page if we're in the browser and not already on login/register pages
         if (typeof window !== "undefined") {
           const currentPath = window.location.pathname;
@@ -210,7 +210,7 @@ api.interceptors.response.use(
         }
       }
     }
-    
+
     // Handle 403 (forbidden) - permission denied, but token is valid
     // Don't logout on 403, just log the error
     if (error.response?.status === 403) {
@@ -249,7 +249,7 @@ api.interceptors.response.use(
       config?: AxiosError["config"];
       isAxiosError?: boolean;
     }).isAxiosError = true;
-    
+
     return Promise.reject(friendlyError);
   }
 );
@@ -267,14 +267,14 @@ export const login = async (
   if (response.data.success && response.data.data) {
     const { accessToken: token, refreshToken } = response.data.data;
     accessToken = token;
-    
+
     // Store tokens based on remember me preference
     // localStorage persists across browser sessions
     // sessionStorage clears when browser tab/window closes
     const storage = rememberMe ? localStorage : sessionStorage;
     storage.setItem("accessToken", token);
     storage.setItem("refreshToken", refreshToken);
-    
+
     // Clear the other storage type to avoid conflicts
     if (rememberMe) {
       sessionStorage.removeItem("accessToken");
@@ -283,13 +283,13 @@ export const login = async (
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
     }
-    
+
     // Clear impersonation state on login (new user session)
     if (typeof window !== "undefined") {
       localStorage.removeItem("impersonateCompanyId");
       sessionStorage.removeItem("impersonateCompanyId");
     }
-    
+
     return response.data.data;
   }
 
@@ -314,12 +314,12 @@ export const register = async (
   if (response.data.success && response.data.data) {
     const { accessToken: token, refreshToken } = response.data.data;
     accessToken = token;
-    
+
     // Store tokens based on remember me preference
     const storage = rememberMe ? localStorage : sessionStorage;
     storage.setItem("accessToken", token);
     storage.setItem("refreshToken", refreshToken);
-    
+
     // Clear the other storage type to avoid conflicts
     if (rememberMe) {
       sessionStorage.removeItem("accessToken");
@@ -328,13 +328,13 @@ export const register = async (
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
     }
-    
+
     // Clear impersonation state on register (new user session)
     if (typeof window !== "undefined") {
       localStorage.removeItem("impersonateCompanyId");
       sessionStorage.removeItem("impersonateCompanyId");
     }
-    
+
     return response.data.data;
   }
 

@@ -56,10 +56,10 @@ test.describe('Subscription Management', () => {
   test('should display subscription status when authenticated', async ({ page }) => {
     await loginAsRole(page, 'admin');
     await page.goto('/billing');
-    
+
     // Wait for page to load
     await page.waitForLoadState('networkidle');
-    
+
     // Should show "Billing & Subscription" heading
     await expect(
       page.getByRole('heading', { name: /billing.*subscription|subscription.*billing/i })
@@ -69,7 +69,7 @@ test.describe('Subscription Management', () => {
   test('should calculate billing correctly via API', async ({ page }) => {
     // Get subscription via API
     const response = await apiRequest(page, 'GET', '/api/subscriptions');
-    
+
     expect(response).toHaveProperty('data');
     if (response.data) {
       expect(response.data).toHaveProperty('monthlyAmount');
@@ -78,4 +78,3 @@ test.describe('Subscription Management', () => {
     }
   });
 });
-

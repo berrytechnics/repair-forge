@@ -30,4 +30,3 @@ export const createTransferValidation = [
     .isLength({ max: 1000 })
     .withMessage("Notes must be less than 1000 characters"),
 ];
-

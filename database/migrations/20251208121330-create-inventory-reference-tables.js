@@ -192,7 +192,7 @@ module.exports = {
     // Migrate existing data
     // Check if old columns exist before migrating data
     const tableDescription = await queryInterface.describeTable("inventory_items");
-    const hasOldColumns = tableDescription.category || tableDescription.subcategory || 
+    const hasOldColumns = tableDescription.category || tableDescription.subcategory ||
                           tableDescription.brand || tableDescription.model;
 
     // Get all unique categories per company (only if old columns exist)
@@ -406,7 +406,7 @@ module.exports = {
 
     // Check current table structure (after creating reference tables)
     const tableDescriptionAfterRefs = await queryInterface.describeTable("inventory_items");
-    
+
     // Add new UUID columns to inventory_items (only if they don't exist)
     if (!tableDescriptionAfterRefs.category_id) {
       await queryInterface.addColumn("inventory_items", "category_id", {
@@ -469,7 +469,7 @@ module.exports = {
       if (tableDescription.subcategory) selectColumns.push("subcategory");
       if (tableDescription.brand) selectColumns.push("brand");
       if (tableDescription.model) selectColumns.push("model");
-      
+
       [items] = await queryInterface.sequelize.query(`
         SELECT ${selectColumns.join(", ")}
         FROM inventory_items
@@ -479,7 +479,7 @@ module.exports = {
 
     for (const item of items) {
       const updates = {};
-      
+
       if (item.category) {
         const categoryId = categoryMap.get(`${item.company_id}:${item.category}`);
         if (categoryId) {
@@ -522,7 +522,7 @@ module.exports = {
     // Create indexes on foreign keys (only if they don't exist)
     const indexes = await queryInterface.showIndex("inventory_items");
     const indexNames = indexes.map(idx => idx.name);
-    
+
     if (!indexNames.includes("idx_inventory_items_category_id")) {
       await queryInterface.addIndex("inventory_items", ["category_id"], {
         name: "idx_inventory_items_category_id",
@@ -547,7 +547,7 @@ module.exports = {
     // Remove old text columns after migration is complete
     // Check if columns exist before removing (in case migration was partially run)
     const finalTableDescription = await queryInterface.describeTable("inventory_items");
-    
+
     if (finalTableDescription.category) {
       await queryInterface.removeColumn("inventory_items", "category");
     }
@@ -582,4 +582,3 @@ module.exports = {
     await queryInterface.dropTable("inventory_categories");
   },
 };
-

@@ -211,4 +211,3 @@ export const updateTicketChecklistResponses = async (
     response.data.error?.message || "Failed to update checklist responses"
   );
 };
-

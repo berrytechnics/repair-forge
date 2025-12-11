@@ -37,7 +37,7 @@ fi
 # Check if running in Docker Compose environment
 if docker compose -f docker-compose.prod.yml ps postgres | grep -q "Up"; then
   echo "Using Docker Compose for restore..."
-  
+
   # Restore using Docker Compose
   docker compose -f docker-compose.prod.yml exec -T postgres psql \
     -U ${POSTGRES_USER:-circuit_sage_user} \

@@ -7,7 +7,7 @@ import userService from "../src/services/user.service.js";
 
 async function checkUserSetup(email: string) {
   console.log(`Checking user setup for: ${email}\n`);
-  
+
   // Get user
   const user = await db
     .selectFrom("users")
@@ -15,26 +15,26 @@ async function checkUserSetup(email: string) {
     .where("email", "=", email)
     .where("deleted_at", "is", null)
     .executeTakeFirst();
-  
+
   if (!user) {
     console.error(`User not found: ${email}`);
     process.exit(1);
   }
-  
+
   console.log("✓ User found:");
   console.log(`  ID: ${user.id}`);
   console.log(`  Name: ${user.first_name} ${user.last_name}`);
   console.log(`  Role: ${user.role}`);
   console.log(`  Company ID: ${user.company_id || "NULL"}`);
   console.log(`  Current Location ID: ${user.current_location_id || "NULL"}\n`);
-  
+
   if (!user.company_id) {
     console.error("✗ ERROR: User does not have a company_id!");
     process.exit(1);
   }
-  
+
   const companyId = user.company_id as unknown as string;
-  
+
   // Check company exists
   const company = await db
     .selectFrom("companies")
@@ -42,17 +42,17 @@ async function checkUserSetup(email: string) {
     .where("id", "=", companyId)
     .where("deleted_at", "is", null)
     .executeTakeFirst();
-  
+
   if (!company) {
     console.error(`✗ ERROR: Company ${companyId} does not exist!`);
     process.exit(1);
   }
-  
+
   console.log("✓ Company exists:");
   console.log(`  ID: ${company.id}`);
   console.log(`  Name: ${company.name}`);
   console.log(`  Subdomain: ${company.subdomain}\n`);
-  
+
   // Check permissions
   console.log("Checking permissions...");
   const permissions = await db
@@ -60,10 +60,10 @@ async function checkUserSetup(email: string) {
     .select((eb) => eb.fn.count<number>("id").as("count"))
     .where("company_id", "=", companyId)
     .executeTakeFirst();
-  
+
   const permissionCount = Number(permissions?.count || 0);
   console.log(`  Found ${permissionCount} permission records for company`);
-  
+
   if (permissionCount === 0) {
     console.log("  ⚠ No permissions found. Initializing...");
     try {
@@ -80,7 +80,7 @@ async function checkUserSetup(email: string) {
       .where("company_id", "=", companyId)
       .where("role", "=", "admin")
       .execute();
-    
+
     console.log(`  Found ${adminPermissions.length} permissions for admin role`);
     if (adminPermissions.length === 0) {
       console.log("  ⚠ No admin permissions found. Initializing...");
@@ -92,7 +92,7 @@ async function checkUserSetup(email: string) {
       }
     }
   }
-  
+
   // Check location
   if (user.current_location_id) {
     const locationId = user.current_location_id as unknown as string;
@@ -103,7 +103,7 @@ async function checkUserSetup(email: string) {
       .where("id", "=", locationId)
       .where("deleted_at", "is", null)
       .executeTakeFirst();
-    
+
     if (!location) {
       console.error(`  ✗ ERROR: Location ${locationId} does not exist!`);
       console.log("  Attempting to set default location...");
@@ -115,7 +115,7 @@ async function checkUserSetup(email: string) {
         .orderBy("created_at", "asc")
         .limit(1)
         .executeTakeFirst();
-      
+
       if (defaultLocation) {
         await userService.setCurrentLocation(user.id as unknown as string, defaultLocation.id, companyId);
         console.log(`  ✓ Set current location to: ${defaultLocation.name}`);
@@ -132,7 +132,7 @@ async function checkUserSetup(email: string) {
         console.log(`  ✓ Location belongs to correct company`);
       }
     }
-    
+
     // Check user has access to location
     console.log("\nChecking user location access...");
     if (user.role === "admin") {
@@ -144,7 +144,7 @@ async function checkUserSetup(email: string) {
         .where("user_id", "=", user.id)
         .where("location_id", "=", locationId)
         .executeTakeFirst();
-      
+
       if (assignment) {
         console.log("  ✓ User is assigned to location");
       } else {
@@ -164,7 +164,7 @@ async function checkUserSetup(email: string) {
       .orderBy("created_at", "asc")
       .limit(1)
       .executeTakeFirst();
-    
+
     if (defaultLocation) {
       await userService.setCurrentLocation(user.id as unknown as string, defaultLocation.id, companyId);
       console.log(`  ✓ Set current location to: ${defaultLocation.name}`);
@@ -172,7 +172,7 @@ async function checkUserSetup(email: string) {
       console.error("  ✗ No locations found for company!");
     }
   }
-  
+
   // Test permissions retrieval
   console.log("\nTesting permissions retrieval...");
   try {
@@ -187,7 +187,7 @@ async function checkUserSetup(email: string) {
   } catch (error) {
     console.error("  ✗ Failed to retrieve permissions:", error);
   }
-  
+
   console.log("\n✓ User setup check complete!");
 }
 
@@ -205,4 +205,3 @@ checkUserSetup(email)
     console.error("Error:", error);
     process.exit(1);
   });
-

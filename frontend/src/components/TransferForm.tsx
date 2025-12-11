@@ -359,4 +359,3 @@ export default function TransferForm() {
     </div>
   );
 }
-

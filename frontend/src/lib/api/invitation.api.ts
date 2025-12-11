@@ -62,4 +62,3 @@ export const resendInvitation = async (
   }
   throw new Error(response.data.error?.message || "Failed to resend invitation");
 };
-

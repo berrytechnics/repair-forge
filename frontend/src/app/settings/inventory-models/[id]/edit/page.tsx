@@ -7,4 +7,3 @@ export default function EditInventoryModelPage({
 }) {
   return <InventoryModelForm modelId={params.id} />;
 }
-

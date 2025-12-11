@@ -40,14 +40,14 @@ router.get(
     const { locationId } = req.params;
     const searchQuery = req.query.search as string | undefined;
     const inStock = req.query.inStock === "true";
-    
+
     let items = await inventoryService.findAll(companyId, searchQuery, locationId);
-    
+
     // Filter to items with quantity > 0 if inStock is true
     if (inStock) {
       items = items.filter((item) => (item.quantity ?? 0) > 0);
     }
-    
+
     res.json({ success: true, data: items });
   })
 );
@@ -106,11 +106,11 @@ router.put(
     const companyId = req.companyId!;
     const { id, locationId } = req.params;
     const { quantity } = req.body;
-    
+
     if (typeof quantity !== "number") {
       throw new BadRequestError("Quantity must be a number");
     }
-    
+
     await inventoryService.updateQuantityForLocation(id, locationId, quantity, companyId);
     const item = await inventoryService.findById(id, companyId);
     res.json({ success: true, data: item });
@@ -138,4 +138,3 @@ router.delete(
 );
 
 export default router;
-

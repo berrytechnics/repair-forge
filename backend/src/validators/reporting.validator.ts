@@ -54,4 +54,3 @@ export const reportDateRangeValidation = [
     .isISO8601()
     .withMessage("endDate must be a valid ISO 8601 date string"),
 ];
-

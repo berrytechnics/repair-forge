@@ -23,7 +23,7 @@ describe("Ticket Routes Integration Tests", () => {
     const users = await createTestUsersWithRoles(testCompanyId);
     testUserIds.push(users.admin.userId, users.frontdesk.userId, users.technician.userId);
     testLocationId = users.locationId; // Store location ID for use in tests
-    
+
     authToken = users.technician.token;
     adminToken = users.admin.token;
     technicianUserId = users.technician.userId;
@@ -93,7 +93,7 @@ describe("Ticket Routes Integration Tests", () => {
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
       expect(response.body.data.length).toBeGreaterThanOrEqual(2);
-      
+
       const ticketNumbers = response.body.data.map((t: { ticketNumber: string }) => t.ticketNumber);
       expect(ticketNumbers.length).toBeGreaterThanOrEqual(2);
     });
@@ -237,7 +237,7 @@ describe("Ticket Routes Integration Tests", () => {
       expect(response.body.data.deviceType).toBe("Smartphone");
       expect(response.body.data.issueDescription).toBe("Screen cracked");
       expect(response.body.data.priority).toBe("high");
-      
+
       if (response.body.data.id) {
         testTicketIds.push(response.body.data.id);
       }

@@ -45,7 +45,7 @@ async function startServer(): Promise<void> {
 
     app.listen(PORT, () => {
       logger.info(`Server running on port ${PORT}`);
-      
+
       // Start billing scheduler
       try {
         billingScheduler.start();

@@ -74,6 +74,11 @@ function toCashDrawerSession(
 export class CashDrawerService {
   /**
    * Open a new cash drawer session
+   * @param companyId - Company ID for multi-tenancy
+   * @param userId - User ID opening the drawer
+   * @param data - Drawer opening data (openingAmount, locationId)
+   * @returns Created cash drawer session
+   * @throws BadRequestError if opening amount is negative or drawer already open for location
    */
   async openDrawer(
     companyId: string,
@@ -132,6 +137,11 @@ export class CashDrawerService {
 
   /**
    * Close a cash drawer session
+   * @param sessionId - Session ID to close
+   * @param companyId - Company ID for multi-tenancy
+   * @param data - Drawer closing data (closingAmount, notes)
+   * @returns Updated cash drawer session
+   * @throws BadRequestError if closing amount is negative or session not found/open
    */
   async closeDrawer(
     sessionId: string,
@@ -196,6 +206,9 @@ export class CashDrawerService {
 
   /**
    * Get current open drawer session for a location
+   * @param companyId - Company ID for multi-tenancy
+   * @param locationId - Location ID (or null for company-wide drawer)
+   * @returns Current open drawer session if found, null otherwise
    */
   async getCurrentDrawerSession(
     companyId: string,
@@ -221,24 +234,46 @@ export class CashDrawerService {
 
   /**
    * Get drawer session by ID
+   * @param sessionId - Session ID to retrieve
+   * @param companyId - Company ID to ensure multi-tenancy
+   * @param locationId - Optional location ID to filter by (for security)
+   * @returns Cash drawer session if found, null otherwise
    */
   async getDrawerSession(
     sessionId: string,
-    companyId: string
+    companyId: string,
+    locationId?: string | null
   ): Promise<CashDrawerSession | null> {
-    const session = await db
+    let query = db
       .selectFrom("cash_drawer_sessions")
       .selectAll()
       .where("id", "=", sessionId)
       .where("company_id", "=", companyId)
-      .where("deleted_at", "is", null)
-      .executeTakeFirst();
+      .where("deleted_at", "is", null);
+
+    // Filter by locationId if provided
+    if (locationId !== undefined) {
+      if (locationId === null) {
+        query = query.where("location_id", "is", null);
+      } else {
+        query = query.where("location_id", "=", locationId);
+      }
+    }
+
+    const session = await query.executeTakeFirst();
 
     return session ? toCashDrawerSession(session) : null;
   }
 
   /**
-   * Get drawer session history
+   * Get drawer session history with optional filtering
+   * @param companyId - Company ID for multi-tenancy
+   * @param locationId - Optional location ID to filter by
+   * @param startDate - Optional start date for filtering
+   * @param endDate - Optional end date for filtering
+   * @param limit - Maximum number of results (default: 50)
+   * @param offset - Number of results to skip (default: 0)
+   * @returns Array of cash drawer sessions
    */
   async getDrawerSessionHistory(
     companyId: string,
@@ -281,6 +316,10 @@ export class CashDrawerService {
   /**
    * Calculate expected cash amount for a drawer session
    * Expected = opening amount + cash sales - cash refunds
+   * @param sessionId - Session ID to calculate expected amount for
+   * @param companyId - Company ID for multi-tenancy
+   * @returns Expected cash amount
+   * @throws NotFoundError if session not found
    */
   async calculateExpectedAmount(
     sessionId: string,
@@ -352,6 +391,3 @@ export class CashDrawerService {
 }
 
 export default new CashDrawerService();
-
-
-

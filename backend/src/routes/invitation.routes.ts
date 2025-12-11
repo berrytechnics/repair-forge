@@ -23,25 +23,25 @@ router.post(
     const companyId = req.companyId!;
     const userId = req.user!.id;
     const { email, role, expiresAt } = req.body;
-    
+
     // Check if invitation already exists for this email and company
     const existingInvitation = await invitationService.findByEmailAndCompany(
       email,
       companyId
     );
-    
+
     if (existingInvitation) {
       throw new BadRequestError(
         "An active invitation already exists for this email address"
       );
     }
-    
+
     const invitation = await invitationService.create(
       companyId,
       { email, role, expiresAt: expiresAt ? new Date(expiresAt) : undefined },
       userId
     );
-    
+
     res.status(201).json({
       success: true,
       data: invitation,
@@ -56,7 +56,7 @@ router.get(
   asyncHandler(async (req: Request, res: Response) => {
     const companyId = req.companyId!;
     const invitations = await invitationService.findAll(companyId);
-    
+
     res.json({
       success: true,
       data: invitations,
@@ -71,13 +71,13 @@ router.delete(
   asyncHandler(async (req: Request, res: Response) => {
     const companyId = req.companyId!;
     const { id } = req.params;
-    
+
     const revoked = await invitationService.revoke(id, companyId);
-    
+
     if (!revoked) {
       throw new NotFoundError("Invitation not found");
     }
-    
+
     res.json({
       success: true,
       data: { message: "Invitation revoked successfully" },
@@ -94,7 +94,7 @@ router.post(
     const userId = req.user!.id;
     const { id } = req.params;
     const { expiresInDays } = req.body;
-    
+
     try {
       const invitation = await invitationService.resend(
         id,
@@ -102,7 +102,7 @@ router.post(
         userId,
         expiresInDays || 7
       );
-      
+
       res.json({
         success: true,
         data: invitation,
@@ -122,4 +122,3 @@ router.post(
 );
 
 export default router;
-

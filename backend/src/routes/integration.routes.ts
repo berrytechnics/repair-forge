@@ -69,7 +69,7 @@ router.get(
       ...integration,
       credentials: maskCredentials(integration.credentials),
     };
-    
+
     if (type === 'payment' && integration.type === 'payment') {
       const paymentConfig = integration as PaymentIntegrationConfig;
       if (paymentConfig.provider === 'square') {
@@ -83,7 +83,7 @@ router.get(
         }
       }
     }
-    
+
     res.json({
       success: true,
       data: responseData,
@@ -126,7 +126,7 @@ router.post(
       // For payment integrations, require a successful test connection before saving
       // Check if skipTest flag is provided (for updates where credentials haven't changed)
       const skipTest = req.body.skipTest === true;
-      
+
       if (!skipTest) {
         // Create a temporary config to test
         const tempConfig: PaymentIntegrationConfig = {
@@ -152,9 +152,9 @@ router.post(
         if (!testResult.success) {
           res.status(400).json({
             success: false,
-            error: { 
+            error: {
               message: `Connection test failed. Please verify your credentials and try again.`,
-              details: testResult.error 
+              details: testResult.error
             },
           });
           return;
@@ -270,4 +270,3 @@ router.delete(
 );
 
 export default router;
-

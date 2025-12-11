@@ -72,4 +72,3 @@ class SystemSettingsService {
 }
 
 export default new SystemSettingsService();
-

@@ -254,7 +254,7 @@ async function generateInvoiceNumber(companyId: string): Promise<string> {
   const month = (new Date().getMonth() + 1).toString().padStart(2, "0");
   const timestamp = Date.now().toString().slice(-6);
   const invoiceNumber = `${prefix}-${year}${month}-${timestamp}`;
-  
+
   // Check if invoice number exists for this company
   const existing = await db
     .selectFrom("invoices")
@@ -262,12 +262,12 @@ async function generateInvoiceNumber(companyId: string): Promise<string> {
     .where("invoice_number", "=", invoiceNumber)
     .where("company_id", "=", companyId)
     .executeTakeFirst();
-  
+
   if (existing) {
     // Recursively generate new number if collision
     return generateInvoiceNumber(companyId);
   }
-  
+
   return invoiceNumber;
 }
 
@@ -338,7 +338,7 @@ export class InvoiceService {
     // This ensures that if location tax rate changed, invoice reflects current rate
     if (items.length > 0) {
       await this.recalculateInvoiceTotals(id, companyId);
-      
+
       // Fetch updated invoice with recalculated totals
       const updatedInvoice = await db
         .selectFrom("invoices")
@@ -347,7 +347,7 @@ export class InvoiceService {
         .where("company_id", "=", companyId)
         .where("deleted_at", "is", null)
         .executeTakeFirst();
-      
+
       if (updatedInvoice) {
         const invoiceData = toInvoice(updatedInvoice);
         return {
@@ -627,7 +627,7 @@ export class InvoiceService {
     }
 
     const discountAmount = Number(invoice.discount_amount);
-    
+
     // Calculate tax based on tax settings
     let taxAmount = 0;
     if (taxEnabled && taxRate > 0) {
@@ -640,7 +640,7 @@ export class InvoiceService {
         taxAmount = taxableSubtotal * (taxRate / 100);
       }
     }
-    
+
     const totalAmount = subtotal + (taxInclusive ? 0 : taxAmount) - discountAmount;
 
     // Update invoice totals and tax_rate
@@ -717,7 +717,7 @@ export class InvoiceService {
     const itemSubtotal = data.quantity * data.unitPrice;
     let discountPercent = data.discountPercent ?? 0;
     let discountAmount = data.discountAmount ?? 0;
-    
+
     // If discountAmount is provided, calculate discountPercent from it
     // Otherwise, calculate discountAmount from discountPercent
     if (data.discountAmount !== undefined && data.discountAmount !== null) {
@@ -729,7 +729,7 @@ export class InvoiceService {
       discountPercent = data.discountPercent;
       discountAmount = itemSubtotal * (discountPercent / 100);
     }
-    
+
     const finalSubtotal = itemSubtotal - discountAmount;
 
     // Insert invoice item
@@ -848,7 +848,7 @@ export class InvoiceService {
     const inventoryItemId = data.inventoryItemId !== undefined ? data.inventoryItemId : existingItem.inventory_item_id;
 
     // Handle inventory adjustments if inventory item or quantity changed
-    const inventoryChanged = 
+    const inventoryChanged =
       inventoryItemId !== existingItem.inventory_item_id ||
       quantity !== existingItem.quantity ||
       type !== existingItem.type;
@@ -983,7 +983,7 @@ export class InvoiceService {
     const itemSubtotal = quantity * unitPrice;
     let discountPercent = data.discountPercent ?? Number(existingItem.discount_percent);
     let discountAmount = data.discountAmount ?? Number(existingItem.discount_amount);
-    
+
     // If discountAmount is provided, calculate discountPercent from it
     // Otherwise, if discountPercent is provided, calculate discountAmount from it
     // If neither is provided, use existing values
@@ -996,7 +996,7 @@ export class InvoiceService {
       discountPercent = data.discountPercent;
       discountAmount = itemSubtotal * (discountPercent / 100);
     }
-    
+
     const finalSubtotal = itemSubtotal - discountAmount;
 
     updateQuery = updateQuery.set({
@@ -1289,7 +1289,7 @@ export class InvoiceService {
     // Determine new status based on refund amount
     let newStatus = invoice.status;
     const totalAmount = Number(invoice.total_amount);
-    
+
     if (newRefundAmount >= totalAmount) {
       // Fully refunded - change status to cancelled if it was paid
       // Note: "refunded" is not a valid status, so we use "cancelled"
@@ -1349,4 +1349,3 @@ export class InvoiceService {
 }
 
 export default new InvoiceService();
-

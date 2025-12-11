@@ -43,10 +43,10 @@ export async function loginAsUser(
 ): Promise<void> {
   // Clear any existing auth state
   await page.context().clearCookies();
-  
+
   // Navigate to login page first (needed for WebKit to allow storage access)
   await page.goto('/login');
-  
+
   // Clear storage using WebKit-safe method
   await clearStorageWebKitSafe(page);
 
@@ -72,7 +72,7 @@ export async function loginAsUser(
   // Check if we're already on the target URL first
   const currentURL = page.url();
   const isAlreadyOnTarget = /^\/(dashboard|settings)/.test(new URL(currentURL).pathname);
-  
+
   if (!isAlreadyOnTarget) {
     // Wait for navigation to dashboard or settings
     try {
@@ -204,4 +204,3 @@ export async function getAuthToken(page: Page): Promise<string | null> {
     throw e;
   }
 }
-

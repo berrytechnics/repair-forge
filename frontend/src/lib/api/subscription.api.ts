@@ -123,9 +123,3 @@ export const toggleLocationFree = async (
     response.data.error?.message || "Failed to toggle location free status"
   );
 };
-
-
-
-
-
-

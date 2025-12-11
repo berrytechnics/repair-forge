@@ -115,13 +115,3 @@ export const deleteAsset = async (
 
   throw new Error(response.data.error?.message || "Failed to delete asset");
 };
-
-
-
-
-
-
-
-
-
-

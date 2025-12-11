@@ -21,14 +21,14 @@ function makeRequest() {
   return new Promise((resolve) => {
     const startTime = Date.now();
     const url = new URL(`${API_URL}/health`);
-    
+
     const req = http.get(url, (res) => {
       const endTime = Date.now();
       const responseTime = endTime - startTime;
-      
+
       results.total++;
       results.responseTimes.push(responseTime);
-      
+
       if (res.statusCode === 200) {
         results.success++;
       } else {
@@ -38,10 +38,10 @@ function makeRequest() {
           responseTime,
         });
       }
-      
+
       resolve();
     });
-    
+
     req.on('error', (error) => {
       const endTime = Date.now();
       results.total++;
@@ -52,7 +52,7 @@ function makeRequest() {
       });
       resolve();
     });
-    
+
     req.setTimeout(5000, () => {
       req.destroy();
       results.total++;
@@ -72,28 +72,28 @@ async function runLoadTest() {
   console.log(`  Concurrent requests: ${CONCURRENT}`);
   console.log(`  Total requests: ${TOTAL_REQUESTS}`);
   console.log('');
-  
+
   const startTime = Date.now();
   const batches = Math.ceil(TOTAL_REQUESTS / CONCURRENT);
-  
+
   for (let batch = 0; batch < batches; batch++) {
     const batchSize = Math.min(CONCURRENT, TOTAL_REQUESTS - results.total);
     const promises = [];
-    
+
     for (let i = 0; i < batchSize; i++) {
       promises.push(makeRequest());
     }
-    
+
     await Promise.all(promises);
-    
+
     // Progress update
     const progress = ((results.total / TOTAL_REQUESTS) * 100).toFixed(1);
     process.stdout.write(`\rProgress: ${progress}% (${results.total}/${TOTAL_REQUESTS})`);
   }
-  
+
   const endTime = Date.now();
   const totalTime = endTime - startTime;
-  
+
   console.log('\n');
   console.log('Load test completed!');
   console.log('');
@@ -105,7 +105,7 @@ async function runLoadTest() {
   console.log(`  Total time: ${totalTime}ms`);
   console.log(`  Requests per second: ${(results.total / (totalTime / 1000)).toFixed(2)}`);
   console.log('');
-  
+
   if (results.responseTimes.length > 0) {
     const sorted = results.responseTimes.sort((a, b) => a - b);
     const min = sorted[0];
@@ -114,7 +114,7 @@ async function runLoadTest() {
     const p50 = sorted[Math.floor(sorted.length * 0.5)];
     const p95 = sorted[Math.floor(sorted.length * 0.95)];
     const p99 = sorted[Math.floor(sorted.length * 0.99)];
-    
+
     console.log('Response Times:');
     console.log(`  Min: ${min}ms`);
     console.log(`  Max: ${max}ms`);
@@ -123,7 +123,7 @@ async function runLoadTest() {
     console.log(`  p95: ${p95}ms`);
     console.log(`  p99: ${p99}ms`);
   }
-  
+
   if (results.errors.length > 0) {
     console.log('');
     console.log('Errors:');
@@ -137,4 +137,3 @@ async function runLoadTest() {
 }
 
 runLoadTest().catch(console.error);
-

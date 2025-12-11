@@ -47,7 +47,7 @@ router.get(
       try {
         const billingService = (await import("../services/billing.service.js")).default;
         const subscription = await billingService.getSubscription(companyId);
-        
+
         // If subscription is past_due, restrict access to non-free locations
         if (subscription && subscription.status === "past_due") {
           throw new NotFoundError("Location not found");
@@ -86,14 +86,14 @@ router.post(
   asyncHandler(async (req: Request, res: Response) => {
     const companyId = req.companyId!;
     const location = await locationService.create(companyId, req.body);
-    
+
     // Update subscription billing after creating location
     try {
       const billingService = (await import("../services/billing.service.js"))
         .default;
       const { amount } = await billingService.calculateMonthlyAmount(companyId);
       const subscription = await billingService.getSubscription(companyId);
-      
+
       if (subscription) {
         // Recalculate and update subscription amount
         await db
@@ -109,7 +109,7 @@ router.post(
       // Log error but don't fail the location creation
       console.error("Failed to update subscription after location creation:", error);
     }
-    
+
     res.status(201).json({ success: true, data: location });
   })
 );
@@ -192,4 +192,3 @@ router.delete(
 );
 
 export default router;
-

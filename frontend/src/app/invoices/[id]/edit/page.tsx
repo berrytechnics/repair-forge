@@ -40,8 +40,3 @@ export default function EditInvoicePage({
 
   return <InvoiceForm invoiceId={params.id} />;
 }
-
-
-
-
-

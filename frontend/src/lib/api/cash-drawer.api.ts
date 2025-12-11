@@ -133,6 +133,3 @@ export const getDrawerSession = async (
     response.data.error?.message || "Failed to get drawer session"
   );
 };
-
-
-

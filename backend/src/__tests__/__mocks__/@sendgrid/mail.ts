@@ -28,4 +28,3 @@ const mockMail = {
 
 export default mockMail;
 export { mockSetApiKey as setApiKey, mockSend as send };
-

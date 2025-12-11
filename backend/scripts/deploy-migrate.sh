@@ -62,7 +62,7 @@ for migration in $MIGRATION_FILES; do
   echo "========================================="
   echo "Running migration: $(basename "$migration")"
   echo "========================================="
-  
+
   # Run migration with error handling
   if psql -h "$DB_HOST" -p "${DB_PORT:-5432}" -U "$DB_USER" -d "$DB_NAME" -f "$migration" -v ON_ERROR_STOP=1; then
     echo "✓ Migration $(basename "$migration") completed successfully"

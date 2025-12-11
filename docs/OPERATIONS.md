@@ -26,16 +26,16 @@ This document provides operational procedures for managing Circuit Sage in produ
    ```bash
    # SSH into production server
    ssh user@your-server.com
-   
+
    # Navigate to application directory
    cd /opt/circuit-sage
-   
+
    # Pull latest code
    git pull origin main
-   
+
    # Rebuild and restart services
    docker compose -f docker-compose.prod.yml up -d --build
-   
+
    # Verify deployment
    curl https://yourdomain.com/api/health
    ```

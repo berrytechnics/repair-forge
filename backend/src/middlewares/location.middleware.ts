@@ -24,7 +24,7 @@ export async function userHasLocationAccess(
       .where("company_id", "=", companyId)
       .where("deleted_at", "is", null)
       .executeTakeFirst();
-    
+
     return !!location;
   }
 
@@ -46,7 +46,7 @@ export async function userHasLocationAccess(
  * Middleware to extract and validate location context
  * Ensures user has access to their current location
  * Must be used after validateRequest and requireTenantContext middleware
- * 
+ *
  * For superusers impersonating:
  * - If they have a current_location_id, use it
  * - Otherwise, allow access but don't require a specific location (services should handle this)
@@ -81,7 +81,7 @@ export async function requireLocationContext(
           .where("company_id", "=", companyId)
           .where("deleted_at", "is", null)
           .executeTakeFirst();
-        
+
         if (location) {
           req.locationId = currentLocationId;
         }
@@ -103,14 +103,14 @@ export async function requireLocationContext(
           .orderBy("created_at", "asc")
           .limit(1)
           .executeTakeFirst();
-        
+
         if (defaultLocation) {
           // Set it as the user's current location (async, don't wait for it to complete)
           const userService = (await import("../services/user.service.js")).default;
           userService.setCurrentLocation(user.id, defaultLocation.id, companyId).catch((error) => {
             console.error("Failed to set default location for admin:", error);
           });
-          
+
           // Use the default location for this request
           req.locationId = defaultLocation.id;
           return next();
@@ -119,7 +119,7 @@ export async function requireLocationContext(
         // Some endpoints might need location, but admins can access company-wide data
         return next();
       }
-      
+
       // For non-admins, location is required
       return next(new ForbiddenError("User must have a current location set"));
     }
@@ -175,7 +175,7 @@ export async function optionalLocationContext(
           .where("company_id", "=", companyId)
           .where("deleted_at", "is", null)
           .executeTakeFirst();
-        
+
         if (location) {
           req.locationId = currentLocationId;
         }
@@ -205,4 +205,3 @@ export async function optionalLocationContext(
     next(error);
   }
 }
-

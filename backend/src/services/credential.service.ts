@@ -56,7 +56,7 @@ export class CredentialService {
     // Merge with existing integrations
     const existingIntegrations = (company.settings?.integrations as Record<string, IntegrationConfig>) || {};
     const now = new Date().toISOString();
-    
+
     const updatedIntegrations = {
       ...existingIntegrations,
       [type]: {
@@ -178,4 +178,3 @@ export class CredentialService {
 }
 
 export default new CredentialService();
-

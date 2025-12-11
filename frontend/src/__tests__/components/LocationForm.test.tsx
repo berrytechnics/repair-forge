@@ -60,7 +60,7 @@ describe('LocationForm', () => {
       const emailInput = screen.getByLabelText(/email/i) as HTMLInputElement
       await user.clear(emailInput)
       await user.type(emailInput, 'invalid-email')
-      
+
       // Wait for state to update
       await waitFor(() => {
         expect(emailInput.value).toBe('invalid-email')
@@ -74,7 +74,7 @@ describe('LocationForm', () => {
       await waitFor(() => {
         expect(screen.getByText(/please enter a valid email address/i)).toBeInTheDocument()
       }, { timeout: 3000 })
-      
+
       // Verify API was not called
       expect(mockedLocationApi.createLocation).not.toHaveBeenCalled()
     })
@@ -190,4 +190,3 @@ describe('LocationForm', () => {
     })
   })
 })
-

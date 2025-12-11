@@ -33,7 +33,7 @@ const pool = new Pool({
 
 async function resetDatabase() {
   const client = await pool.connect();
-  
+
   try {
     console.log("==========================================");
     console.log("Resetting local database:", process.env.DB_NAME || "repair_business");
@@ -43,21 +43,21 @@ async function resetDatabase() {
     console.log("");
 
     console.log("Step 1: Dropping all tables...");
-    
+
     // Get all table names
     const tablesResult = await client.query(`
-      SELECT tablename 
-      FROM pg_tables 
+      SELECT tablename
+      FROM pg_tables
       WHERE schemaname = 'public'
     `);
-    
+
     const tables = tablesResult.rows.map(row => row.tablename);
-    
+
     if (tables.length === 0) {
       console.log("  No tables found to drop");
     } else {
       console.log(`  Found ${tables.length} table(s) to drop`);
-      
+
       // Drop all tables with CASCADE to handle foreign keys
       for (const table of tables) {
         try {
@@ -68,14 +68,14 @@ async function resetDatabase() {
         }
       }
     }
-    
+
     // Drop all sequences
     const sequencesResult = await client.query(`
-      SELECT sequence_name 
-      FROM information_schema.sequences 
+      SELECT sequence_name
+      FROM information_schema.sequences
       WHERE sequence_schema = 'public'
     `);
-    
+
     const sequences = sequencesResult.rows.map(row => row.sequence_name);
     if (sequences.length > 0) {
       for (const sequence of sequences) {
@@ -87,15 +87,15 @@ async function resetDatabase() {
         }
       }
     }
-    
+
     // Drop all custom types (enums, etc.)
     const typesResult = await client.query(`
-      SELECT typname 
-      FROM pg_type 
-      WHERE typnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public') 
+      SELECT typname
+      FROM pg_type
+      WHERE typnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public')
       AND typtype = 'e'
     `);
-    
+
     const types = typesResult.rows.map(row => row.typname);
     if (types.length > 0) {
       for (const type of types) {
@@ -107,15 +107,15 @@ async function resetDatabase() {
         }
       }
     }
-    
+
     console.log("✓ Database reset complete");
     console.log("");
-    
+
     console.log("Step 2: Running migrations...");
-    
+
     // Run migrations using the existing migration script
     const migrationsScript = join(__dirname, "run-migrations.ts");
-    
+
     try {
       // Use tsx to run the migration script
       execSync(`tsx ${migrationsScript}`, {
@@ -130,10 +130,10 @@ async function resetDatabase() {
           DB_PORT: process.env.DB_PORT || "5432",
         },
       });
-      
+
       console.log("");
       console.log("Step 3: Clearing seed data inserted by migrations...");
-      
+
       // Clear seed data that migrations insert
       // This ensures a truly clean database
       // Order matters: delete dependent records first, then parent records
@@ -141,23 +141,23 @@ async function resetDatabase() {
         // First, delete all role permissions (they reference companies)
         const rpResult = await client.query(`DELETE FROM role_permissions RETURNING id`);
         console.log(`  ✓ Cleared ${rpResult.rowCount} role permission(s)`);
-        
+
         // Delete all user_locations (they reference locations and users)
         const ulResult = await client.query(`DELETE FROM user_locations RETURNING user_id`);
         console.log(`  ✓ Cleared ${ulResult.rowCount} user location assignment(s)`);
-        
+
         // Delete all locations (they reference companies)
         const locResult = await client.query(`DELETE FROM locations RETURNING id`);
         console.log(`  ✓ Cleared ${locResult.rowCount} location(s)`);
-        
+
         // Delete all companies (this will cascade delete other dependent records)
         const compResult = await client.query(`DELETE FROM companies RETURNING id`);
         console.log(`  ✓ Cleared ${compResult.rowCount} compan(ies)`);
-        
+
         // Delete system settings
         const settingsResult = await client.query(`DELETE FROM system_settings RETURNING id`);
         console.log(`  ✓ Cleared ${settingsResult.rowCount} system setting(s)`);
-        
+
         // Clear any remaining data that might have been created
         // Clear user_roles if it exists
         try {
@@ -168,13 +168,13 @@ async function resetDatabase() {
         } catch (e) {
           // Table might not exist or already empty, ignore
         }
-        
+
         console.log("✓ Seed data cleared");
       } catch (error: any) {
         console.error(`  ⚠ Warning: Failed to clear some seed data: ${error.message}`);
         // Don't fail the reset if seed clearing fails
       }
-      
+
       console.log("");
       console.log("==========================================");
       console.log("✓ Database reset and migrations complete!");
@@ -196,4 +196,3 @@ resetDatabase().catch((error) => {
   console.error("Database reset failed:", error);
   process.exit(1);
 });
-

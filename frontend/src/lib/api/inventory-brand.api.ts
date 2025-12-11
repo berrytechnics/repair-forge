@@ -100,4 +100,3 @@ export const deleteInventoryBrand = async (
     response.data.error?.message || "Failed to delete inventory brand"
   );
 };
-

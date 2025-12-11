@@ -247,7 +247,7 @@ export class BillingService {
         monthlyAmount: amount,
         cardId: cardId,
       });
-      
+
       return toSubscription(updated!);
     } else {
       // Create new subscription
@@ -289,7 +289,7 @@ export class BillingService {
         monthlyAmount: amount,
         squareSubscriptionId: squareSubscription.subscriptionId,
       });
-      
+
       return toSubscription(subscription);
     }
   }
@@ -321,7 +321,7 @@ export class BillingService {
       })
       .where("id", "=", subscription.id)
       .execute();
-    
+
     logSubscriptionChange(companyId, "autopay_disabled", {
       subscriptionId: subscription.id,
     });
@@ -360,7 +360,7 @@ export class BillingService {
         })
         .where("id", "=", subscription.id)
         .execute();
-      
+
       logBillingEvent("location_billing_toggled", companyId, {
         locationId,
         isFree,
@@ -557,4 +557,3 @@ export class BillingService {
 }
 
 export default new BillingService();
-

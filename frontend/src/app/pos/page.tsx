@@ -87,7 +87,7 @@ export default function POSPage() {
         const response = await getPosEnabled();
         const enabled = response.data?.enabled === true;
         setPosEnabled(enabled);
-        
+
         if (!enabled) {
           router.push("/dashboard");
         }
@@ -142,7 +142,7 @@ export default function POSPage() {
     setShowCustomerSearch(false);
     setCustomers([]);
     setCustomerSearchQuery("");
-    
+
     // Automatically create invoice when customer is selected
     setIsCreatingInvoice(true);
     setError("");
@@ -1182,4 +1182,3 @@ function ManualCardPaymentModal({
     </div>
   );
 }
-

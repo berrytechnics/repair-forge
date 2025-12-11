@@ -141,11 +141,11 @@ router.put(
     const companyId = req.companyId!;
     const user = req.user as { role: string; permissions?: string[] };
     const { id, itemId } = req.params;
-    
+
     // Get user permissions for permission checks
     const { getPermissionsForRole } = await import("../config/permissions.js");
     const userPermissions = await getPermissionsForRole(user.role as UserRole, companyId);
-    
+
     const item = await invoiceService.updateInvoiceItem(id, itemId, req.body, companyId, userPermissions);
     if (!item) {
       throw new NotFoundError("Invoice item not found");
@@ -208,4 +208,3 @@ router.post(
 );
 
 export default router;
-

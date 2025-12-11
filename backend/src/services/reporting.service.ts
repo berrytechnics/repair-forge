@@ -87,14 +87,14 @@ export class ReportingService {
 
     // Count low stock items using junction table
     let lowStockCount = 0;
-    
+
     if (locationId !== undefined && locationId !== null) {
       const lowStockQuery = db
         .selectFrom("inventory_items")
         .innerJoin("inventory_location_quantities", "inventory_location_quantities.inventory_item_id", "inventory_items.id")
         .select((eb) => eb.fn.count<number>("inventory_items.id").as("count"))
         .where("inventory_items.company_id", "=", companyId)
-        .where((eb) => 
+        .where((eb) =>
           eb("inventory_location_quantities.quantity", "<", eb.ref("inventory_items.reorder_level"))
         )
         .where("inventory_location_quantities.location_id", "=", locationId)
@@ -109,7 +109,7 @@ export class ReportingService {
         .innerJoin("inventory_location_quantities", "inventory_location_quantities.inventory_item_id", "inventory_items.id")
         .select(sql<number>`COUNT(DISTINCT inventory_items.id)`.as("count"))
         .where("inventory_items.company_id", "=", companyId)
-        .where((eb) => 
+        .where((eb) =>
           eb("inventory_location_quantities.quantity", "<", eb.ref("inventory_items.reorder_level"))
         )
         .where("inventory_items.deleted_at", "is", null);
@@ -182,7 +182,7 @@ export class ReportingService {
 
     // Build DATE_TRUNC SQL with proper interval
     const dateTruncSql = sql<string>`DATE_TRUNC(${sql.literal(dateTrunc)}, paid_date)`;
-    
+
     let query = db
       .selectFrom("invoices")
       .select([
@@ -313,7 +313,7 @@ export class ReportingService {
     endDate?: string
   ): Promise<RevenueByLocation[]> {
     const start = startDate ? new Date(startDate) : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-    const end = endDate 
+    const end = endDate
       ? new Date(endDate)
       : new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59, 999);
 
@@ -358,8 +358,8 @@ export class ReportingService {
   ): Promise<TechnicianPerformance[]> {
     const start = startDate ? new Date(startDate) : new Date();
     start.setMonth(start.getMonth() - 1);
-    
-    const end = endDate 
+
+    const end = endDate
       ? new Date(endDate)
       : new Date();
     end.setHours(23, 59, 59, 999);
@@ -375,7 +375,7 @@ export class ReportingService {
         "users.id",
         sql<string>`CONCAT(users.first_name, ' ', users.last_name)`.as("technician_name"),
         sql<number>`COUNT(CASE WHEN tickets.status = 'completed' THEN 1 END)`.as("completed_count"),
-        sql<number>`AVG(CASE 
+        sql<number>`AVG(CASE
           WHEN tickets.status = 'completed' AND tickets.completed_date IS NOT NULL AND tickets.created_at IS NOT NULL
           THEN EXTRACT(EPOCH FROM (tickets.completed_date - tickets.created_at)) / 86400.0
           ELSE NULL
@@ -421,8 +421,8 @@ export class ReportingService {
   ): Promise<InvoiceStatusBreakdown[]> {
     const start = startDate ? new Date(startDate) : new Date();
     start.setMonth(start.getMonth() - 1);
-    
-    const end = endDate 
+
+    const end = endDate
       ? new Date(endDate)
       : new Date();
     end.setHours(23, 59, 59, 999);
@@ -464,4 +464,3 @@ export class ReportingService {
 }
 
 export default new ReportingService();
-

@@ -40,4 +40,3 @@ export async function setPosEnabled(
     response.data.error?.message || "Failed to set POS feature flag status"
   );
 }
-

@@ -147,7 +147,7 @@ export class SquareAdapter {
       try {
         const merchantResponse = await client.merchants.list() as unknown as SquareMerchantResponse;
         const merchants = merchantResponse.body?.merchants || merchantResponse.merchants;
-        
+
         if (merchants && Array.isArray(merchants) && merchants.length > 0) {
           return { success: true };
         }
@@ -156,7 +156,7 @@ export class SquareAdapter {
         logger.warn('Merchants API failed, trying Locations API:', merchantError);
         const locationsResponse = await client.locations.list() as unknown as SquareLocationResponse;
         const locations = locationsResponse.body?.locations || locationsResponse.locations;
-        
+
         if (locations && Array.isArray(locations) && locations.length > 0) {
           return { success: true };
         }
@@ -170,11 +170,11 @@ export class SquareAdapter {
       };
     } catch (error: unknown) {
       logger.error('Square connection test error:', error);
-      
+
       // Extract detailed error message from Square API response
       let errorMessage = 'Unknown error testing connection';
       const squareError = error as SquareErrorResponse;
-      
+
       if (squareError?.response?.data?.errors && Array.isArray(squareError.response.data.errors)) {
         const squareErrors = squareError.response.data.errors;
         errorMessage = squareErrors.map((e) => e.detail || e.message || e.code).join('; ') || errorMessage;
@@ -184,12 +184,12 @@ export class SquareAdapter {
       } else if (error instanceof Error) {
         errorMessage = error.message;
       }
-      
+
       // Provide helpful guidance for authorization errors
       if (errorMessage.toLowerCase().includes('authorized') || errorMessage.toLowerCase().includes('unauthorized')) {
         errorMessage += ' Please ensure your Square access token has the required OAuth scopes: MERCHANT_PROFILE_READ, PAYMENTS_READ, and PAYMENTS_WRITE. Check your Square Developer Dashboard to verify token permissions.';
       }
-      
+
       return {
         success: false,
         error: errorMessage,
@@ -239,7 +239,7 @@ export class SquareAdapter {
         if (!paymentData.deviceId) {
           throw new Error('Device ID is required for terminal payments');
         }
-        
+
         const checkoutResult = await this.createTerminalCheckout(config, {
           amount: paymentData.amount,
           currency: paymentData.currency,
@@ -298,7 +298,7 @@ export class SquareAdapter {
 
       const paymentResponse = response as unknown as SquarePaymentResponse;
       const payment = paymentResponse.body?.payment || paymentResponse.payment;
-      
+
       if (!payment) {
         throw new Error('Payment creation failed: No payment returned');
       }
@@ -351,7 +351,7 @@ export class SquareAdapter {
 
       const paymentData = paymentResponse as unknown as SquarePaymentResponse;
       const payment = paymentData.body?.payment || paymentData.payment;
-      
+
       if (!payment) {
         throw new Error('Payment not found');
       }
@@ -382,7 +382,7 @@ export class SquareAdapter {
 
       const refundDataResponse = refundResponse as unknown as SquareRefundResponse;
       const refund = refundDataResponse.body?.refund || refundDataResponse.refund;
-      
+
       if (!refund) {
         throw new Error('Refund creation failed: No refund returned');
       }
@@ -647,15 +647,15 @@ export class SquareAdapter {
         startDate: subscriptionData.startDate,
       });
 
-      const subscription = (response as unknown as { 
-        body?: { 
-          subscription?: { 
-            id?: string; 
-            status?: string; 
-            planId?: string; 
+      const subscription = (response as unknown as {
+        body?: {
+          subscription?: {
+            id?: string;
+            status?: string;
+            planId?: string;
             customerId?: string;
-          } 
-        } 
+          }
+        }
       }).body?.subscription;
 
       if (!subscription || !subscription.id) {
@@ -712,15 +712,15 @@ export class SquareAdapter {
         ...updateData,
       });
 
-      const subscription = (response as unknown as { 
-        body?: { 
-          subscription?: { 
-            id?: string; 
-            status?: string; 
-            planId?: string; 
+      const subscription = (response as unknown as {
+        body?: {
+          subscription?: {
+            id?: string;
+            status?: string;
+            planId?: string;
             customerId?: string;
-          } 
-        } 
+          }
+        }
       }).body?.subscription;
 
       if (!subscription || !subscription.id) {
@@ -802,19 +802,19 @@ export class SquareAdapter {
         subscriptionId,
       });
 
-      const subscription = (response as unknown as { 
-        body?: { 
-          subscription?: { 
-            id?: string; 
-            status?: string; 
-            planId?: string; 
+      const subscription = (response as unknown as {
+        body?: {
+          subscription?: {
+            id?: string;
+            status?: string;
+            planId?: string;
             customerId?: string;
             phases?: Array<{
               startDate?: string;
               endDate?: string;
             }>;
-          } 
-        } 
+          }
+        }
       }).body?.subscription;
 
       if (!subscription || !subscription.id) {
@@ -872,12 +872,12 @@ export class SquareAdapter {
         },
       });
 
-      const card = (response as unknown as { 
-        body?: { 
-          card?: { 
+      const card = (response as unknown as {
+        body?: {
+          card?: {
             id?: string;
-          } 
-        } 
+          }
+        }
       }).body?.card;
 
       if (!card || !card.id) {
@@ -896,4 +896,3 @@ export class SquareAdapter {
 }
 
 export default new SquareAdapter();
-

@@ -38,14 +38,14 @@ export async function checkAuthMaintenanceMode(
     if (isLogin) {
       // For login, authenticate user first to check if they're a superuser
       const { email, password } = req.body;
-      
+
       if (!email || !password) {
         // Let the validation middleware handle missing credentials
         return next();
       }
 
       const user = await userService.authenticate(email, password);
-      
+
       if (user && user.role === "superuser") {
         // Superuser can login during maintenance
         return next();
@@ -84,4 +84,3 @@ export async function checkAuthMaintenanceMode(
     next();
   }
 }
-

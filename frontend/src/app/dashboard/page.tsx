@@ -42,14 +42,14 @@ export default function DashboardPage() {
         router.push("/login");
         return;
       }
-      
+
       // Redirect superusers to superuser settings page (they need to impersonate first)
       // But allow access if they're currently impersonating
       if (isSuperuser && !impersonatedCompanyId) {
         router.push("/settings/superuser");
         return;
       }
-      
+
       if (!hasPermission("settings.access")) {
         router.push("/login");
       }

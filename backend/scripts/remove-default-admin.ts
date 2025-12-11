@@ -1,14 +1,14 @@
 #!/usr/bin/env ts-node
 /**
  * Script to remove or update default admin credentials
- * 
+ *
  * IMPORTANT: Run this script before deploying to production!
- * 
+ *
  * This script will:
  * 1. Check if default admin user exists
  * 2. Prompt to either delete or update the password
  * 3. Log the action taken
- * 
+ *
  * Usage:
  *   yarn ts-node scripts/remove-default-admin.ts
  */
@@ -79,7 +79,7 @@ async function removeDefaultAdmin() {
     } else if (choice === "2") {
       // Update password
       const newPassword = await question("Enter new password (min 8 characters): ");
-      
+
       if (newPassword.length < 8) {
         logger.error("Password must be at least 8 characters long");
         console.log("❌ Password must be at least 8 characters long");
@@ -121,6 +121,3 @@ async function removeDefaultAdmin() {
 }
 
 removeDefaultAdmin();
-
-
-

@@ -63,7 +63,7 @@ async function seedTestCompanies() {
       // Create admin user for company
       const userId = uuidv4();
       const hashedPassword = await bcrypt.hash("test123", 10);
-      
+
       await db
         .insertInto("users")
         .values({
@@ -189,4 +189,3 @@ seedTestCompanies()
   });
 
 export default seedTestCompanies;
-

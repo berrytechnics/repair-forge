@@ -109,12 +109,14 @@ router.get(
 // GET /cash-drawer/:id - Get specific drawer session
 router.get(
   "/:id",
+  requireLocationContext,
   requireRole(["admin", "manager"]),
   asyncHandler(async (req: Request, res: Response) => {
     const companyId = req.companyId!;
+    const locationId = req.locationId;
     const { id } = req.params;
 
-    const session = await cashDrawerService.getDrawerSession(id, companyId);
+    const session = await cashDrawerService.getDrawerSession(id, companyId, locationId || null);
 
     if (!session) {
       throw new NotFoundError("Cash drawer session not found");
@@ -125,6 +127,3 @@ router.get(
 );
 
 export default router;
-
-
-

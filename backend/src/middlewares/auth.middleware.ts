@@ -33,4 +33,3 @@ export async function validateRequest(
   req.companyId = user.company_id ? (user.company_id as unknown as string) : undefined;
   next();
 }
-

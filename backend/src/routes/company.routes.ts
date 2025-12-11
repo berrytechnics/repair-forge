@@ -36,7 +36,7 @@ router.get(
     }
 
     const result = await companyService.findAll({ page, limit, search });
-    
+
     res.json({
       success: true,
       data: result.data,
@@ -52,13 +52,13 @@ router.get(
   requireSuperuser(),
   asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    
+
     const company = await companyService.findById(id);
-    
+
     if (!company) {
       throw new NotFoundError("Company not found");
     }
-    
+
     res.json({
       success: true,
       data: company,
@@ -73,16 +73,16 @@ router.get(
   requireSuperuser(),
   asyncHandler(async (req: Request, res: Response) => {
     const { id: companyId } = req.params;
-    
+
     // Verify company exists
     const company = await companyService.findById(companyId);
     if (!company) {
       throw new NotFoundError("Company not found");
     }
-    
+
     // Get all locations for this company (includeRestricted = true for superusers)
     const locations = await locationService.findAll(companyId, true);
-    
+
     res.json({
       success: true,
       data: locations,
@@ -98,7 +98,7 @@ router.patch(
   asyncHandler(async (req: Request, res: Response) => {
     const { id: companyId, locationId } = req.params;
     const { isFree } = req.body;
-    
+
     if (typeof isFree !== "boolean") {
       res.status(400).json({
         success: false,
@@ -106,13 +106,13 @@ router.patch(
       });
       return;
     }
-    
+
     // Verify company exists
     const company = await companyService.findById(companyId);
     if (!company) {
       throw new NotFoundError("Company not found");
     }
-    
+
     // Prevent unsetting free status on the first location
     if (!isFree) {
       const allLocations = await locationService.findAll(companyId, true);
@@ -124,17 +124,17 @@ router.patch(
         return;
       }
     }
-    
+
     const location = await locationService.toggleFreeStatus(
       locationId,
       companyId,
       isFree
     );
-    
+
     if (!location) {
       throw new NotFoundError("Location not found");
     }
-    
+
     // Update subscription billing if needed
     try {
       const billingService = (await import("../services/billing.service.js")).default;
@@ -143,7 +143,7 @@ router.patch(
       // Log error but don't fail the location update
       console.error("Failed to update billing:", error);
     }
-    
+
     res.json({
       success: true,
       data: location,
@@ -152,4 +152,3 @@ router.patch(
 );
 
 export default router;
-

@@ -8,6 +8,7 @@ import {
   getAssetById,
   updateAsset,
 } from "@/lib/api/asset.api";
+import { getErrorMessage } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 
@@ -149,13 +150,7 @@ export default function AssetForm({
         `Error ${isUpdateMode ? "updating" : "creating"} asset:`,
         err
       );
-      setSubmitError(
-        err instanceof Error
-          ? err.message
-          : `Failed to ${
-              isUpdateMode ? "update" : "create"
-            } asset. Please try again.`
-      );
+      setSubmitError(getErrorMessage(err));
       setIsSubmitting(false);
     }
   };
@@ -370,4 +365,3 @@ export default function AssetForm({
     </div>
   );
 }
-

@@ -11,7 +11,7 @@ import sendGridAdapter, { EmailData } from './sendgrid.adapter.js';
 /**
  * High-level email service for sending notifications
  * Handles integration configuration and fallback gracefully
- * 
+ *
  * SendGrid Configuration:
  * - Site-wide SendGrid (via env vars): Used for user invitations
  *   Set SENDGRID_API_KEY and SENDGRID_FROM_EMAIL in backend .env
@@ -25,14 +25,14 @@ export class EmailService {
   private isSiteWideSendGridConfigured(): boolean {
     const hasApiKey = !!process.env.SENDGRID_API_KEY;
     const hasFromEmail = !!process.env.SENDGRID_FROM_EMAIL;
-    
+
     if (!hasApiKey) {
       logger.debug('Site-wide SendGrid: SENDGRID_API_KEY not found in environment');
     }
     if (!hasFromEmail) {
       logger.debug('Site-wide SendGrid: SENDGRID_FROM_EMAIL not found in environment');
     }
-    
+
     return hasApiKey && hasFromEmail;
   }
 
@@ -138,7 +138,7 @@ export class EmailService {
       const statusDisplay = statusDisplayNames[ticket.status] || ticket.status;
 
       const subject = `Ticket ${ticket.ticketNumber} Status Update: ${statusDisplay}`;
-      
+
       const html = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #333;">Ticket Status Update</h2>
@@ -208,9 +208,9 @@ Thank you for your business!
       }
 
       const subject = `Invoice ${invoice.invoiceNumber} from ${invoice.status === 'paid' ? 'Payment Confirmation' : 'Payment Due'}`;
-      
-      const statusText = invoice.status === 'paid' 
-        ? 'This invoice has been paid. Thank you!' 
+
+      const statusText = invoice.status === 'paid'
+        ? 'This invoice has been paid. Thank you!'
         : 'Please review the invoice below and submit payment.';
 
       const html = `
@@ -294,7 +294,7 @@ Thank you for your business!
         frontendUrl = firstOrigin;
       }
       if (!frontendUrl) {
-        frontendUrl = process.env.NODE_ENV === 'production' 
+        frontendUrl = process.env.NODE_ENV === 'production'
           ? 'https://yourdomain.com' // Should be set in production
           : 'http://localhost:3000'; // Default for development
       }
@@ -426,7 +426,7 @@ If you didn't expect this invitation, you can safely ignore this email.
         frontendUrl = firstOrigin;
       }
       if (!frontendUrl) {
-        frontendUrl = process.env.NODE_ENV === 'production' 
+        frontendUrl = process.env.NODE_ENV === 'production'
           ? 'https://yourdomain.com'
           : 'http://localhost:3000';
       }
@@ -512,4 +512,3 @@ If you didn't request a password reset, you can safely ignore this email. Your p
 }
 
 export default new EmailService();
-

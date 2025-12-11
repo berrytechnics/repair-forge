@@ -207,4 +207,3 @@ export const updateLocationQuantity = async (
     response.data.error?.message || "Failed to update location quantity"
   );
 };
-

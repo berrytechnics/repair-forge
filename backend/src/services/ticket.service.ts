@@ -148,7 +148,7 @@ async function generateTicketNumber(companyId: string): Promise<string> {
     .toString()
     .padStart(3, "0");
   const ticketNumber = `${prefix}-${timestamp}-${random}`;
-  
+
   // Check if ticket number exists for this company
   const existing = await db
     .selectFrom("tickets")
@@ -156,12 +156,12 @@ async function generateTicketNumber(companyId: string): Promise<string> {
     .where("ticket_number", "=", ticketNumber)
     .where("company_id", "=", companyId)
     .executeTakeFirst();
-  
+
   if (existing) {
     // Recursively generate new number if collision
     return generateTicketNumber(companyId);
   }
-  
+
   return ticketNumber;
 }
 
@@ -582,4 +582,3 @@ export class TicketService {
 }
 
 export default new TicketService();
-

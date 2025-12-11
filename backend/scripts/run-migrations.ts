@@ -47,7 +47,7 @@ function splitSqlStatements(sql: string): string[] {
       for (let i = 0; i < line.length - 1; i++) {
         const char = line[i];
         const nextChar = line[i + 1];
-        
+
         if (!inString && (char === '"' || char === "'")) {
           inString = true;
           stringChar = char;
@@ -68,7 +68,7 @@ function splitSqlStatements(sql: string): string[] {
       return line;
     })
     .join('\n');
-  
+
   // Split by semicolons that are not inside strings or dollar-quoted blocks
   const statements: string[] = [];
   let currentStatement = '';
@@ -77,11 +77,11 @@ function splitSqlStatements(sql: string): string[] {
   let inDollarQuote = false;
   let dollarTag = '';
   let i = 0;
-  
+
   while (i < withoutComments.length) {
     const char = withoutComments[i];
     const nextChar = withoutComments[i + 1];
-    
+
     // Handle dollar-quoted strings (PostgreSQL feature: $$...$$, $tag$...$tag$)
     if (!inString && !inDollarQuote && char === '$') {
       // Try to match dollar quote tag
@@ -107,7 +107,7 @@ function splitSqlStatements(sql: string): string[] {
         continue;
       }
     }
-    
+
     // Handle regular string literals (only when not in dollar quote)
     if (!inDollarQuote) {
       if (!inString && (char === '"' || char === "'")) {
@@ -147,18 +147,18 @@ function splitSqlStatements(sql: string): string[] {
         continue;
       }
     }
-    
+
     // Add character to current statement (only if not handled above)
     currentStatement += char;
     i++;
   }
-  
+
   // Add final statement if any
   const trimmed = currentStatement.trim();
   if (trimmed.length > 0) {
     statements.push(trimmed);
   }
-  
+
   return statements;
 }
 
@@ -169,8 +169,8 @@ async function tableExists(client: any, tableName: string): Promise<boolean> {
   try {
     const result = await client.query(
       `SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_schema = 'public' 
+        SELECT FROM information_schema.tables
+        WHERE table_schema = 'public'
         AND table_name = $1
       )`,
       [tableName]
@@ -192,14 +192,14 @@ async function verifyMigrationPersisted(
   expectedTables: string[]
 ): Promise<void> {
   const missingTables: string[] = [];
-  
+
   for (const table of expectedTables) {
     const exists = await tableExists(client, table);
     if (!exists) {
       missingTables.push(table);
     }
   }
-  
+
   if (missingTables.length > 0) {
     throw new Error(
       `Migration ${migrationFile} reported success but tables were not created: ${missingTables.join(', ')}. ` +
@@ -213,12 +213,12 @@ async function verifyMigrationPersisted(
  */
 function getExpectedTables(sql: string, migrationFile: string): string[] {
   const tables: string[] = [];
-  
+
   // Extract CREATE TABLE statements
   // Match both "CREATE TABLE table_name" and "CREATE TABLE IF NOT EXISTS table_name"
   // This regex explicitly handles both cases and captures only the table name
   const createTablePattern = /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?([a-zA-Z_][a-zA-Z0-9_]*)/gi;
-  
+
   let match;
   while ((match = createTablePattern.exec(sql)) !== null) {
     const tableName = match[1].toLowerCase();
@@ -227,14 +227,14 @@ function getExpectedTables(sql: string, migrationFile: string): string[] {
       tables.push(tableName);
     }
   }
-  
+
   // Special case: base schema should create schema_migrations
   if (migrationFile.includes('base-schema')) {
     if (!tables.includes('schema_migrations')) {
       tables.push('schema_migrations');
     }
   }
-  
+
   return tables;
 }
 
@@ -294,7 +294,7 @@ async function recordMigration(
 ): Promise<void> {
   // Check if schema_migrations table exists first
   const trackingTableExists = await tableExists(client, "schema_migrations");
-  
+
   if (!trackingTableExists) {
     // For base schema migration, this is expected - the table will be created
     if (filename.includes('base-schema')) {
@@ -308,7 +308,7 @@ async function recordMigration(
       );
     }
   }
-  
+
   try {
     const result = await client.query(
       `INSERT INTO schema_migrations (filename, checksum, execution_time_ms)
@@ -317,7 +317,7 @@ async function recordMigration(
        RETURNING filename`,
       [filename, checksum, executionTimeMs]
     );
-    
+
     if (result.rows.length === 0) {
       console.log(`  Note: Migration ${filename} already recorded in tracking table`);
     } else {
@@ -332,7 +332,7 @@ async function recordMigration(
 
 async function runMigrations() {
   const client = await pool.connect();
-  
+
   try {
     // Enable UUID extension first (required for migrations)
     console.log("Enabling UUID extension...");
@@ -343,7 +343,7 @@ async function runMigrations() {
       // Extension might already exist or might not be available
       console.log("⚠ UUID extension check:", error instanceof Error ? error.message : String(error));
     }
-    
+
     // Get migration directory (relative to project root or from current location)
     // Try multiple possible locations for migrations
     let migrationsDir = join(__dirname, "../../database/migrations");
@@ -355,14 +355,14 @@ async function runMigrations() {
         migrationsDir = join(process.cwd(), "database/migrations");
       }
     }
-    
+
     // Get all SQL migration files and sort them
     const files = readdirSync(migrationsDir)
       .filter((file) => file.endsWith(".sql"))
       .sort();
-    
+
     console.log(`Found ${files.length} migration files`);
-    
+
     // Verify schema_migrations table exists (should be created by base schema)
     const trackingTableExists = await tableExists(client, "schema_migrations");
     if (!trackingTableExists) {
@@ -372,19 +372,19 @@ async function runMigrations() {
     } else {
       console.log("✓ Migration tracking table found");
     }
-    
+
     let appliedCount = 0;
     let skippedCount = 0;
-    
+
     // Run each migration
     for (const file of files) {
       const filePath = join(migrationsDir, file);
       const sql = readFileSync(filePath, "utf-8");
       const checksum = calculateChecksum(sql);
-      
+
       // Check if migration has already been applied
       const alreadyApplied = await isMigrationApplied(client, file);
-      
+
       if (alreadyApplied) {
         // CRITICAL: Verify that tables actually exist before skipping
         // This catches cases where migration was marked as applied but transaction didn't persist
@@ -397,7 +397,7 @@ async function runMigrations() {
               missingTables.push(table);
             }
           }
-          
+
           if (missingTables.length > 0) {
             console.log(`⚠ Migration ${file} marked as applied but tables missing: ${missingTables.join(', ')}`);
             console.log(`  This indicates the previous migration transaction didn't persist.`);
@@ -414,20 +414,20 @@ async function runMigrations() {
           continue;
         }
       }
-      
+
       console.log(`Running migration: ${file}`);
-      
+
       // Check for missing table dependencies before running migration
       // But exclude tables that are created in this same migration
       const referencedTables = extractReferencedTables(sql);
       const createdTables = getExpectedTables(sql, file);
-      
+
       if (referencedTables.length > 0) {
         // Filter out tables that are created in this migration
         const externalDependencies = referencedTables.filter(
           table => !createdTables.includes(table.toLowerCase())
         );
-        
+
         if (externalDependencies.length > 0) {
           const missingTables: string[] = [];
           for (const table of externalDependencies) {
@@ -436,7 +436,7 @@ async function runMigrations() {
               missingTables.push(table);
             }
           }
-          
+
           if (missingTables.length > 0) {
             console.error(`✗ Migration ${file} failed: Missing required tables: ${missingTables.join(', ')}`);
             console.error(`  This migration references tables that don't exist yet.`);
@@ -445,23 +445,23 @@ async function runMigrations() {
           }
         }
       }
-      
+
       const startTime = Date.now();
-      
+
       try {
         // Log transaction status before starting
         const preTxStatus = await checkTransactionStatus(client);
         console.log(`  Transaction status before BEGIN: ${preTxStatus}`);
-        
+
         await client.query("BEGIN");
-        
+
         // Always split SQL into statements and execute one by one
         // The pg library doesn't reliably support multiple statements in a single query
         const statements = splitSqlStatements(sql);
         const statementCount = statements.length;
-        
+
         console.log(`  Executing ${statementCount} SQL statement(s)...`);
-        
+
         for (let i = 0; i < statements.length; i++) {
           const statement = statements[i].trim();
           if (statement) {
@@ -473,7 +473,7 @@ async function runMigrations() {
               console.error(`✗ Statement ${i + 1}/${statements.length} failed in migration ${file}:`);
               console.error(`  Preview: ${statementPreview}...`);
               console.error(`  Full statement length: ${statement.length} chars`);
-              
+
               // Enhanced error message for missing relation errors
               if (stmtError?.code === "42P01") {
                 const relationMatch = stmtError.message.match(/relation "(\w+)" does not exist/);
@@ -481,13 +481,13 @@ async function runMigrations() {
                   const missingRelation = relationMatch[1];
                   console.error(`  ERROR: Table or relation "${missingRelation}" does not exist`);
                   console.error(`  This suggests a dependency issue - ensure prerequisite migrations have run.`);
-                  
+
                   // Check if it's a table we can verify
                   const exists = await tableExists(client, missingRelation);
                   console.error(`  Verification: Table "${missingRelation}" exists: ${exists}`);
                 }
               }
-              
+
               if (statement.length < 1000) {
                 console.error(`  Full statement:\n${statement}`);
               } else {
@@ -497,9 +497,9 @@ async function runMigrations() {
             }
           }
         }
-        
+
         const executionTime = Date.now() - startTime;
-        
+
         // Record migration BEFORE commit to ensure it's in the same transaction
         // If schema_migrations doesn't exist yet, that's okay - it will be created by base schema
         try {
@@ -515,11 +515,11 @@ async function runMigrations() {
             throw recordError;
           }
         }
-        
+
         // Commit the transaction
         console.log(`  Committing transaction...`);
         await client.query("COMMIT");
-        
+
         // CRITICAL: Verify transaction actually persisted by checking if tables exist
         // This catches cases where COMMIT appears to succeed but changes don't persist
         const expectedTables = getExpectedTables(sql, file);
@@ -535,7 +535,7 @@ async function runMigrations() {
             throw verifyError;
           }
         }
-        
+
         // Double-check: If this is base schema, verify schema_migrations table exists
         // and record the migration now that the table exists
         if (file.includes('base-schema')) {
@@ -547,7 +547,7 @@ async function runMigrations() {
             );
           }
           console.log(`  ✓ Migration tracking table verified`);
-          
+
           // Now record this migration since the table exists
           try {
             await recordMigration(client, file, checksum, executionTime);
@@ -557,7 +557,7 @@ async function runMigrations() {
             // Don't fail the migration, but log the error
           }
         }
-        
+
         console.log(`✓ Migration ${file} completed successfully (${executionTime}ms, ${statementCount} statements)`);
         appliedCount++;
       } catch (error: any) {
@@ -568,7 +568,7 @@ async function runMigrations() {
         } catch (statusError) {
           console.error(`  Could not check transaction status: ${statusError}`);
         }
-        
+
         try {
           await client.query("ROLLBACK");
           console.log(`  ✓ Transaction rolled back`);
@@ -576,16 +576,16 @@ async function runMigrations() {
           // Ignore rollback errors, transaction might already be rolled back
           console.error("⚠ Rollback error (may be expected):", rollbackError);
         }
-        
+
         // Handle idempotent errors - migrations that can be safely skipped if already applied
-        const isIdempotentError = 
+        const isIdempotentError =
           (error instanceof Error && error.message.includes("already exists")) ||
           (error?.code === "23505") || // Unique constraint violation (duplicate key)
           (error?.code === "42P07"); // Duplicate table/relation
-        
+
         // Handle missing relation errors with better context
         const isMissingRelationError = error?.code === "42P01";
-        
+
         if (isIdempotentError) {
           console.log(`⚠ Migration ${file} skipped (idempotent error - may already be applied)`);
           // Still record it to prevent future attempts
@@ -618,7 +618,7 @@ async function runMigrations() {
         }
       }
     }
-    
+
     console.log(`\n✓ Migration summary: ${appliedCount} applied, ${skippedCount} skipped`);
     console.log("✓ All migrations completed successfully");
   } finally {
@@ -631,4 +631,3 @@ runMigrations().catch((error) => {
   console.error("Migration failed:", error);
   process.exit(1);
 });
-

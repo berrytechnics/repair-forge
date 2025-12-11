@@ -192,4 +192,3 @@ export const updateInventoryValidation = [
     .isBoolean()
     .withMessage("trackQuantity must be a boolean"),
 ];
-

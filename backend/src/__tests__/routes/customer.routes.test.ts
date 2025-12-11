@@ -19,7 +19,7 @@ describe("Customer Routes Integration Tests", () => {
     // Create test users with different roles
     const users = await createTestUsersWithRoles(testCompanyId);
     testUserIds.push(users.admin.userId, users.frontdesk.userId, users.technician.userId);
-    
+
     authToken = users.technician.token;
     adminToken = users.admin.token;
     frontdeskToken = users.frontdesk.token;
@@ -59,7 +59,7 @@ describe("Customer Routes Integration Tests", () => {
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
       expect(response.body.data).toHaveLength(2);
-      
+
       const emails = response.body.data.map((c: { email: string }) => c.email);
       expect(emails).toContain("alice@example.com");
       expect(emails).toContain("bob@example.com");
@@ -200,7 +200,7 @@ describe("Customer Routes Integration Tests", () => {
       expect(response.body.data.firstName).toBe("Charlie");
       expect(response.body.data.lastName).toBe("Brown");
       expect(response.body.data.phone).toBe("555-1234");
-      
+
       // Track for cleanup
       if (response.body.data.id) {
         testCustomerIds.push(response.body.data.id);

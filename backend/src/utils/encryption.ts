@@ -15,7 +15,7 @@ function getEncryptionKey(): Buffer {
   if (!key) {
     throw new Error('ENCRYPTION_KEY environment variable is required');
   }
-  
+
   // Derive a consistent key from the environment variable
   // Using PBKDF2 for key derivation with a fixed salt
   return crypto.pbkdf2Sync(
@@ -35,17 +35,17 @@ export function encrypt(plaintext: string): string {
   if (!plaintext) {
     throw new Error('Cannot encrypt empty string');
   }
-  
+
   const key = getEncryptionKey();
   const iv = crypto.randomBytes(IV_LENGTH);
-  
+
   const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
-  
+
   let encrypted = cipher.update(plaintext, 'utf8', 'hex');
   encrypted += cipher.final('hex');
-  
+
   const tag = cipher.getAuthTag();
-  
+
   // Combine IV + tag + encrypted data
   // Format: iv:tag:encrypted
   return `${iv.toString('hex')}:${tag.toString('hex')}:${encrypted}`;
@@ -59,24 +59,24 @@ export function decrypt(encryptedData: string): string {
   if (!encryptedData) {
     throw new Error('Cannot decrypt empty string');
   }
-  
+
   const key = getEncryptionKey();
-  
+
   const parts = encryptedData.split(':');
   if (parts.length !== 3) {
     throw new Error('Invalid encrypted data format. Expected format: iv:tag:encrypted');
   }
-  
+
   const [ivHex, tagHex, encrypted] = parts;
   const iv = Buffer.from(ivHex, 'hex');
   const tag = Buffer.from(tagHex, 'hex');
-  
+
   const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
   decipher.setAuthTag(tag);
-  
+
   let decrypted = decipher.update(encrypted, 'hex', 'utf8');
   decrypted += decipher.final('utf8');
-  
+
   return decrypted;
 }
 
@@ -85,7 +85,7 @@ export function decrypt(encryptedData: string): string {
  */
 export function encryptCredentials(credentials: Record<string, string>): Record<string, string> {
   const encrypted: Record<string, string> = {};
-  
+
   for (const [key, value] of Object.entries(credentials)) {
     // Skip undefined/null values
     if (value === undefined || value === null) {
@@ -98,7 +98,7 @@ export function encryptCredentials(credentials: Record<string, string>): Record<
       encrypted[key] = encrypt(value);
     }
   }
-  
+
   return encrypted;
 }
 
@@ -107,7 +107,7 @@ export function encryptCredentials(credentials: Record<string, string>): Record<
  */
 export function decryptCredentials(encrypted: Record<string, string>): Record<string, string> {
   const decrypted: Record<string, string> = {};
-  
+
   for (const [key, value] of Object.entries(encrypted)) {
     // Skip undefined/null values
     if (value === undefined || value === null) {
@@ -143,7 +143,6 @@ export function decryptCredentials(encrypted: Record<string, string>): Record<st
       }
     }
   }
-  
+
   return decrypted;
 }
-

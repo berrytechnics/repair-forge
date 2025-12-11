@@ -35,4 +35,3 @@ export const updateInventoryModelValidation = [
     .isLength({ min: 1, max: 255 })
     .withMessage("Name must be between 1 and 255 characters"),
 ];
-

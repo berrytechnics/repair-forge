@@ -4,4 +4,3 @@ export async function register() {
   // The config files handle initialization, so we don't need to do anything here
   // unless we need custom initialization logic
 }
-

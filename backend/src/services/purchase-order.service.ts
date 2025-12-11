@@ -151,7 +151,7 @@ async function generatePONumber(companyId: string): Promise<string> {
   const month = (new Date().getMonth() + 1).toString().padStart(2, "0");
   const timestamp = Date.now().toString().slice(-6);
   const poNumber = `${prefix}-${year}${month}-${timestamp}`;
-  
+
   // Check if PO number exists for this company
   const existing = await db
     .selectFrom("purchase_orders")
@@ -159,12 +159,12 @@ async function generatePONumber(companyId: string): Promise<string> {
     .where("po_number", "=", poNumber)
     .where("company_id", "=", companyId)
     .executeTakeFirst();
-  
+
   if (existing) {
     // Recursively generate new number if collision
     return generatePONumber(companyId);
   }
-  
+
   return poNumber;
 }
 
@@ -620,5 +620,3 @@ export class PurchaseOrderService {
 }
 
 export default new PurchaseOrderService();
-
-

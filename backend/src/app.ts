@@ -54,12 +54,12 @@ const corsOptions = {
     if (!origin) {
       return callback(null, true);
     }
-    
+
     // In development/test, allow all origins
     if (process.env.NODE_ENV !== "production") {
       return callback(null, true);
     }
-    
+
     // In production, check against allowed origins
     if (Array.isArray(allowedOrigins) && allowedOrigins.length > 0) {
       if (allowedOrigins.includes(origin)) {
@@ -69,7 +69,7 @@ const corsOptions = {
         return callback(new Error("Not allowed by CORS"), false);
       }
     }
-    
+
     // If no allowed origins configured in production, deny all
     logger.error("CORS: No allowed origins configured in production!");
     return callback(new Error("CORS not configured"), false);
@@ -147,7 +147,7 @@ app.get("/health", async (req: Request, res: Response) => {
     const { testConnection } = await import("./config/connection.js");
     const dbHealthy = await testConnection();
     const responseTime = Date.now() - startTime;
-    
+
     const healthStatus = {
       status: dbHealthy ? "ok" : "unhealthy",
       database: dbHealthy ? "connected" : "disconnected",
@@ -157,7 +157,7 @@ app.get("/health", async (req: Request, res: Response) => {
       version: process.env.npm_package_version || "unknown",
       environment: process.env.NODE_ENV || "unknown",
     };
-    
+
     res.status(dbHealthy ? 200 : 503).json(healthStatus);
   } catch (error) {
     const responseTime = Date.now() - startTime;
@@ -193,7 +193,7 @@ app.use((err: Error | HttpError, req: Request, res: Response, _next: NextFunctio
     ip: req.ip,
     userAgent: req.get("user-agent"),
   });
-  
+
   // Send error to Sentry (capture all errors for debugging, filter in production)
   if (process.env.SENTRY_DSN) {
     const httpError = err instanceof HttpError ? err : new HttpError(err.message || "Internal Server Error", 500);
@@ -214,20 +214,20 @@ app.use((err: Error | HttpError, req: Request, res: Response, _next: NextFunctio
       });
     }
   }
-  
+
   // Convert regular Errors to HttpError
-  const httpError = err instanceof HttpError 
-    ? err 
+  const httpError = err instanceof HttpError
+    ? err
     : new HttpError(err.message || "Internal Server Error", 500);
-  
+
   const statusCode = httpError.statusCode;
-  
+
   // User-friendly error messages for production
   let message = httpError.message;
   if (process.env.NODE_ENV === "production" && statusCode === 500) {
     message = "An unexpected error occurred. Please try again later.";
   }
-  
+
   const errorResponse: {
     success: false;
     error: {
@@ -241,7 +241,7 @@ app.use((err: Error | HttpError, req: Request, res: Response, _next: NextFunctio
     error: {
       message,
       ...(httpError instanceof ValidationError && { errors: httpError.errors }),
-      ...(process.env.NODE_ENV === "development" && { 
+      ...(process.env.NODE_ENV === "development" && {
         stack: httpError.stack,
         originalMessage: httpError.message,
       }),
@@ -249,7 +249,7 @@ app.use((err: Error | HttpError, req: Request, res: Response, _next: NextFunctio
       ...(req.headers["x-request-id"] && { requestId: req.headers["x-request-id"] as string }),
     },
   };
-  
+
   res.status(statusCode).json(errorResponse);
 });
 

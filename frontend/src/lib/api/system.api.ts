@@ -63,4 +63,3 @@ export async function setMaintenanceMode(
     response.data.error?.message || "Failed to set maintenance mode"
   );
 }
-

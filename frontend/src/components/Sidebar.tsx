@@ -67,7 +67,7 @@ export default function Sidebar() {
   useEffect(() => {
     const loadPosFlag = async () => {
       if (isLoading || !user) return;
-      
+
       try {
         const response = await getPosEnabled();
         setPosEnabled(response.data?.enabled === true);
@@ -180,22 +180,22 @@ export default function Sidebar() {
   // Filter navigation based on user permissions
   const navigation = allNavigationItems.filter((item) => {
     if (!user) return false;
-    
+
     // Superusers not impersonating should only see Settings
     if (isSuperuser && !impersonatedCompanyId) {
       return item.href === "/settings";
     }
-    
+
     // Check admin-only items
     if (item.adminOnly && user.role !== "admin") {
       return false;
     }
-    
+
     // Check POS feature flag
     if (item.requiresPosEnabled && !posEnabled) {
       return false;
     }
-    
+
     return hasPermission(item.permission);
   });
 
@@ -254,12 +254,12 @@ export default function Sidebar() {
             {navigation.map((item) => {
               // Settings should be active for /settings, /settings/*, and /locations pages
               const isActive = item.href === "/settings"
-                ? pathname === item.href || 
-                  pathname.startsWith(`${item.href}/`) || 
+                ? pathname === item.href ||
+                  pathname.startsWith(`${item.href}/`) ||
                   pathname === "/locations" ||
                   pathname.startsWith("/locations/")
                 : pathname === item.href || pathname.startsWith(`${item.href}/`);
-              
+
               return (
                 <SidebarLink
                   key={item.href}

@@ -108,4 +108,3 @@ export function getAvailableProviders(type: IntegrationType): ProviderMetadata[]
   }
   return [];
 }
-

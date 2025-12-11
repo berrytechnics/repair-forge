@@ -259,4 +259,3 @@ export async function getPermissionsMatrix(companyId: string): Promise<Record<Us
     return ROLE_PERMISSIONS;
   }
 }
-

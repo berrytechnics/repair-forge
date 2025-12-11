@@ -72,10 +72,10 @@ async function testSendGrid() {
     console.log('If you don\'t see it, check your spam folder.');
   } catch (error: unknown) {
     console.error('\n❌ Error sending email:');
-    
+
     if (error instanceof Error) {
       console.error(`Message: ${error.message}`);
-      
+
       // Provide helpful error messages
       if (error.message.includes('Unauthorized')) {
         console.error('\n💡 Tip: Your SendGrid API key may be invalid. Please check:');
@@ -89,7 +89,7 @@ async function testSendGrid() {
         console.error(`   - Verify ${fromEmail} in SendGrid dashboard`);
         console.error('   - Or use Single Sender Verification');
       }
-      
+
       // Log full error details if available
       const errorResponse = (error as { response?: { body?: unknown } }).response;
       if (errorResponse?.body) {
@@ -99,7 +99,7 @@ async function testSendGrid() {
     } else {
       console.error('Unknown error:', error);
     }
-    
+
     process.exit(1);
   }
 }
@@ -109,4 +109,3 @@ testSendGrid().catch((error) => {
   console.error('Unexpected error:', error);
   process.exit(1);
 });
-

@@ -125,4 +125,3 @@ export class PasswordResetService {
 }
 
 export default new PasswordResetService();
-

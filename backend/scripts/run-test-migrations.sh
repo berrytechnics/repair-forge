@@ -77,7 +77,7 @@ for migration in $(ls "${MIGRATIONS_DIR}"/*.sql 2>/dev/null | sort); do
   echo "Running migration: $(basename "${migration}")"
   echo "Full path: ${migration}"
   echo "========================================="
-  
+
   if [ "${USE_DOCKER_PSQL}" = "true" ]; then
     # Docker exec psql - pipe file content into container
     OUTPUT=$(cat "${migration}" | docker exec -i -e PGPASSWORD="${DB_PASSWORD}" "${CONTAINER_NAME}" \
@@ -89,13 +89,13 @@ for migration in $(ls "${MIGRATIONS_DIR}"/*.sql 2>/dev/null | sort); do
       -f "${migration}" -v ON_ERROR_STOP=1 2>&1)
     EXIT_CODE=$?
   fi
-  
+
   echo "${OUTPUT}"
-  
+
   if [ $EXIT_CODE -eq 0 ]; then
     echo "✓ Migration $(basename "${migration}") completed successfully"
     SQL_MIGRATION_COUNT=$((SQL_MIGRATION_COUNT + 1))
-    
+
     # After base schema, verify tables were created
     if [[ "${migration}" == *"base-schema"* ]]; then
       echo "Verifying base tables were created..."
@@ -171,7 +171,7 @@ echo "Verifying database tables exist..."
 if [ "${USE_DOCKER_PSQL}" = "true" ]; then
   docker exec -e PGPASSWORD="${DB_PASSWORD}" "${CONTAINER_NAME}" \
     psql -U "${PSQL_USER}" -d "${PSQL_DB}" -c "\dt" || exit 1
-  
+
   # Verify key tables exist (including new inventory reference tables)
   echo "Checking for required tables..."
   TABLE_COUNT=$(docker exec -e PGPASSWORD="${DB_PASSWORD}" "${CONTAINER_NAME}" \
@@ -179,7 +179,7 @@ if [ "${USE_DOCKER_PSQL}" = "true" ]; then
     -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('companies', 'users', 'customers', 'tickets', 'invoices', 'role_permissions', 'inventory_categories', 'inventory_subcategories', 'inventory_brands', 'inventory_models');")
 else
   psql "postgresql://${PSQL_USER}:${DB_PASSWORD}@${PSQL_HOST}:${PSQL_PORT}/${PSQL_DB}" -c "\dt" || exit 1
-  
+
   # Verify key tables exist (including new inventory reference tables)
   echo "Checking for required tables..."
   TABLE_COUNT=$(psql "postgresql://${PSQL_USER}:${DB_PASSWORD}@${PSQL_HOST}:${PSQL_PORT}/${PSQL_DB}" \

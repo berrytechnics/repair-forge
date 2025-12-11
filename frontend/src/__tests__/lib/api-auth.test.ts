@@ -161,7 +161,7 @@ describe('Auth API Functions', () => {
       mockApi.post = jest.fn().mockResolvedValue(mockResponse)
 
       const credentials = { email: 'test@example.com', password: 'wrong' }
-      
+
       await expect(login(credentials)).rejects.toThrow('Invalid credentials')
     })
   })
@@ -300,7 +300,7 @@ describe('Auth API Functions', () => {
   describe('restoreTokenFromStorage', () => {
     it('restores token from localStorage', () => {
       localStorageMock.getItem.mockReturnValue('stored-token-123')
-      
+
       restoreTokenFromStorage()
 
       expect(localStorageMock.getItem).toHaveBeenCalledWith('accessToken')
@@ -309,7 +309,7 @@ describe('Auth API Functions', () => {
     it('restores token from sessionStorage if localStorage is empty', () => {
       localStorageMock.getItem.mockReturnValue(null)
       sessionStorageMock.getItem.mockReturnValue('session-token-456')
-      
+
       restoreTokenFromStorage()
 
       expect(sessionStorageMock.getItem).toHaveBeenCalledWith('accessToken')
@@ -318,7 +318,7 @@ describe('Auth API Functions', () => {
     it('does nothing if no token exists', () => {
       localStorageMock.getItem.mockReturnValue(null)
       sessionStorageMock.getItem.mockReturnValue(null)
-      
+
       restoreTokenFromStorage()
 
       // Should not throw or cause errors
@@ -326,7 +326,3 @@ describe('Auth API Functions', () => {
     })
   })
 })
-
-
-
-

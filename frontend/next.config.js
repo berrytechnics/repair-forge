@@ -92,7 +92,7 @@ const nextConfig = {
     } else {
       config.resolve.conditionNames = ["import", "require", "default"];
     }
-    
+
     // Ensure webpack can resolve ES modules with exports field
     config.resolve.fullySpecified = false;
 

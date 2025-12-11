@@ -58,4 +58,3 @@ export const refundPayment = async (
 
   throw new Error(response.data.error?.message || 'Failed to refund payment');
 };
-

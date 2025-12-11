@@ -266,13 +266,3 @@ export default function AssetDetailPage({
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-

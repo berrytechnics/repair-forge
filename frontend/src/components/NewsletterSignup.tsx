@@ -18,7 +18,7 @@ export default function NewsletterSignup({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email.trim()) {
       setMessage({ type: "error", text: "Please enter your email address" });
       return;
@@ -77,4 +77,3 @@ export default function NewsletterSignup({
     </div>
   );
 }
-

@@ -100,4 +100,3 @@ export const deleteInventoryCategory = async (
     response.data.error?.message || "Failed to delete inventory category"
   );
 };
-

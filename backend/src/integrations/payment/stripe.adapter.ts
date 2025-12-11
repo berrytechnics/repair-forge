@@ -188,4 +188,3 @@ export class StripeAdapter {
 }
 
 export default new StripeAdapter();
-

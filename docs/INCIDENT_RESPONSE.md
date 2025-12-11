@@ -62,12 +62,12 @@ This guide provides procedures for responding to incidents and outages in Circui
    ```bash
    # Check service status
    docker compose -f docker-compose.prod.yml ps
-   
+
    # Review recent logs
    docker compose -f docker-compose.prod.yml logs --tail=500 backend
    docker compose -f docker-compose.prod.yml logs --tail=500 frontend
    docker compose -f docker-compose.prod.yml logs --tail=500 postgres
-   
+
    # Check system resources
    docker stats
    df -h

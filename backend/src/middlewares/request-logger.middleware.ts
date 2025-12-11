@@ -119,11 +119,11 @@ export function logBillingEvent(
     event,
     companyId,
   };
-  
+
   if (details && typeof details === "object") {
     Object.assign(logData, sanitizeRequestBody(details));
   }
-  
+
   logger.info("Billing event", logData);
 }
 
@@ -139,11 +139,10 @@ export function logSubscriptionChange(
     companyId,
     change,
   };
-  
+
   if (details && typeof details === "object") {
     Object.assign(logData, sanitizeRequestBody(details));
   }
-  
+
   logger.info("Subscription change", logData);
 }
-

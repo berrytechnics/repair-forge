@@ -117,4 +117,3 @@ export const deleteIntegration = async (
 
   throw new Error(response.data.error?.message || 'Failed to delete integration');
 };
-

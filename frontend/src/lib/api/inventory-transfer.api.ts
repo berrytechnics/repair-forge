@@ -56,7 +56,7 @@ export const getInventoryTransfers = async (
   if (status) params.append("status", status);
   if (fromLocation) params.append("fromLocation", fromLocation);
   if (toLocation) params.append("toLocation", toLocation);
-  
+
   const url = `/inventory-transfers${params.toString() ? `?${params.toString()}` : ""}`;
   const response = await api.get<ApiResponse<InventoryTransfer[]>>(url);
 
@@ -133,4 +133,3 @@ export const cancelInventoryTransfer = async (
     response.data.error?.message || "Failed to cancel inventory transfer"
   );
 };
-

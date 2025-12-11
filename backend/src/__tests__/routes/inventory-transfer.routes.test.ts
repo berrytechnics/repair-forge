@@ -50,7 +50,7 @@ describe("Inventory Transfer Routes Integration Tests", () => {
     // Create test users with different roles
     const users = await createTestUsersWithRoles(testCompanyId);
     testUserIds.push(users.admin.userId, users.frontdesk.userId, users.technician.userId);
-    
+
     // Assign all users to both locations so they can see inventory transfers
     // (inventory transfers are only visible if user has access to multiple locations)
     await assignUserToLocation(users.admin.userId, testLocation1Id);
@@ -59,7 +59,7 @@ describe("Inventory Transfer Routes Integration Tests", () => {
     await assignUserToLocation(users.technician.userId, testLocation2Id);
     await assignUserToLocation(users.frontdesk.userId, testLocation1Id);
     await assignUserToLocation(users.frontdesk.userId, testLocation2Id);
-    
+
     authToken = users.technician.token;
     adminToken = users.admin.token;
     frontdeskToken = users.frontdesk.token;
@@ -690,7 +690,7 @@ describe("Inventory Transfer Routes Integration Tests", () => {
         .send(transferData);
 
       expect(response.status).toBe(201);
-      
+
       // Track for cleanup
       if (response.body.data.id) {
         testInventoryTransferIds.push(response.body.data.id);
@@ -1217,4 +1217,3 @@ describe("Inventory Transfer Routes Integration Tests", () => {
     });
   });
 });
-

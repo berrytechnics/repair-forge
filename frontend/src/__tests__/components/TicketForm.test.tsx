@@ -32,7 +32,7 @@ jest.mock('next/navigation', () => ({
 describe('TicketForm', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    
+
     // Default mock implementations
     mockedTechnicianApi.getTechnicians.mockResolvedValue({
       success: true,
@@ -40,7 +40,7 @@ describe('TicketForm', () => {
         { id: 'tech-1', firstName: 'John', lastName: 'Tech', email: 'john@example.com', role: 'technician', permissions: [] },
       ],
     })
-    
+
     mockedChecklistApi.getChecklistTemplates.mockResolvedValue({
       success: true,
       data: [
@@ -72,7 +72,7 @@ describe('TicketForm', () => {
       })
 
       render(<TicketForm customerId="cust-1" />)
-      
+
       waitFor(() => {
         expect(screen.queryByPlaceholderText(/search customers/i)).not.toBeInTheDocument()
       })
@@ -201,4 +201,3 @@ describe('TicketForm', () => {
     })
   })
 })
-

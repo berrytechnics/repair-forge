@@ -8,6 +8,7 @@ import {
   getCustomerById,
   updateCustomer,
 } from "@/lib/api/customer.api";
+import { getErrorMessage } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 
@@ -49,11 +50,7 @@ export default function CustomerForm({ customerId }: CustomerFormProps) {
           }
         } catch (err) {
           console.error("Error fetching customer:", err);
-          setSubmitError(
-            err instanceof Error
-              ? err.message
-              : "Failed to load customer data. Please try again."
-          );
+          setSubmitError(getErrorMessage(err));
         } finally {
           setIsLoading(false);
         }
@@ -151,13 +148,7 @@ export default function CustomerForm({ customerId }: CustomerFormProps) {
         `Error ${isUpdateMode ? "updating" : "creating"} customer:`,
         err
       );
-      setSubmitError(
-        err instanceof Error
-          ? err.message
-          : `Failed to ${
-              isUpdateMode ? "update" : "create"
-            } customer. Please try again.`
-      );
+      setSubmitError(getErrorMessage(err));
       setIsSubmitting(false);
     }
   };

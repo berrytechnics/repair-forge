@@ -7,7 +7,7 @@ import { UserWithoutPassword } from "../services/user.service.js";
  * Middleware to extract and validate tenant (company) context
  * Ensures all requests are scoped to the user's company
  * Must be used after validateRequest middleware
- * 
+ *
  * For superusers:
  * - Can bypass tenant context if not impersonating
  * - Can impersonate any tenant via X-Impersonate-Company header
@@ -27,7 +27,7 @@ export async function requireTenantContext(
     // Superusers can bypass tenant context or impersonate
     if (user.role === "superuser") {
       const impersonateCompanyId = req.headers["x-impersonate-company"] as string | undefined;
-      
+
       if (impersonateCompanyId) {
         // Verify the company exists
         const company = await db
@@ -36,11 +36,11 @@ export async function requireTenantContext(
           .where("id", "=", impersonateCompanyId)
           .where("deleted_at", "is", null)
           .executeTakeFirst();
-        
+
         if (!company) {
           return next(new ForbiddenError("Invalid company ID for impersonation"));
         }
-        
+
         // Set impersonated company_id
         req.companyId = impersonateCompanyId;
       } else {
@@ -64,4 +64,3 @@ export async function requireTenantContext(
     next(error);
   }
 }
-

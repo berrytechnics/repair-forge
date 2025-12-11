@@ -45,7 +45,7 @@ export default function InvoiceForm({ invoiceId }: InvoiceFormProps) {
   const searchParams = useSearchParams();
   const isEditMode = !!invoiceId;
   const { user, hasPermission } = useUser();
-  
+
   // Check permissions for price/discount modifications
   const canModifyPrices = hasPermission("invoices.modifyPrices");
   const canModifyDiscounts = hasPermission("invoices.modifyDiscounts");
@@ -56,7 +56,7 @@ export default function InvoiceForm({ invoiceId }: InvoiceFormProps) {
   const [locationTaxName, setLocationTaxName] = useState<string>("Sales Tax");
   const [locationTaxEnabled, setLocationTaxEnabled] = useState<boolean>(true);
   const [locationTaxInclusive, setLocationTaxInclusive] = useState<boolean>(false);
-  
+
   // Stored invoice totals from backend (for edit mode - source of truth)
   const [storedInvoiceTotals, setStoredInvoiceTotals] = useState<{
     subtotal: number;
@@ -194,7 +194,7 @@ export default function InvoiceForm({ invoiceId }: InvoiceFormProps) {
               createdAt: item.createdAt,
               updatedAt: item.updatedAt,
             }));
-            
+
             setFormData((prev) => ({
               ...prev,
               customerId: response.data.customerId,
@@ -255,14 +255,14 @@ export default function InvoiceForm({ invoiceId }: InvoiceFormProps) {
             return sum + Number(item.subtotal);
           }
           const itemSubtotal = Number(item.quantity || 0) * Number(item.unitPrice || 0);
-          const discount = item.discountAmount !== undefined 
-            ? Number(item.discountAmount) 
+          const discount = item.discountAmount !== undefined
+            ? Number(item.discountAmount)
             : (item.discountPercent ? itemSubtotal * (item.discountPercent / 100) : 0);
           return sum + itemSubtotal - discount;
         }, 0);
-      
+
       const calcNonTaxableSubtotal = storedInvoiceTotals.subtotal - calcTaxableSubtotal;
-      
+
       return {
         subtotal: storedInvoiceTotals.subtotal,
         taxableSubtotal: calcTaxableSubtotal,
@@ -271,7 +271,7 @@ export default function InvoiceForm({ invoiceId }: InvoiceFormProps) {
         total: storedInvoiceTotals.totalAmount,
       };
     }
-    
+
     // In create mode, calculate from items
     // Use stored subtotal if available (from backend), otherwise calculate
     const calcSubtotal = formData.invoiceItems.reduce(
@@ -283,8 +283,8 @@ export default function InvoiceForm({ invoiceId }: InvoiceFormProps) {
         // Otherwise calculate from quantity, price, and discount
         const itemSubtotal = Number(item.quantity || 0) * Number(item.unitPrice || 0);
         // Prefer discountAmount if available (more accurate), otherwise calculate from discountPercent
-        const discount = item.discountAmount !== undefined 
-          ? Number(item.discountAmount) 
+        const discount = item.discountAmount !== undefined
+          ? Number(item.discountAmount)
           : (item.discountPercent ? itemSubtotal * (item.discountPercent / 100) : 0);
         return sum + itemSubtotal - discount;
       },
@@ -302,14 +302,14 @@ export default function InvoiceForm({ invoiceId }: InvoiceFormProps) {
         // Otherwise calculate from quantity, price, and discount
         const itemSubtotal = Number(item.quantity || 0) * Number(item.unitPrice || 0);
         // Prefer discountAmount if available (more accurate), otherwise calculate from discountPercent
-        const discount = item.discountAmount !== undefined 
-          ? Number(item.discountAmount) 
+        const discount = item.discountAmount !== undefined
+          ? Number(item.discountAmount)
           : (item.discountPercent ? itemSubtotal * (item.discountPercent / 100) : 0);
         return sum + itemSubtotal - discount;
       }, 0);
 
     const calcNonTaxableSubtotal = calcSubtotal - calcTaxableSubtotal;
-    
+
     // Calculate tax based on location tax settings
     let calcTaxAmount = 0;
     if (locationTaxEnabled && locationTaxRate > 0) {
@@ -321,7 +321,7 @@ export default function InvoiceForm({ invoiceId }: InvoiceFormProps) {
         calcTaxAmount = (calcTaxableSubtotal * locationTaxRate) / 100;
       }
     }
-    
+
     const calcTotal = calcSubtotal + (locationTaxInclusive ? 0 : calcTaxAmount) - Number(formData.discountAmount || 0);
 
     return {
@@ -1047,4 +1047,3 @@ export default function InvoiceForm({ invoiceId }: InvoiceFormProps) {
     </div>
   );
 }
-

@@ -29,4 +29,3 @@ module.exports = {
     logging: false,
   },
 };
-

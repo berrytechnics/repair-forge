@@ -81,39 +81,39 @@ echo -e "${GREEN}Step 4: Running database migrations...${NC}"
 verify_database_state() {
     local DB_USER="${POSTGRES_USER:-circuit_sage_user}"
     local DB_NAME="${POSTGRES_DB:-circuit_sage_db}"
-    
+
     echo -e "${GREEN}Verifying database state...${NC}"
-    
+
     # Check if migration tracking table exists
     if ! docker compose -f docker-compose.prod.yml --env-file .env.production exec -T postgres psql -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1 FROM schema_migrations LIMIT 1;" > /dev/null 2>&1; then
         echo -e "${RED}✗ Migration tracking table (schema_migrations) does not exist${NC}"
         return 1
     fi
-    
+
     # Check critical tables exist
     local CRITICAL_TABLES=("companies" "users" "customers" "tickets" "invoices")
     local MISSING_TABLES=()
-    
+
     for table in "${CRITICAL_TABLES[@]}"; do
         if ! docker compose -f docker-compose.prod.yml --env-file .env.production exec -T postgres psql -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1 FROM $table LIMIT 1;" > /dev/null 2>&1; then
             MISSING_TABLES+=("$table")
         fi
     done
-    
+
     if [ ${#MISSING_TABLES[@]} -ne 0 ]; then
         echo -e "${RED}✗ Critical tables missing: ${MISSING_TABLES[*]}${NC}"
         echo -e "${YELLOW}This indicates migrations reported success but tables were not created.${NC}"
         return 1
     fi
-    
+
     # Get migration count
     local MIGRATION_COUNT=$(docker compose -f docker-compose.prod.yml --env-file .env.production exec -T postgres psql -U "$DB_USER" -d "$DB_NAME" -t -c "SELECT COUNT(*) FROM schema_migrations;" | tr -d ' ')
-    
+
     echo -e "${GREEN}✓ Database verification passed${NC}"
     echo -e "${GREEN}  - Migration tracking table exists${NC}"
     echo -e "${GREEN}  - All critical tables exist${NC}"
     echo -e "${GREEN}  - Migrations recorded: $MIGRATION_COUNT${NC}"
-    
+
     return 0
 }
 
@@ -157,12 +157,12 @@ MIGRATION_OUTPUT=""
 
 while [ $MIGRATION_ATTEMPTS -lt $MAX_MIGRATION_ATTEMPTS ]; do
     echo -e "${YELLOW}Migration attempt $((MIGRATION_ATTEMPTS + 1))/${MAX_MIGRATION_ATTEMPTS}...${NC}"
-    
+
     # Capture migration output
     if MIGRATION_OUTPUT=$(docker compose -f docker-compose.prod.yml --env-file .env.production exec -T backend yarn migrate:prod 2>&1); then
         echo "$MIGRATION_OUTPUT"
         MIGRATION_SUCCESS=true
-        
+
         # Verify database state after successful migration
         if verify_database_state; then
             echo -e "${GREEN}✓ Migrations completed and verified successfully${NC}"
@@ -270,7 +270,7 @@ fi
 # Update nginx config with SSL - use certbot nginx plugin for automatic configuration
 if [ -f "/etc/letsencrypt/live/$DOMAIN_NAME/fullchain.pem" ] || [ -f "/etc/letsencrypt/live/$DOMAIN_NAME-0001/fullchain.pem" ]; then
     echo -e "${GREEN}Configuring HTTPS in Nginx...${NC}"
-    
+
     # Determine which certificate to use (prefer one that includes www)
     CERT_NAME="$DOMAIN_NAME"
     if [ -f "/etc/letsencrypt/live/$DOMAIN_NAME/fullchain.pem" ]; then
@@ -283,7 +283,7 @@ if [ -f "/etc/letsencrypt/live/$DOMAIN_NAME/fullchain.pem" ] || [ -f "/etc/letse
     elif [ -f "/etc/letsencrypt/live/$DOMAIN_NAME-0001/fullchain.pem" ]; then
         CERT_NAME="$DOMAIN_NAME-0001"
     fi
-    
+
     # Ensure clean nginx config before certbot runs
     # Restore from template if config test fails (might be corrupted)
     if ! sudo nginx -t >/dev/null 2>&1; then
@@ -291,12 +291,12 @@ if [ -f "/etc/letsencrypt/live/$DOMAIN_NAME/fullchain.pem" ] || [ -f "/etc/letse
         sudo cp deployment/hetzner/nginx.conf /etc/nginx/sites-available/circuit-sage
         sudo sed -i "s/yourdomain.com/$DOMAIN_NAME/g" /etc/nginx/sites-available/circuit-sage
     fi
-    
+
     # Kill nginx again before certbot runs (in case certbot started it)
     sudo pkill -9 nginx || true
     sudo systemctl stop nginx || true
     sleep 2
-    
+
     # Use certbot's nginx plugin to automatically configure SSL for both domains
     # This is more reliable than manual sed edits
     CERTBOT_SUCCESS=false
@@ -310,14 +310,14 @@ if [ -f "/etc/letsencrypt/live/$DOMAIN_NAME/fullchain.pem" ] || [ -f "/etc/letse
             CERTBOT_SUCCESS=true
         fi
     fi
-    
+
     if [ "$CERTBOT_SUCCESS" = false ]; then
         echo -e "${YELLOW}Certbot nginx plugin failed. Attempting fallback...${NC}"
-        
+
         # Restore clean config and try certbot install
         sudo cp deployment/hetzner/nginx.conf /etc/nginx/sites-available/circuit-sage
         sudo sed -i "s/yourdomain.com/$DOMAIN_NAME/g" /etc/nginx/sites-available/circuit-sage
-        
+
         # Try to install the certificate using certbot install
         if sudo certbot install --cert-name "$CERT_NAME" --nginx --non-interactive 2>/dev/null; then
             echo -e "${GREEN}Certificate installed successfully via certbot install${NC}"
@@ -328,7 +328,7 @@ if [ -f "/etc/letsencrypt/live/$DOMAIN_NAME/fullchain.pem" ] || [ -f "/etc/letse
             echo -e "${YELLOW}Certificate is available at: /etc/letsencrypt/live/$CERT_NAME/${NC}"
         fi
     fi
-    
+
     echo -e "${GREEN}✓ SSL configuration completed${NC}"
 else
     echo -e "${YELLOW}SSL certificate not found. Using HTTP only for now.${NC}"
@@ -351,13 +351,13 @@ if ! sudo nginx -t; then
     echo -e "${YELLOW}Attempting to restore clean config...${NC}"
     sudo cp deployment/hetzner/nginx.conf /etc/nginx/sites-available/circuit-sage
     sudo sed -i "s/yourdomain.com/$DOMAIN_NAME/g" /etc/nginx/sites-available/circuit-sage
-    
+
     # If SSL was configured, try certbot install again
     if [ -f "/etc/letsencrypt/live/$DOMAIN_NAME/fullchain.pem" ] || [ -f "/etc/letsencrypt/live/$DOMAIN_NAME-0001/fullchain.pem" ]; then
         echo -e "${YELLOW}Re-running certbot to configure SSL...${NC}"
         sudo certbot --nginx -d "$DOMAIN_NAME" -d "www.$DOMAIN_NAME" --non-interactive --agree-tos --email "${SSL_EMAIL:-admin@$DOMAIN_NAME}" --redirect || true
     fi
-    
+
     # Test again
     if ! sudo nginx -t; then
         echo -e "${RED}✗ Nginx configuration still invalid after restore${NC}"

@@ -43,11 +43,11 @@ export function requirePaymentMethod(): RequestHandler {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
       const companyId = req.companyId!;
-      
+
       // Check current location count
       const locationService = (await import("../services/location.service.js")).default;
       const existingLocations = await locationService.findAll(companyId, true); // includeRestricted = true to get all locations
-      
+
       // First location is free, so no payment method required
       if (existingLocations.length === 0) {
         return next();
@@ -88,4 +88,3 @@ export function requirePaymentMethod(): RequestHandler {
     }
   };
 }
-

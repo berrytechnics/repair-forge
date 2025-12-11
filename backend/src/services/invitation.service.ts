@@ -296,4 +296,3 @@ export class InvitationService {
 }
 
 export default new InvitationService();
-

@@ -124,5 +124,3 @@ export const receivePurchaseOrderValidation = [
     .isInt({ min: 0 })
     .withMessage("Quantity received must be a non-negative integer"),
 ];
-
-

@@ -43,7 +43,7 @@ export async function generateInvoicePDF(invoice: Invoice): Promise<void> {
   // Use direct import so webpack can bundle it properly
   const reactPdfModule = await import("@react-pdf/renderer");
   const { pdf, Document, Page, Text, View, StyleSheet } = reactPdfModule;
-  
+
   // Create styles
   const styles = StyleSheet.create({
     page: {

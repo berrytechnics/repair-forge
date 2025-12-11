@@ -10,4 +10,3 @@ if (process.env.SENTRY_DSN) {
     // No need to manually add integrations
   });
 }
-

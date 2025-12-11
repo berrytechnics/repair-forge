@@ -154,6 +154,3 @@ export const updateLocationValidation = [
       return true;
     }),
 ];
-
-
-

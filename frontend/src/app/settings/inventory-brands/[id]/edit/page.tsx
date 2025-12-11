@@ -7,4 +7,3 @@ export default function EditInventoryBrandPage({
 }) {
   return <InventoryBrandForm brandId={params.id} />;
 }
-

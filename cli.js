@@ -24,18 +24,18 @@ function log(message, color = "reset") {
 function executeCommand(command, options = {}) {
   try {
     log(`Executing: ${command}`, "green");
-    
+
     // If logFile is specified, write output to file
     if (options.logFile) {
-      const logPath = path.isAbsolute(options.logFile) 
-        ? options.logFile 
+      const logPath = path.isAbsolute(options.logFile)
+        ? options.logFile
         : path.join(process.cwd(), options.logFile);
-      
+
       // Write command header to log file
       fs.appendFileSync(logPath, `\n${"=".repeat(80)}\n`);
       fs.appendFileSync(logPath, `[${new Date().toISOString()}] Executing: ${command}\n`);
       fs.appendFileSync(logPath, `${"=".repeat(80)}\n\n`);
-      
+
       // Use spawnSync to capture both stdout and stderr synchronously
       // This is necessary because Jest writes to stderr, and execSync only captures stderr on error
       // When shell: true, pass command as a single string
@@ -45,22 +45,22 @@ function executeCommand(command, options = {}) {
         stdio: ["inherit", "pipe", "pipe"],
         encoding: "utf8",
       });
-      
+
       const stdout = result.stdout || "";
       const stderr = result.stderr || "";
-      
+
       // Combine stdout and stderr (Jest writes to stderr)
       const combinedOutput = stdout + (stderr ? stderr : "");
-      
+
       // Write output to log file
       if (combinedOutput) {
         fs.appendFileSync(logPath, combinedOutput);
       }
-      
+
       // Also show output in console
       if (stdout) process.stdout.write(stdout);
       if (stderr) process.stderr.write(stderr);
-      
+
       // Check exit code
       if (result.status !== 0) {
         const error = new Error(`Command failed with exit code ${result.status}`);
@@ -68,7 +68,7 @@ function executeCommand(command, options = {}) {
         error.stderr = stderr;
         throw error;
       }
-      
+
       return true;
     } else {
       // Normal execution without logging
@@ -84,8 +84,8 @@ function executeCommand(command, options = {}) {
   } catch (error) {
     // Write error to log file if specified
     if (options.logFile) {
-      const logPath = path.isAbsolute(options.logFile) 
-        ? options.logFile 
+      const logPath = path.isAbsolute(options.logFile)
+        ? options.logFile
         : path.join(process.cwd(), options.logFile);
       fs.appendFileSync(logPath, `\n[ERROR] ${error.message}\n`);
       if (error.stdout) {
@@ -97,7 +97,7 @@ function executeCommand(command, options = {}) {
         process.stderr.write(error.stderr.toString());
       }
     }
-    
+
     if (options.ignoreError) {
       log(`Command failed but continuing: ${error.message}`, "yellow");
       return false;
@@ -629,16 +629,16 @@ program
         }
       } else {
         log("Running backend CI checks...", "green");
-        
+
         // Setup log file (overwrite on each run)
         const logFile = "ci-test.log";
         const logPath = path.join(process.cwd(), logFile);
-        
+
         // Clear/create log file
         fs.writeFileSync(logPath, `CI Test Run - ${new Date().toISOString()}\n`);
         fs.appendFileSync(logPath, `${"=".repeat(80)}\n\n`);
         log(`Writing test output to ${logFile}`, "blue");
-        
+
         const checks = [
           { cmd: "yarn lint", name: "Linting" },
           { cmd: "npx tsc --noEmit", name: "Type checking" },
@@ -678,7 +678,7 @@ program
             });
           }
         }
-        
+
         // Only reached if all checks passed (executeCommand exits on failure)
         log("All CI checks passed!", "green");
         log(`Test output saved to ${logFile}`, "green");
@@ -692,7 +692,7 @@ program
   .option("--skip-build", "Skip building frontend before running tests")
   .action((options) => {
     log("Running E2E tests...", "green");
-    
+
     // Check if frontend is built
     const frontendBuildPath = path.join(process.cwd(), "frontend", ".next");
     if (!options.skipBuild && !fs.existsSync(frontendBuildPath)) {
@@ -701,13 +701,13 @@ program
         cwd: path.join(process.cwd(), "frontend"),
       });
     }
-    
+
     // Run E2E tests
     log("Running Playwright E2E tests...", "blue");
     executeCommand("yarn test:e2e", {
       cwd: path.join(process.cwd(), "frontend"),
     });
-    
+
     // Only reached if tests passed (executeCommand exits on failure)
     log("All E2E tests passed!", "green");
   });

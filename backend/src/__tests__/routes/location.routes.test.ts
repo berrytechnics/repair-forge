@@ -27,7 +27,7 @@ describe("Location Routes Integration Tests", () => {
     // Note: createTestUsersWithRoles creates a default location
     const users = await createTestUsersWithRoles(testCompanyId);
     testUserIds.push(users.admin.userId, users.frontdesk.userId, users.technician.userId);
-    
+
     // Track the default location for cleanup
     testLocationIds.push(users.locationId);
 
@@ -331,4 +331,3 @@ describe("Location Routes Integration Tests", () => {
     });
   });
 });
-

@@ -77,11 +77,11 @@ docker compose -f docker-compose.prod.yml exec postgres psql -U circuit_sage_use
 **Troubleshooting:**
 1. Verify location count:
    ```sql
-   SELECT 
+   SELECT
      COUNT(*) as total,
      COUNT(*) FILTER (WHERE is_free = false) as billable,
      COUNT(*) FILTER (WHERE is_free = true) as free
-   FROM locations 
+   FROM locations
    WHERE company_id = '<company-id>' AND deleted_at IS NULL;
    ```
 
@@ -107,15 +107,15 @@ docker compose -f docker-compose.prod.yml exec postgres psql -U circuit_sage_use
 **Troubleshooting:**
 1. Check payment history:
    ```sql
-   SELECT * FROM subscription_payments 
-   WHERE subscription_id = '<subscription-id>' 
+   SELECT * FROM subscription_payments
+   WHERE subscription_id = '<subscription-id>'
    ORDER BY created_at DESC LIMIT 10;
    ```
 
 2. Review payment failure reasons:
    ```sql
-   SELECT failure_reason, status, amount, created_at 
-   FROM subscription_payments 
+   SELECT failure_reason, status, amount, created_at
+   FROM subscription_payments
    WHERE subscription_id = '<subscription-id>' AND status = 'failed'
    ORDER BY created_at DESC;
    ```
@@ -141,8 +141,8 @@ docker compose -f docker-compose.prod.yml exec postgres psql -U circuit_sage_use
 **Troubleshooting:**
 1. Check subscription autopay status:
    ```sql
-   SELECT autopay_enabled, square_subscription_id, square_card_id 
-   FROM subscriptions 
+   SELECT autopay_enabled, square_subscription_id, square_card_id
+   FROM subscriptions
    WHERE company_id = '<company-id>';
    ```
 
@@ -191,7 +191,7 @@ docker compose -f docker-compose.prod.yml exec postgres psql -U circuit_sage_use
 **Troubleshooting:**
 1. Find payment record:
    ```sql
-   SELECT * FROM subscription_payments 
+   SELECT * FROM subscription_payments
    WHERE square_payment_id = '<payment-id>';
    ```
 
@@ -199,8 +199,8 @@ docker compose -f docker-compose.prod.yml exec postgres psql -U circuit_sage_use
 
 3. Update payment record:
    ```sql
-   UPDATE subscription_payments 
-   SET status = 'refunded', updated_at = NOW() 
+   UPDATE subscription_payments
+   SET status = 'refunded', updated_at = NOW()
    WHERE id = '<payment-id>';
    ```
 
@@ -342,7 +342,7 @@ WHERE s.billing_day = EXTRACT(DAY FROM CURRENT_DATE)
 ### Monthly Billing Report
 
 ```sql
-SELECT 
+SELECT
   c.name as company_name,
   s.monthly_amount,
   s.status,

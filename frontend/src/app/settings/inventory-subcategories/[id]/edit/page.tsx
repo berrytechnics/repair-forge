@@ -7,4 +7,3 @@ export default function EditInventorySubcategoryPage({
 }) {
   return <InventorySubcategoryForm subcategoryId={params.id} />;
 }
-

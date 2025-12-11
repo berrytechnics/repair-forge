@@ -20,4 +20,3 @@ export function hasAnyPermission(permissions: string[], permissionList: string[]
 export function hasAllPermissions(permissions: string[], permissionList: string[]): boolean {
   return permissionList.every((permission) => permissions.includes(permission));
 }
-

@@ -22,39 +22,11 @@ import passwordResetService from "../services/password-reset.service.js";
 import permissionService from "../services/permission.service.js";
 import userService, { UpdateUserDto, UserWithoutPassword } from "../services/user.service.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { formatUserForResponse } from "../utils/user.utils.js";
 import { generateNewJWTToken, generateRefreshToken, verifyRefreshToken } from "../utils/auth.js";
 import { forgotPasswordValidation, loginValidation, registerValidation, resetPasswordValidation } from "../validators/user.validator.js";
 
 const router = express.Router();
-
-// Helper function to convert user from database format to API format
-// UserWithoutPassword has snake_case fields at runtime (from database)
-function formatUserForResponse(user: UserWithoutPassword) {
-  // Type assertion needed because TypeScript types don't match runtime structure
-  const userWithSnakeCase = user as unknown as {
-    id: string;
-    current_location_id?: string | null;
-    first_name: string;
-    last_name: string;
-    email: string;
-    role: string;
-    roles?: string[];
-    primaryRole?: string;
-    active?: boolean;
-  };
-  
-  return {
-    id: userWithSnakeCase.id,
-    currentLocationId: userWithSnakeCase.current_location_id || null,
-    firstName: userWithSnakeCase.first_name,
-    lastName: userWithSnakeCase.last_name,
-    email: userWithSnakeCase.email,
-    role: userWithSnakeCase.role,
-    roles: userWithSnakeCase.roles || [userWithSnakeCase.role],
-    primaryRole: userWithSnakeCase.primaryRole || userWithSnakeCase.role,
-    active: userWithSnakeCase.active !== undefined ? userWithSnakeCase.active : true,
-  };
-}
 
 router.post(
   "/login",
@@ -69,7 +41,7 @@ router.post(
       logAuthFailure(req, "Invalid credentials", email);
       throw new UnauthorizedError("Invalid credentials");
     }
-    
+
     // Ensure permissions are initialized for the company (for existing companies)
     if (user.company_id && user.role !== "superuser") {
       try {
@@ -79,7 +51,7 @@ router.post(
         console.warn("Failed to initialize permissions during login:", error);
       }
     }
-    
+
     // For admins, ensure they have a current location set
     let userToReturn = user;
     if (user.role === "admin" && user.company_id && !user.current_location_id) {
@@ -92,7 +64,7 @@ router.post(
         .orderBy("created_at", "asc")
         .limit(1)
         .executeTakeFirst();
-      
+
       if (defaultLocation) {
         try {
           await userService.setCurrentLocation(user.id, defaultLocation.id, companyId);
@@ -106,11 +78,11 @@ router.post(
         }
       }
     }
-    
+
     const accessToken = generateNewJWTToken(userToReturn);
     const refreshToken = generateRefreshToken(userToReturn);
     const formattedUser = formatUserForResponse(userToReturn);
-    
+
     res.json({
       success: true,
       data: {
@@ -129,32 +101,32 @@ router.post(
   validate(registerValidation),
   asyncHandler(async (req: Request, res: Response) => {
     const { firstName, lastName, email, password, companyName, invitationToken, role } = req.body;
-    
+
     let company;
     let userRole = role || "technician";
     let defaultLocationId: string | null = null;
-    
+
     // Path 1: Invitation-based registration (subsequent users)
     if (invitationToken) {
       // Validate invitation token
       const validation = await invitationService.isTokenValid(invitationToken, email);
-      
+
       if (!validation.valid || !validation.invitation) {
         throw new BadRequestError(validation.error || "Invalid invitation");
       }
-      
+
       const invitation = validation.invitation;
-      
+
       // Get company from invitation
       const companyResult = await companyService.findById(invitation.companyId);
       if (!companyResult) {
         throw new BadRequestError("Company not found for invitation");
       }
       company = companyResult;
-      
+
       // Use role from invitation
       userRole = invitation.role;
-      
+
       // Mark invitation as used
       await invitationService.markAsUsed(invitationToken);
     }
@@ -163,11 +135,11 @@ router.post(
       // Check if company already exists
       const subdomain = companyName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
       const existingCompany = await companyService.findBySubdomain(subdomain);
-      
+
       if (existingCompany) {
         throw new BadRequestError("Company with this name already exists. Please use an invitation to join.");
       }
-      
+
       // Create new company
       company = await companyService.create({
         name: companyName,
@@ -175,20 +147,20 @@ router.post(
         plan: "free",
         status: "active",
       });
-      
+
       // Create default location for the new company
       const defaultLocation = await locationService.create(company.id, {
         name: "Default Location",
         isActive: true,
       });
       defaultLocationId = defaultLocation.id;
-      
+
       // First user automatically becomes admin
       userRole = "admin";
     } else {
       throw new BadRequestError("Either companyName or invitationToken is required");
     }
-    
+
     // Create user with company_id
     const user = await userService.create({
       firstName,
@@ -198,30 +170,30 @@ router.post(
       companyId: company.id,
       role: userRole,
     });
-    
+
     if (!user) {
       throw new BadRequestError("Registration failed");
     }
-    
+
     // For new company registrations, assign user to default location and set as current
     if (defaultLocationId) {
       // Assign user to location
       await userService.assignLocation(user.id, defaultLocationId, company.id);
-      
+
       // Set as current location
       await userService.setCurrentLocation(user.id, defaultLocationId, company.id);
     }
-    
+
     // Fetch updated user with location set
     const updatedUser = await userService.findById(user.id);
     if (!updatedUser) {
       throw new BadRequestError("Failed to fetch user after registration");
     }
-    
+
     const accessToken = generateNewJWTToken(updatedUser);
     const refreshToken = generateRefreshToken(updatedUser);
     const formattedUser = formatUserForResponse(updatedUser);
-    
+
     res.status(201).json({
       success: true,
       data: {
@@ -254,7 +226,7 @@ router.post(
         const userWithName = await userService.findById(user.id);
         // UserWithoutPassword extends UserTable which has first_name and last_name at runtime (snake_case from DB)
         type UserWithSnakeCase = UserWithoutPassword & { first_name?: string; last_name?: string };
-        const userName = userWithName 
+        const userName = userWithName
           ? `${(userWithName as unknown as UserWithSnakeCase).first_name || ''} ${(userWithName as unknown as UserWithSnakeCase).last_name || ''}`.trim() || undefined
           : undefined;
 
@@ -325,14 +297,14 @@ router.get(
     if (!user) {
       throw new UnauthorizedError("User not found");
     }
-    
+
     const formattedUser = formatUserForResponse(user);
-    
+
     // For superusers, get permissions from config (they bypass company context)
     if (user.role === "superuser") {
       const { ROLE_PERMISSIONS } = await import("../config/permissions.js");
       const permissions = ROLE_PERMISSIONS.superuser || [];
-      
+
       res.json({
         success: true,
         data: {
@@ -342,13 +314,13 @@ router.get(
       });
       return;
     }
-    
+
     // Regular users need company context
     const companyId = req.companyId;
     if (!companyId) {
       throw new UnauthorizedError("Company context required");
     }
-    
+
     // Ensure permissions are initialized for this company (for existing companies)
     try {
       await permissionService.initializeCompanyPermissions(companyId);
@@ -356,7 +328,7 @@ router.get(
       // Log but don't fail - permission service will fallback to config
       console.warn("Failed to initialize permissions in /me endpoint:", error);
     }
-    
+
     // For admins, ensure they have a current location set
     // If they don't have one, set the first available location as default
     let userToReturn = user;
@@ -370,7 +342,7 @@ router.get(
           .orderBy("created_at", "asc")
           .limit(1)
           .executeTakeFirst();
-        
+
         if (defaultLocation) {
           await userService.setCurrentLocation(user.id, defaultLocation.id, companyId);
           // Fetch updated user
@@ -384,7 +356,7 @@ router.get(
         console.warn("Failed to set default location in /me endpoint:", error);
       }
     }
-    
+
     // Get permissions for user's role in their company
     // This will fallback to config if database fails
     let permissions: string[] = [];
@@ -396,10 +368,10 @@ router.get(
       // Fallback to empty array - frontend will handle missing permissions
       permissions = [];
     }
-    
+
     // Format the user (use updated user if location was set)
     const finalFormattedUser = formatUserForResponse(userToReturn);
-    
+
     res.json({
       success: true,
       data: {
@@ -418,7 +390,7 @@ router.get(
     const companyId = req.companyId!;
     const technicians = await userService.findTechnicians(companyId);
     const formattedTechnicians = technicians.map(formatUserForResponse);
-    
+
     res.json({
       success: true,
       data: formattedTechnicians,
@@ -436,7 +408,7 @@ router.get(
     // Return all permissions from the config
     const { PERMISSIONS } = await import("../config/permissions.js");
     const allPermissions = Object.values(PERMISSIONS);
-    
+
     res.json({
       success: true,
       data: allPermissions.sort(),
@@ -455,9 +427,9 @@ router.get(
     if (!companyId) {
       throw new UnauthorizedError("Company context required");
     }
-    
+
     const matrix = await getPermissionsMatrix(companyId);
-    
+
     res.json({
       success: true,
       data: matrix,
@@ -617,9 +589,9 @@ router.get(
         const allLocations = await locationService.findAll(companyId);
         res.json({
           success: true,
-          data: allLocations.map((loc) => ({ 
-            id: loc.id as unknown as string, 
-            name: loc.name 
+          data: allLocations.map((loc) => ({
+            id: loc.id as unknown as string,
+            name: loc.name
           })),
         });
       } else {
@@ -680,7 +652,7 @@ router.get(
     const companyId = req.companyId!;
     const users = await userService.findAll(companyId);
     const formattedUsers = users.map(formatUserForResponse);
-    
+
     res.json({
       success: true,
       data: formattedUsers,
@@ -923,19 +895,19 @@ router.post(
   "/refresh",
   asyncHandler(async (req: Request, res: Response) => {
     const { refreshToken } = req.body;
-    
+
     if (!refreshToken) {
       throw new BadRequestError("Refresh token is required");
     }
-    
+
     const user = await verifyRefreshToken(refreshToken);
     if (!user) {
       throw new UnauthorizedError("Invalid or expired refresh token");
     }
-    
+
     const accessToken = generateNewJWTToken(user);
     const newRefreshToken = generateRefreshToken(user);
-    
+
     res.json({
       success: true,
       data: {

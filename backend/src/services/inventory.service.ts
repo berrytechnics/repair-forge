@@ -443,7 +443,7 @@ export class InventoryService {
       .toString()
       .padStart(3, "0");
     const sku = `${prefix}-${timestamp}-${random}`;
-    
+
     // Check if SKU exists for this company
     const existing = await db
       .selectFrom("inventory_items")
@@ -452,12 +452,12 @@ export class InventoryService {
       .where("company_id", "=", companyId)
       .where("deleted_at", "is", null)
       .executeTakeFirst();
-    
+
     if (existing) {
       // Recursively generate new SKU if collision
       return this.generateUniqueSKU(companyId);
     }
-    
+
     return sku;
   }
 

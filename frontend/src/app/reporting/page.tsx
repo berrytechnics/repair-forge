@@ -61,28 +61,28 @@ const InvoiceStatusChart = dynamic(
 export default function ReportingPage() {
   const router = useRouter();
   const { user, hasPermission, isLoading: userLoading, availableLocations } = useUser();
-  
+
   // Date range state
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
-  
+
   // Location filter state
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
-  
+
   // Data states
   const [ticketStatusData, setTicketStatusData] = useState<StatusDistribution[]>([]);
   const [ticketPriorityData, setTicketPriorityData] = useState<PriorityDistribution[]>([]);
   const [revenueByLocationData, setRevenueByLocationData] = useState<RevenueByLocation[]>([]);
   const [technicianPerformanceData, setTechnicianPerformanceData] = useState<TechnicianPerformance[]>([]);
   const [invoiceStatusData, setInvoiceStatusData] = useState<InvoiceStatusBreakdown[]>([]);
-  
+
   // Loading states
   const [loadingTicketStatus, setLoadingTicketStatus] = useState(false);
   const [loadingTicketPriority, setLoadingTicketPriority] = useState(false);
   const [loadingRevenueByLocation, setLoadingRevenueByLocation] = useState(false);
   const [loadingTechnicianPerformance, setLoadingTechnicianPerformance] = useState(false);
   const [loadingInvoiceStatus, setLoadingInvoiceStatus] = useState(false);
-  
+
   // Error states
   const [errorTicketStatus, setErrorTicketStatus] = useState<string | null>(null);
   const [errorTicketPriority, setErrorTicketPriority] = useState<string | null>(null);
@@ -95,10 +95,10 @@ export default function ReportingPage() {
     const end = new Date();
     const start = new Date();
     start.setDate(start.getDate() - 30);
-    
+
     setStartDate(start.toISOString().split("T")[0]);
     setEndDate(end.toISOString().split("T")[0]);
-    
+
     // Set default location to current location
     if (user?.currentLocationId) {
       setSelectedLocationId(user.currentLocationId);
@@ -306,7 +306,7 @@ export default function ReportingPage() {
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 />
               </div>
-              
+
               {/* Location Filter */}
               {availableLocations.length > 0 && (
                 <div>
@@ -405,4 +405,3 @@ export default function ReportingPage() {
     </div>
   );
 }
-

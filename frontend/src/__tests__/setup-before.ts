@@ -19,4 +19,3 @@ Module.prototype.require = function (id: string, ...args: unknown[]) {
   }
   return originalRequire.apply(this, [id, ...args])
 }
-

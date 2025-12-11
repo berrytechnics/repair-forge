@@ -114,17 +114,17 @@ export async function createTestInvoice(
     customerId: invoiceData.customerId,
     status: 'draft',
   };
-  
+
   if (invoiceData.ticketId) {
     invoicePayload.ticketId = invoiceData.ticketId;
   }
   if (invoiceData.notes) {
     invoicePayload.notes = invoiceData.notes;
   }
-  
+
   const response = await apiRequest(page, 'POST', '/api/invoices', invoicePayload);
   const invoiceId = response.data.id;
-  
+
   // Add items separately if provided
   if (invoiceData.items && invoiceData.items.length > 0) {
     for (const item of invoiceData.items) {
@@ -137,7 +137,7 @@ export async function createTestInvoice(
       });
     }
   }
-  
+
   return invoiceId;
 }
 
@@ -266,4 +266,3 @@ export async function cleanupTestData(
     }
   }
 }
-

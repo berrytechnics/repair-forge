@@ -14,7 +14,7 @@ mkdir -p "$BACKUP_DIR"
 # Check if running in Docker Compose environment
 if docker compose -f docker-compose.prod.yml ps postgres | grep -q "Up"; then
   echo "Using Docker Compose for backup..."
-  
+
   # Create backup using Docker Compose
   docker compose -f docker-compose.prod.yml exec -T postgres pg_dump \
     -U ${POSTGRES_USER:-circuit_sage_user} \

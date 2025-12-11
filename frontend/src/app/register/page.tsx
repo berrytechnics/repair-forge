@@ -58,11 +58,11 @@ export default function RegisterPage() {
           ? { companyName }
           : { invitationToken }),
       });
-      
+
       // Fetch the full user profile with permissions
       const userWithPermissions = await getCurrentUser();
       setUser(userWithPermissions);
-      
+
       // Redirect superusers to superuser settings page, others to dashboard
       if (userWithPermissions.role === "superuser") {
         router.push("/settings/superuser");

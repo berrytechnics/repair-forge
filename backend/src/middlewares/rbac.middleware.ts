@@ -14,30 +14,30 @@ export function requireRole(roles: UserRole | UserRole[]): RequestHandler {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as UserWithoutPassword | undefined;
-      
+
       if (!user) {
         return next(new ForbiddenError("Authentication required"));
       }
-      
+
       // Superusers bypass all role checks
       if (user.role === "superuser") {
         return next();
       }
-      
+
       const companyId = req.companyId;
-      
+
       if (!companyId) {
         return next(new ForbiddenError("Company context required"));
       }
-      
+
       const allowedRoles = Array.isArray(roles) ? roles : [roles];
-      
+
       // Check if user has any of the required roles
       // First check primary role (backward compatibility)
       if (allowedRoles.includes(user.role)) {
         return next();
       }
-      
+
       // Check multiple roles if available
       if (user.roles && user.roles.length > 0) {
         const hasRequiredRole = user.roles.some((role) => allowedRoles.includes(role));
@@ -45,18 +45,18 @@ export function requireRole(roles: UserRole | UserRole[]): RequestHandler {
           return next();
         }
       }
-      
+
       // Fallback: check user_roles table directly
       const userService = (await import("../services/user.service.js")).default;
       const userRoles = await userService.getUserRoles(user.id, companyId);
       const hasRequiredRole = userRoles.some((ur) => allowedRoles.includes(ur.role));
-      
+
       if (!hasRequiredRole) {
         return next(new ForbiddenError(
           `Access denied. Required role: ${allowedRoles.join(" or ")}`
         ));
       }
-      
+
       next();
     } catch (error) {
       next(error);
@@ -114,7 +114,7 @@ export function requirePermission(permission: string): RequestHandler {
       // Get all roles for the user
       const userService = (await import("../services/user.service.js")).default;
       const userRoles = await userService.getUserRoles(user.id, companyId);
-      const roles = userRoles.length > 0 
+      const roles = userRoles.length > 0
         ? userRoles.map((ur) => ur.role)
         : [user.role]; // Fallback to primary role
 
@@ -161,6 +161,3 @@ export function requireSuperuser(): RequestHandler {
     }
   };
 }
-
-
-

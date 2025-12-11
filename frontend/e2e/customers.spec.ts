@@ -12,7 +12,7 @@ test.describe('Customer CRUD Operations', () => {
       createdCustomerIds = [];
       return;
     }
-    
+
     // Login as admin to clean up
     try {
       await loginAsRole(page, 'admin');
@@ -37,21 +37,21 @@ test.describe('Customer CRUD Operations', () => {
   test('should display customers list page when authenticated', async ({ page }) => {
     await loginAsRole(page, 'admin');
     await page.goto('/customers');
-    
+
     await expect(page.getByRole('heading', { name: /customers/i })).toBeVisible();
   });
 
   test('should create a new customer', async ({ page }) => {
     await loginAsRole(page, 'admin');
-    
+
     // Verify authentication before proceeding
     const isAuthBefore = await isAuthenticated(page);
     if (!isAuthBefore) {
       throw new Error('Not authenticated before creating customer');
     }
-    
+
     await page.goto('/customers/new');
-    
+
     // Wait for page to load
     await page.waitForLoadState('networkidle');
 
@@ -72,19 +72,19 @@ test.describe('Customer CRUD Operations', () => {
 
     // Wait for redirect to customer detail page or list
     await page.waitForURL(/.*customers.*/, { timeout: 10000 });
-    
+
     // Wait for page to fully load after redirect
     await page.waitForLoadState('networkidle');
-    
+
     // Verify still authenticated after redirect
     const isAuthAfter = await isAuthenticated(page);
     if (!isAuthAfter) {
       throw new Error('Authentication lost after form submission');
     }
-    
+
     // Verify we're not on login page
     await expect(page).not.toHaveURL(/.*login/);
-    
+
     // Verify success - should see customer name or success message
     await expect(
       page.getByText(/john|doe|success|created/i).first()
@@ -93,7 +93,7 @@ test.describe('Customer CRUD Operations', () => {
 
   test('should view customer details', async ({ page }) => {
     await loginAsRole(page, 'admin');
-    
+
     // Create a customer via API for testing
     const customerId = await createTestCustomer(page, {
       firstName: 'Jane',
@@ -114,13 +114,13 @@ test.describe('Customer CRUD Operations', () => {
 
   test('should edit customer', async ({ page }) => {
     await loginAsRole(page, 'admin');
-    
+
     // Verify authentication before proceeding
     const isAuthBefore = await isAuthenticated(page);
     if (!isAuthBefore) {
       throw new Error('Not authenticated before editing customer');
     }
-    
+
     // Create a customer via API
     const customerId = await createTestCustomer(page, {
       firstName: 'Bob',
@@ -131,7 +131,7 @@ test.describe('Customer CRUD Operations', () => {
 
     // Navigate to edit page
     await page.goto(`/customers/${customerId}/edit`);
-    
+
     // Wait for page to load
     await page.waitForLoadState('networkidle');
 
@@ -151,16 +151,16 @@ test.describe('Customer CRUD Operations', () => {
 
     // Wait for redirect
     await page.waitForURL(/.*customers.*/, { timeout: 10000 });
-    
+
     // Wait for page to fully load after redirect
     await page.waitForLoadState('networkidle');
-    
+
     // Verify still authenticated after redirect
     const isAuthAfter = await isAuthenticated(page);
     if (!isAuthAfter) {
       throw new Error('Authentication lost after form submission');
     }
-    
+
     // Verify we're not on login page
     await expect(page).not.toHaveURL(/.*login/);
 
@@ -170,7 +170,7 @@ test.describe('Customer CRUD Operations', () => {
 
   test('should delete customer', async ({ page }) => {
     await loginAsRole(page, 'admin');
-    
+
     // Create a customer via API
     const customerId = await createTestCustomer(page, {
       firstName: 'Delete',
@@ -195,7 +195,7 @@ test.describe('Customer CRUD Operations', () => {
 
       // Wait for redirect to customers list
       await page.waitForURL(/.*customers.*/, { timeout: 10000 });
-      
+
       // Verify customer is deleted (should not appear in list)
       await expect(page.getByText(/delete me/i)).not.toBeVisible();
     }

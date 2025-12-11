@@ -12,7 +12,7 @@ router.get(
   "/maintenance/public",
   asyncHandler(async (req: Request, res: Response) => {
     const status = await systemSettingsService.getMaintenanceMode();
-    
+
     res.json({
       success: true,
       data: status,
@@ -27,7 +27,7 @@ router.get(
   requireSuperuser(),
   asyncHandler(async (req: Request, res: Response) => {
     const status = await systemSettingsService.getMaintenanceMode();
-    
+
     res.json({
       success: true,
       data: status,
@@ -65,4 +65,3 @@ router.post(
 );
 
 export default router;
-

@@ -24,19 +24,19 @@ const pool = new Pool({
 
 async function checkData() {
   const client = await pool.connect();
-  
+
   try {
     console.log("Checking tables for data...\n");
-    
+
     const tablesResult = await client.query(`
-      SELECT tablename 
-      FROM pg_tables 
+      SELECT tablename
+      FROM pg_tables
       WHERE schemaname = 'public'
       ORDER BY tablename
     `);
-    
+
     const tablesWithData: Array<{ table: string; count: number }> = [];
-    
+
     for (const row of tablesResult.rows) {
       const countResult = await client.query(
         `SELECT COUNT(*) as count FROM "${row.tablename}"`
@@ -46,7 +46,7 @@ async function checkData() {
         tablesWithData.push({ table: row.tablename, count });
       }
     }
-    
+
     if (tablesWithData.length === 0) {
       console.log("✓ No tables contain data - database is empty");
     } else {
@@ -65,6 +65,3 @@ checkData().catch((error) => {
   console.error("Error checking database:", error);
   process.exit(1);
 });
-
-
-

@@ -285,4 +285,3 @@ export const addRepairNotesValidation = [
     .isLength({ min: 1, max: 10000 })
     .withMessage("Notes must be between 1 and 10000 characters"),
 ];
-

@@ -262,7 +262,7 @@ export default function InvoiceDetailPage({
   const getItemQuantity = (item: InventoryItemType): number => {
     if (!user?.currentLocationId) return 0;
     if (!item.trackQuantity) return 999; // Unlimited for non-tracked items
-    
+
     // Check locationQuantities if available
     if (item.locationQuantities) {
       const locationQty = item.locationQuantities.find(
@@ -270,7 +270,7 @@ export default function InvoiceDetailPage({
       );
       return locationQty?.quantity ?? 0;
     }
-    
+
     // Fallback to quantity property
     return item.quantity ?? 0;
   };
@@ -503,9 +503,9 @@ export default function InvoiceDetailPage({
     setIsProcessingPayment(true);
     try {
       // Check if invoice has a payment reference (provider payment) or is manual
-      const isProviderPayment = invoice.paymentReference && invoice.paymentMethod && 
+      const isProviderPayment = invoice.paymentReference && invoice.paymentMethod &&
         invoice.paymentMethod !== "manual" && invoice.paymentMethod !== "cash" && invoice.paymentMethod !== "check";
-      
+
       if (isProviderPayment && hasPermission("payments.refund")) {
         // Use payment provider refund
       const result = await refundPayment({
@@ -1141,7 +1141,7 @@ export default function InvoiceDetailPage({
                             ${Number(item.unitPrice).toFixed(2)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                            {item.discountAmount && item.discountAmount > 0 
+                            {item.discountAmount && item.discountAmount > 0
                               ? `$${Number(item.discountAmount).toFixed(2)}${item.discountPercent && item.discountPercent > 0 ? ` (${item.discountPercent}%)` : ''}`
                               : item.discountPercent && item.discountPercent > 0
                               ? `${item.discountPercent}%`
@@ -1443,14 +1443,14 @@ function ProcessPaymentModal({
   // For Square, show the payment form
   if (paymentProvider === "square" && paymentConfig?.applicationId) {
     const locationId = paymentConfig.locationId || "";
-    
+
     // Debug logging
     console.log("Square payment modal config:", {
       applicationId: paymentConfig.applicationId,
       locationId: locationId,
       testMode: paymentConfig.settings?.testMode,
     });
-    
+
     return (
       <div className="fixed inset-0 overflow-y-auto z-50 flex items-center justify-center">
         <div className="fixed inset-0 bg-black opacity-30" onClick={onClose}></div>
@@ -1466,7 +1466,7 @@ function ProcessPaymentModal({
               Amount: <strong>${Number(invoice.totalAmount).toFixed(2)}</strong>
             </p>
           </div>
-          
+
           {paymentError && (
             <div className="mb-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-3">
               <p className="text-sm text-red-800 dark:text-red-200">{paymentError}</p>

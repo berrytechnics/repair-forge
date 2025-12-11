@@ -18,4 +18,3 @@ export default async function globalTeardown(): Promise<void> {
     console.error("Error during test teardown:", error);
   }
 }
-

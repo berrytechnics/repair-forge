@@ -145,11 +145,11 @@ export class SendGridAdapter {
 
       // Send email - type assertion needed because SendGrid types are stricter
       await sgMail.send(msg as Parameters<typeof sgMail.send>[0]);
-      
+
       logger.info(`Email sent successfully via SendGrid to ${Array.isArray(emailData.to) ? emailData.to.join(', ') : emailData.to}`);
     } catch (error) {
       logger.error('SendGrid sendEmail error:', error);
-      
+
       // Provide more specific error messages
       if (error instanceof Error) {
         if (error.message.includes('Unauthorized')) {
@@ -160,11 +160,10 @@ export class SendGridAdapter {
         }
         throw error;
       }
-      
+
       throw new Error('Failed to send email via SendGrid');
     }
   }
 }
 
 export default new SendGridAdapter();
-

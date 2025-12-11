@@ -55,6 +55,3 @@ export default function PaymentIntegrationPage() {
     </div>
   );
 }
-
-
-

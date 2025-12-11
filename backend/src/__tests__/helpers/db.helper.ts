@@ -13,19 +13,19 @@ async function retryDbOperation<T>(
   initialDelay = 100
 ): Promise<T> {
   let lastError: Error | undefined;
-  
+
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       return await operation();
     } catch (error: any) {
       lastError = error;
       // Check if it's a connection pool error
-      const isConnectionError = 
+      const isConnectionError =
         error?.message?.includes('timeout') ||
         error?.message?.includes('connection') ||
         error?.name === 'AggregateError' ||
         error?.code === 'ECONNREFUSED';
-      
+
       if (isConnectionError && attempt < maxRetries - 1) {
         // Exponential backoff: wait longer between retries
         const delay = initialDelay * Math.pow(2, attempt);
@@ -35,7 +35,7 @@ async function retryDbOperation<T>(
       throw error;
     }
   }
-  
+
   throw lastError || new Error('Operation failed after retries');
 }
 
@@ -62,12 +62,12 @@ export async function cleanupTestData(testIds: {
   } catch (error: any) {
     // If cleanup fails due to connection issues, log but don't throw
     // This prevents one test's cleanup failure from affecting other tests
-    const isConnectionError = 
+    const isConnectionError =
       error?.message?.includes('timeout') ||
       error?.message?.includes('connection') ||
       error?.name === 'AggregateError' ||
       error?.code === 'ECONNREFUSED';
-    
+
     if (isConnectionError) {
       console.warn('Cleanup failed due to connection pool exhaustion, retrying after delay...');
       // Wait a bit for connections to be released, then retry once
@@ -101,7 +101,7 @@ async function cleanupTestDataInternal(testIds: {
   // Ensure all previous database operations are complete before starting cleanup
   // This helps prevent connection pool exhaustion by ensuring connections are released
   await new Promise(resolve => setImmediate(resolve));
-  
+
   // Delete in reverse order of dependencies
   // 1. Delete inventory transfers first (they depend on inventory items and locations)
   if (testIds.inventoryTransferIds && testIds.inventoryTransferIds.length > 0) {
@@ -291,7 +291,7 @@ async function cleanupTestDataInternal(testIds: {
       .where("id", "in", testIds.companyIds)
       .execute();
   }
-  
+
   // Small delay to ensure all connections are released back to the pool
   // This helps prevent connection pool exhaustion in parallel test execution
   await new Promise(resolve => setImmediate(resolve));
@@ -304,4 +304,3 @@ async function cleanupTestDataInternal(testIds: {
 export function getTestDb(): Kysely<Database> {
   return db;
 }
-

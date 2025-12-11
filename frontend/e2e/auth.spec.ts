@@ -11,14 +11,14 @@ test.describe('Authentication Flow', () => {
 
   test('should redirect to login when not authenticated', async ({ page }) => {
     await page.goto('/dashboard');
-    
+
     // Should redirect to login page
     await expect(page).toHaveURL(/.*login/);
   });
 
   test('should display login form', async ({ page }) => {
     await page.goto('/login');
-    
+
     // Check for login form elements
     await expect(page.getByLabel(/email/i)).toBeVisible();
     await expect(page.getByLabel(/password/i)).toBeVisible();
@@ -27,15 +27,15 @@ test.describe('Authentication Flow', () => {
 
   test('should show error on invalid login', async ({ page }) => {
     await page.goto('/login');
-    
+
     // Wait for login form to be visible
     await page.waitForSelector('input[type="email"]', { state: 'visible' });
-    
+
     // Fill in invalid credentials
     await page.getByLabel(/email/i).fill('invalid@example.com');
     await page.getByLabel(/password/i).fill('wrongpassword');
     await page.getByRole('button', { name: /sign in|login/i }).click();
-    
+
     // Wait for error message to appear - check for common error patterns
     // Error might be: "Invalid credentials", "Login failed", "Authentication failed", etc.
     // Look for error in alert/error div or text content
@@ -45,7 +45,7 @@ test.describe('Authentication Flow', () => {
       page.locator('div').filter({ hasText: /invalid|failed|error|credentials|authentication/i }),
       page.getByText(/invalid|failed|error|credentials|authentication/i),
     ];
-    
+
     // Try each selector until one works
     let errorFound = false;
     for (const selector of errorSelectors) {
@@ -58,7 +58,7 @@ test.describe('Authentication Flow', () => {
         continue;
       }
     }
-    
+
     if (!errorFound) {
       // Fallback: check if we're still on login page (which indicates failure)
       const currentURL = page.url();
@@ -78,17 +78,17 @@ test.describe('Authentication Flow', () => {
 
   test('should navigate to register page', async ({ page }) => {
     await page.goto('/login');
-    
+
     // Click register link (text is "create a new account")
     await page.getByRole('link', { name: /create.*new.*account/i }).click();
-    
+
     // Should be on register page
     await expect(page).toHaveURL(/.*register/);
   });
 
   test('should display register form', async ({ page }) => {
     await page.goto('/register');
-    
+
     // Check for register form elements
     await expect(page.getByLabel(/first name/i)).toBeVisible();
     await expect(page.getByLabel(/last name/i)).toBeVisible();
@@ -99,8 +99,3 @@ test.describe('Authentication Flow', () => {
     await expect(page.getByRole('button', { name: /create.*account/i })).toBeVisible();
   });
 });
-
-
-
-
-

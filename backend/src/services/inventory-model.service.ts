@@ -201,4 +201,3 @@ export class InventoryModelService {
 }
 
 export default new InventoryModelService();
-

@@ -45,7 +45,7 @@ export default function TenantsPage() {
   useEffect(() => {
     const fetchCompanies = async () => {
       if (!isSuperuser) return;
-      
+
       try {
         setLoadingCompanies(true);
         setError(null);
@@ -80,7 +80,7 @@ export default function TenantsPage() {
   useEffect(() => {
     const fetchLocations = async (companyId: string) => {
       if (companyLocations[companyId]) return; // Already loaded
-      
+
       try {
         setLoadingLocations((prev) => ({ ...prev, [companyId]: true }));
         const response = await getCompanyLocations(companyId);
@@ -155,7 +155,7 @@ export default function TenantsPage() {
             </p>
           </div>
         </div>
-        
+
         {/* Search Bar */}
         <div className="mt-4">
           <div className="relative">
@@ -310,7 +310,7 @@ export default function TenantsPage() {
                           {locations.map((location, index) => {
                             const isFirstLocation = index === 0;
                             const isFree = location.isFree || false;
-                            
+
                             return (
                               <div
                                 key={location.id}
@@ -425,4 +425,3 @@ export default function TenantsPage() {
     </div>
   );
 }
-

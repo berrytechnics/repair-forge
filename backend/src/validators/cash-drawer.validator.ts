@@ -21,9 +21,7 @@ export const closeDrawerValidation = [
     .withMessage("Closing amount must be a positive number"),
   body("notes")
     .optional()
-    .isString()
-    .withMessage("Notes must be a string"),
+    .trim()
+    .isLength({ max: 10000 })
+    .withMessage("Notes must not exceed 10000 characters"),
 ];
-
-
-

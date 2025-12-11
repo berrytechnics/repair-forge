@@ -138,7 +138,7 @@ class NewsletterService {
       id: String(row.id),
       email: row.email,
       subscribedAt: row.subscribed_at instanceof Date ? row.subscribed_at : new Date(row.subscribed_at),
-      unsubscribedAt: row.unsubscribed_at 
+      unsubscribedAt: row.unsubscribed_at
         ? (row.unsubscribed_at instanceof Date ? row.unsubscribed_at : new Date(row.unsubscribed_at))
         : null,
       createdAt: row.created_at instanceof Date ? row.created_at : new Date(row.created_at),
@@ -148,4 +148,3 @@ class NewsletterService {
 }
 
 export default new NewsletterService();
-

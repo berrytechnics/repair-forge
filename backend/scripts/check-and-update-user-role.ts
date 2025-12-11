@@ -44,19 +44,19 @@ async function main() {
     // Check if user needs role update
     if (user.role !== targetRole) {
       console.log(`\nUpdating role from ${user.role} to ${targetRole}...`);
-      
+
       const updated = await userService.update(user.id, { role: targetRole });
-      
+
       if (updated) {
         console.log(`✓ Successfully updated role to ${targetRole}`);
-        
+
         // Get new permissions
         const newPermissions = await permissionService.getPermissionsForRole(
           targetRole,
           companyId
         );
         console.log(`  New Permissions (${newPermissions.length}):`, newPermissions);
-        
+
         // Check if permissions.view is included
         if (newPermissions.includes("permissions.view")) {
           console.log(`\n✓ User now has 'permissions.view' permission`);
@@ -65,11 +65,11 @@ async function main() {
           console.log(`\n⚠ Warning: User does not have 'permissions.view' permission`);
           console.log(`  This might mean permissions haven't been initialized for their company.`);
           console.log(`  Attempting to initialize permissions...`);
-          
+
           try {
             await permissionService.initializeCompanyPermissions(companyId);
             console.log(`✓ Permissions initialized for company`);
-            
+
             // Check again
             const updatedPermissions = await permissionService.getPermissionsForRole(
               targetRole,
@@ -88,7 +88,7 @@ async function main() {
       }
     } else {
       console.log(`\nUser already has role: ${targetRole}`);
-      
+
       // Check if they have permissions.view
       if (currentPermissions.includes("permissions.view")) {
         console.log(`✓ User has 'permissions.view' permission`);
@@ -97,11 +97,11 @@ async function main() {
         console.log(`\n⚠ Warning: User does not have 'permissions.view' permission`);
         console.log(`  This might mean permissions haven't been initialized for their company.`);
         console.log(`  Attempting to initialize permissions...`);
-        
+
         try {
           await permissionService.initializeCompanyPermissions(companyId);
           console.log(`✓ Permissions initialized for company`);
-          
+
           // Check again
           const updatedPermissions = await permissionService.getPermissionsForRole(
             user.role,
@@ -129,4 +129,3 @@ async function main() {
 }
 
 main();
-

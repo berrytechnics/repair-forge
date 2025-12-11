@@ -623,4 +623,3 @@ export class DiagnosticChecklistService {
 }
 
 export default new DiagnosticChecklistService();
-

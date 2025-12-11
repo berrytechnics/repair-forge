@@ -10,7 +10,7 @@ import { verifyJWTToken } from "../utils/auth.js";
  * - /api/system/* (system routes for superusers to manage maintenance)
  * - /health (health check)
  * - Superuser routes (when user is superuser)
- * 
+ *
  * Must be applied early in the middleware chain, before route handlers
  * Checks token directly for superuser bypass since req.user may not be set yet
  */
@@ -59,7 +59,7 @@ export async function checkMaintenanceMode(
     // Maintenance mode is enabled - check if user is superuser
     // First check req.user (if validateRequest middleware has run)
     let user = req.user as UserWithoutPassword | undefined;
-    
+
     // If req.user is not set, try to verify token from Authorization header
     if (!user) {
       const authHeader = req.headers.authorization;
@@ -94,4 +94,3 @@ export async function checkMaintenanceMode(
     next();
   }
 }
-

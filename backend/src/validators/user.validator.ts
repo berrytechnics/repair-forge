@@ -89,15 +89,15 @@ export const registerValidation = [
   body().custom((value) => {
     const hasCompanyName = value.companyName && value.companyName.trim().length > 0;
     const hasInvitationToken = value.invitationToken && value.invitationToken.trim().length > 0;
-    
+
     if (!hasCompanyName && !hasInvitationToken) {
       throw new Error("Either companyName or invitationToken is required");
     }
-    
+
     if (hasCompanyName && hasInvitationToken) {
       throw new Error("Cannot provide both companyName and invitationToken");
     }
-    
+
     return true;
   }),
 ];
@@ -142,4 +142,3 @@ export const resetPasswordValidation = [
       "Password must contain at least one uppercase letter, one lowercase letter, and one number"
     ),
 ];
-

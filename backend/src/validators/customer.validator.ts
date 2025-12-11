@@ -120,4 +120,3 @@ export const updateCustomerValidation = [
     .isLength({ max: 10000 })
     .withMessage("Notes must not exceed 10000 characters"),
 ];
-

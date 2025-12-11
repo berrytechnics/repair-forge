@@ -22,7 +22,7 @@ describe("Asset Routes Integration Tests", () => {
     // Create test users with different roles
     const users = await createTestUsersWithRoles(testCompanyId);
     testUserIds.push(users.admin.userId, users.frontdesk.userId, users.technician.userId);
-    
+
     authToken = users.technician.token;
     adminToken = users.admin.token;
     frontdeskToken = users.frontdesk.token;
@@ -75,7 +75,7 @@ describe("Asset Routes Integration Tests", () => {
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
       expect(response.body.data.length).toBeGreaterThanOrEqual(2);
-      
+
       const deviceTypes = response.body.data.map((a: { deviceType: string }) => a.deviceType);
       expect(deviceTypes).toContain("Smartphone");
       expect(deviceTypes).toContain("Laptop");
@@ -270,7 +270,7 @@ describe("Asset Routes Integration Tests", () => {
       expect(response.body.data.deviceModel).toBe("iPhone 13");
       expect(response.body.data.serialNumber).toBe("SN123456");
       expect(response.body.data.notes).toBe("New asset");
-      
+
       // Track for cleanup
       if (response.body.data.id) {
         testAssetIds.push(response.body.data.id);
@@ -298,7 +298,7 @@ describe("Asset Routes Integration Tests", () => {
       expect(response.status).toBe(201);
       expect(response.body.success).toBe(true);
       expect(response.body.data.deviceType).toBe("Laptop");
-      
+
       // Track for cleanup
       if (response.body.data.id) {
         testAssetIds.push(response.body.data.id);
@@ -711,4 +711,3 @@ describe("Asset Routes Integration Tests", () => {
     });
   });
 });
-

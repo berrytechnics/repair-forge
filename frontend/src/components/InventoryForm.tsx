@@ -578,5 +578,3 @@ export default function InventoryForm({ itemId }: InventoryFormProps) {
     </div>
   );
 }
-
-

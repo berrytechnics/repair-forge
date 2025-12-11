@@ -159,4 +159,3 @@ export class InventoryCategoryService {
 }
 
 export default new InventoryCategoryService();
-

@@ -379,7 +379,7 @@ router.post(
 
       // Square webhook structure
       const data = req.body.data;
-      
+
       // Handle payment webhooks
       if (data?.object?.payment) {
         transactionId = data.object.payment.id;
@@ -389,11 +389,11 @@ router.post(
         }
         status = data.object.payment.status === 'COMPLETED' ? 'paid' : undefined;
       }
-      
+
       // Handle terminal checkout webhooks
       if (data?.object?.terminalCheckout) {
         const checkout = data.object.terminalCheckout;
-        
+
         // If checkout is completed, get the payment IDs
         if (checkout.status === 'COMPLETED' && checkout.payment_ids && checkout.payment_ids.length > 0) {
           transactionId = checkout.payment_ids[0];
@@ -444,4 +444,3 @@ router.post(
 );
 
 export default router;
-

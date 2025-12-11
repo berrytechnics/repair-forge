@@ -208,4 +208,3 @@ export class PayPalAdapter {
 }
 
 export default new PayPalAdapter();
-

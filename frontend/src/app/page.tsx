@@ -261,7 +261,7 @@ export default function Home() {
           <div className="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto">
             {/* Dashboard Screenshot */}
             <div className="bg-white dark:bg-gray-900 rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow">
-              <div 
+              <div
                 className="aspect-video bg-gray-100 dark:bg-gray-800 overflow-hidden cursor-pointer group relative"
                 onClick={() => setLightboxImage("/dashboard.png")}
               >
@@ -290,7 +290,7 @@ export default function Home() {
 
             {/* Ticket Management Screenshot */}
             <div className="bg-white dark:bg-gray-900 rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow">
-              <div 
+              <div
                 className="aspect-video bg-gray-100 dark:bg-gray-800 overflow-hidden cursor-pointer group relative"
                 onClick={() => setLightboxImage("/ticket.png")}
               >
@@ -319,7 +319,7 @@ export default function Home() {
 
             {/* Invoice Screenshot */}
             <div className="bg-white dark:bg-gray-900 rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow">
-              <div 
+              <div
                 className="aspect-video bg-gray-100 dark:bg-gray-800 overflow-hidden cursor-pointer group relative"
                 onClick={() => setLightboxImage("/invoice.png")}
               >
@@ -348,7 +348,7 @@ export default function Home() {
 
             {/* Invoice PDF Screenshot */}
             <div className="bg-white dark:bg-gray-900 rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow">
-              <div 
+              <div
                 className="aspect-video bg-gray-100 dark:bg-gray-800 overflow-hidden cursor-pointer group relative"
                 onClick={() => setLightboxImage("/invoice_pdf.png")}
               >

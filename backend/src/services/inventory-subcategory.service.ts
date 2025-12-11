@@ -159,4 +159,3 @@ export class InventorySubcategoryService {
 }
 
 export default new InventorySubcategoryService();
-

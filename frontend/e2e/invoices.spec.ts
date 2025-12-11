@@ -24,7 +24,7 @@ test.describe('Invoice CRUD Operations', () => {
       createdCustomerIds = [];
       return;
     }
-    
+
     try {
       await loginAsRole(page, 'admin');
       for (const id of createdInvoiceIds) {
@@ -64,13 +64,13 @@ test.describe('Invoice CRUD Operations', () => {
   test('should display invoices list page when authenticated', async ({ page }) => {
     await loginAsRole(page, 'admin');
     await page.goto('/invoices');
-    
+
     await expect(page.getByRole('heading', { name: /invoices/i })).toBeVisible();
   });
 
   test('should create a new invoice', async ({ page }) => {
     await loginAsRole(page, 'admin');
-    
+
     // Create a customer first
     const customerId = await createTestCustomer(page, {
       firstName: 'Invoice',
@@ -92,7 +92,7 @@ test.describe('Invoice CRUD Operations', () => {
     // Wait after selection to ensure form updates
     await page.waitForTimeout(500);
     await page.waitForLoadState('networkidle');
-    
+
     // Verify we're still authenticated and on the correct page
     await expect(page).toHaveURL(/.*invoices.*new/, { timeout: 10000 });
     const isAuth = await isAuthenticated(page);
@@ -108,12 +108,12 @@ test.describe('Invoice CRUD Operations', () => {
     ).first();
     await descriptionInput.waitFor({ state: 'visible', timeout: 10000 });
     await descriptionInput.fill('Repair Service');
-    
+
     const quantityInput = page.locator('input[name="quantity"]').or(
       page.locator('input[placeholder*="Quantity" i]')
     ).first();
     await quantityInput.fill('1');
-    
+
     const priceInput = page.locator('input[name="unitPrice"]').or(
       page.locator('input[placeholder*="Unit Price" i]')
     ).first();
@@ -123,7 +123,7 @@ test.describe('Invoice CRUD Operations', () => {
     const addItemButton = page.getByRole('button', { name: /add item/i });
     await addItemButton.waitFor({ state: 'visible', timeout: 10000 });
     await addItemButton.click();
-    
+
     // Wait for item to be added to the list
     await page.waitForTimeout(500);
     await page.waitForLoadState('networkidle');
@@ -133,7 +133,7 @@ test.describe('Invoice CRUD Operations', () => {
 
     // Wait for redirect
     await page.waitForURL(/.*invoices.*/, { timeout: 10000 });
-    
+
     // Verify success
     await expect(
       page.getByText(/invoice|success|created/i).first()
@@ -142,7 +142,7 @@ test.describe('Invoice CRUD Operations', () => {
 
   test('should view invoice details', async ({ page }) => {
     await loginAsRole(page, 'admin');
-    
+
     // Create customer and invoice via API
     const customerId = await createTestCustomer(page, {
       firstName: 'View',
@@ -170,7 +170,7 @@ test.describe('Invoice CRUD Operations', () => {
     // Verify invoice details are displayed (items are in a table)
     // Try multiple ways to find the item description - check table cells first, then general text
     const itemFound = await page.locator('table').getByText(/screen repair/i).first().isVisible({ timeout: 10000 }).catch(() => false);
-    
+
     if (!itemFound) {
       // Fallback: try general text search
       await expect(page.getByText(/screen repair/i).first()).toBeVisible({ timeout: 10000 });
@@ -178,7 +178,7 @@ test.describe('Invoice CRUD Operations', () => {
       // Verify it's visible in the table
       await expect(page.locator('table').getByText(/screen repair/i).first()).toBeVisible({ timeout: 10000 });
     }
-    
+
     // Price might be displayed as $150.00 or 150.00 - check in table or general text
     const priceFound = await page.locator('table').getByText(/\$150\.00|150\.00/i).first().isVisible({ timeout: 10000 }).catch(() => false);
     if (!priceFound) {
@@ -190,7 +190,7 @@ test.describe('Invoice CRUD Operations', () => {
 
   test('should mark invoice as paid', async ({ page }) => {
     await loginAsRole(page, 'admin');
-    
+
     // Create invoice via API
     const customerId = await createTestCustomer(page, {
       firstName: 'Paid',

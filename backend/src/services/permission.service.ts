@@ -27,7 +27,7 @@ class PermissionService {
         .execute();
 
       const dbPermissions = permissions.map((p) => p.permission);
-      
+
       // If database returns empty, fallback to config and try to initialize
       if (dbPermissions.length === 0) {
         console.warn(`No permissions found in database for role ${role} in company ${companyId}, using config fallback and attempting initialization`);
@@ -51,7 +51,7 @@ class PermissionService {
         // Fallback to config permissions
         return ROLE_PERMISSIONS[role] || [];
       }
-      
+
       return dbPermissions;
     } catch (error) {
       // If database query fails (e.g., table doesn't exist), fallback to config
@@ -146,7 +146,7 @@ class PermissionService {
    */
   async syncAdminPermissions(companyId: string): Promise<void> {
     const allPermissions = Object.values(PERMISSIONS);
-    
+
     // Get existing admin permissions from database
     const existingPermissions = await db
       .selectFrom("role_permissions")
@@ -156,7 +156,7 @@ class PermissionService {
       .execute();
 
     const existingPermissionSet = new Set(existingPermissions.map((p) => p.permission));
-    
+
     // Find missing permissions
     const missingPermissions = allPermissions.filter(
       (permission) => !existingPermissionSet.has(permission)
@@ -207,10 +207,10 @@ class PermissionService {
       // If function doesn't exist, manually insert from config
       // Insert all default permissions for this company
       const inserts: Array<{ id: string; company_id: string; role: string; permission: string }> = [];
-      
+
       // ROLE_PERMISSIONS is a const object, we need to access it properly
       const rolePermissions = ROLE_PERMISSIONS as Record<string, string[]>;
-      
+
       for (const [role, permissions] of Object.entries(rolePermissions)) {
         for (const permission of permissions) {
           inserts.push({
@@ -228,7 +228,7 @@ class PermissionService {
           .values(inserts)
           .execute();
       }
-      
+
       // Ensure admin has all permissions (in case config was updated)
       await this.syncAdminPermissions(companyId);
     }
@@ -236,4 +236,3 @@ class PermissionService {
 }
 
 export default new PermissionService();
-

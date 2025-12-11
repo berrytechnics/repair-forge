@@ -35,20 +35,20 @@ export async function verifyJWTToken(
       companyId: string | null;
       type?: string;
     };
-    
+
     // Ensure this is an access token, not a refresh token
     if (decoded.type === "refresh") {
       logger.error("Attempted to use refresh token as access token");
       return null;
     }
-    
+
     const user = await userService.findById(decoded.userId);
-    
+
     if (!user) {
       logger.error("User not found in token");
       return null;
     }
-    
+
     // For superusers, company_id can be NULL, so allow mismatch
     // For regular users, verify company_id matches
     if (user.role !== "superuser") {
@@ -58,7 +58,7 @@ export async function verifyJWTToken(
         return null;
       }
     }
-    
+
     return user;
   } catch (error) {
     logger.error("Invalid JWT token:", error);
@@ -76,20 +76,20 @@ export async function verifyRefreshToken(
       companyId: string | null;
       type?: string;
     };
-    
+
     // Ensure this is a refresh token
     if (decoded.type !== "refresh") {
       logger.error("Invalid token type for refresh");
       return null;
     }
-    
+
     const user = await userService.findById(decoded.userId);
-    
+
     if (!user) {
       logger.error("User not found in refresh token");
       return null;
     }
-    
+
     // For superusers, company_id can be NULL, so allow mismatch
     // For regular users, verify company_id matches
     if (user.role !== "superuser") {
@@ -99,7 +99,7 @@ export async function verifyRefreshToken(
         return null;
       }
     }
-    
+
     return user;
   } catch (error) {
     logger.error("Invalid refresh token:", error);

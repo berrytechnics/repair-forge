@@ -36,7 +36,7 @@ describe('Encryption Utilities', () => {
 
       // Should be different due to random IV
       expect(encrypted1).not.toBe(encrypted2);
-      
+
       // But both should decrypt to the same value
       expect(decrypt(encrypted1)).toBe(plaintext);
       expect(decrypt(encrypted2)).toBe(plaintext);
@@ -116,7 +116,7 @@ describe('Encryption Utilities', () => {
       // decryptCredentials now logs a warning and skips invalid credentials instead of throwing
       // This is more resilient - allows partial decryption
       const result = decryptCredentials(invalidEncrypted);
-      
+
       // Invalid encrypted credentials should be skipped (not in result)
       // Since both will fail, both should be skipped
       expect(result.apiKey).toBeUndefined();
@@ -131,11 +131,10 @@ describe('Encryption Utilities', () => {
       };
 
       const result = decryptCredentials(plaintextCredentials);
-      
+
       // Plaintext credentials should be returned as-is
       expect(result.apiKey).toBe('plaintext-key');
       expect(result.secret).toBe('plaintext-secret');
     });
   });
 });
-

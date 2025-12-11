@@ -90,4 +90,3 @@ export async function getNewsletterSubscriberCount(): Promise<
     response.data.error?.message || "Failed to fetch subscriber count"
   );
 }
-

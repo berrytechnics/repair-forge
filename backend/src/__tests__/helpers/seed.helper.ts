@@ -16,19 +16,19 @@ async function retryDbOperation<T>(
   initialDelay = 100
 ): Promise<T> {
   let lastError: Error | undefined;
-  
+
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       return await operation();
     } catch (error: any) {
       lastError = error;
       // Check if it's a connection pool error
-      const isConnectionError = 
+      const isConnectionError =
         error?.message?.includes('timeout') ||
         error?.message?.includes('connection') ||
         error?.name === 'AggregateError' ||
         error?.code === 'ECONNREFUSED';
-      
+
       if (isConnectionError && attempt < maxRetries - 1) {
         // Exponential backoff: wait longer between retries
         const delay = initialDelay * Math.pow(2, attempt);
@@ -38,7 +38,7 @@ async function retryDbOperation<T>(
       throw error;
     }
   }
-  
+
   throw lastError || new Error('Operation failed after retries');
 }
 
@@ -56,7 +56,7 @@ export async function createTestCompany(
   const companyId = uuidv4();
   // Generate unique subdomain if not provided to avoid constraint violations
   const subdomain = overrides?.subdomain || `test-company-${companyId.slice(0, 8)}`;
-  
+
   return await retryDbOperation(async () => {
     await db
       .insertInto("companies")
@@ -342,7 +342,7 @@ export async function createTestInvoice(
 ): Promise<string> {
   const invoiceId = uuidv4();
   const invoiceNumber = generateTestInvoiceNumber();
-  
+
   const subtotal = overrides?.subtotal ?? 100.0;
   const taxRate = overrides?.taxRate ?? 8.5;
   const taxAmount = overrides?.taxAmount ?? subtotal * (taxRate / 100);
@@ -446,8 +446,8 @@ export async function createTestInvitation(
 ): Promise<{ id: string; token: string }> {
   const invitationId = uuidv4();
   const token = overrides?.token || crypto.randomBytes(32).toString("base64url");
-  const expiresAt = overrides?.expiresAt !== undefined 
-    ? overrides.expiresAt 
+  const expiresAt = overrides?.expiresAt !== undefined
+    ? overrides.expiresAt
     : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
 
   await db
@@ -546,7 +546,7 @@ export async function createTestInventoryItem(
       .where("name", "=", categoryName)
       .where("deleted_at", "is", null)
       .executeTakeFirst();
-    
+
     if (existingCategory) {
       categoryId = existingCategory.id as string;
     } else {
@@ -700,4 +700,3 @@ export async function createTestSubscription(
 
   return subscriptionId;
 }
-

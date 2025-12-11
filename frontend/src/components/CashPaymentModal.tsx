@@ -163,6 +163,3 @@ export default function CashPaymentModal({
     </div>
   );
 }
-
-
-

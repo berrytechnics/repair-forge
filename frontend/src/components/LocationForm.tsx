@@ -8,6 +8,7 @@ import {
     getLocations,
     updateLocation,
 } from "@/lib/api/location.api";
+import { getErrorMessage } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 
@@ -163,16 +164,16 @@ export default function LocationForm({ locationId }: LocationFormProps) {
   const submitLocation = async () => {
     setIsSubmitting(true);
     setShowCostConfirm(false);
-    
+
     try {
       // Create clean location data, trimming all string fields and removing undefined/empty values
       const cleanFormData: CreateLocationData | UpdateLocationData = {};
-      
+
       // Always include name (required)
       if (formData.name.trim()) {
         cleanFormData.name = formData.name.trim();
       }
-      
+
       // Include optional fields only if they have values
       if (formData.address?.trim()) {
         cleanFormData.address = formData.address.trim();
@@ -183,10 +184,10 @@ export default function LocationForm({ locationId }: LocationFormProps) {
       if (formData.email?.trim()) {
         cleanFormData.email = formData.email.trim();
       }
-      
+
       // Include isActive if explicitly set (default is true, so always include it)
       cleanFormData.isActive = formData.isActive;
-      
+
       // Include tax settings
       if (formData.stateTax !== undefined) {
         cleanFormData.stateTax = formData.stateTax;
@@ -222,11 +223,7 @@ export default function LocationForm({ locationId }: LocationFormProps) {
       }
     } catch (err) {
       console.error("Error saving location:", err);
-      setSubmitError(
-        err instanceof Error
-          ? err.message
-          : "Failed to save location. Please try again."
-      );
+      setSubmitError(getErrorMessage(err));
     } finally {
       setIsSubmitting(false);
     }
@@ -589,4 +586,3 @@ export default function LocationForm({ locationId }: LocationFormProps) {
     </form>
   );
 }
-

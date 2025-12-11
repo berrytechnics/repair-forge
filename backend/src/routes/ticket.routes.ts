@@ -11,8 +11,9 @@ import { requireTenantContext } from "../middlewares/tenant.middleware.js";
 import { validate } from "../middlewares/validation.middleware.js";
 import ticketService from "../services/ticket.service.js";
 import customerService from "../services/customer.service.js";
-import userService, { UserWithoutPassword } from "../services/user.service.js";
+import userService from "../services/user.service.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { formatUserForResponse } from "../utils/user.utils.js";
 import {
     createTicketValidation,
     updateTicketValidation,
@@ -21,25 +22,6 @@ import {
     addDiagnosticNotesValidation,
     addRepairNotesValidation,
 } from "../validators/ticket.validator.js";
-
-// Helper function to format user for response (same as in user.routes.ts)
-function formatUserForResponse(user: UserWithoutPassword) {
-  const userWithSnakeCase = user as unknown as {
-    id: string;
-    first_name: string;
-    last_name: string;
-    email: string;
-    role: string;
-  };
-  
-  return {
-    id: userWithSnakeCase.id,
-    firstName: userWithSnakeCase.first_name,
-    lastName: userWithSnakeCase.last_name,
-    email: userWithSnakeCase.email,
-    role: userWithSnakeCase.role,
-  };
-}
 
 const router = express.Router();
 
@@ -57,11 +39,11 @@ router.get(
     const customerId = req.query.customerId as string | undefined;
     const statusParam = req.query.status;
     let status: TicketStatus | TicketStatus[] | undefined;
-    
+
     // Handle multiple statuses (can be array or comma-separated string)
     if (statusParam) {
       if (Array.isArray(statusParam)) {
-        status = statusParam.filter((s): s is TicketStatus => 
+        status = statusParam.filter((s): s is TicketStatus =>
           ["new", "assigned", "in_progress", "on_hold", "completed", "cancelled"].includes(s as string)
         ) as TicketStatus[];
       } else if (typeof statusParam === "string") {
@@ -69,13 +51,13 @@ router.get(
         if (statuses.length === 1) {
           status = statuses[0] as TicketStatus;
         } else if (statuses.length > 1) {
-          status = statuses.filter((s): s is TicketStatus => 
+          status = statuses.filter((s): s is TicketStatus =>
             ["new", "assigned", "in_progress", "on_hold", "completed", "cancelled"].includes(s)
           ) as TicketStatus[];
         }
       }
     }
-    
+
     const tickets = await ticketService.findAll(
       companyId,
       customerId,
@@ -141,7 +123,7 @@ router.get(
 
     // Format the response with customer and technician
     const formattedTechnician = technician ? formatUserForResponse(technician) : null;
-    
+
     const response = {
       ...ticket,
       customer: customer
@@ -208,7 +190,7 @@ router.post(
     const companyId = req.companyId!;
     const { id } = req.params;
     const { technicianId } = req.body;
-    
+
     // If technicianId is provided, validate it exists and is eligible to be assigned (technician, manager, or admin)
     if (technicianId) {
       const technician = await userService.findById(technicianId);
@@ -222,7 +204,7 @@ router.post(
         throw new BadRequestError("User must be a technician, manager, or admin to be assigned to a ticket");
       }
     }
-    
+
     const ticket = await ticketService.assignTechnician(id, technicianId || null, companyId);
     if (!ticket) {
       throw new NotFoundError("Ticket not found");
@@ -263,7 +245,7 @@ router.post(
     const companyId = req.companyId!;
     const { id } = req.params;
     const { status } = req.body;
-    
+
     const ticket = await ticketService.updateStatus(id, status, companyId);
     if (!ticket) {
       throw new NotFoundError("Ticket not found");
@@ -286,7 +268,7 @@ router.post(
     const companyId = req.companyId!;
     const { id } = req.params;
     const { notes } = req.body;
-    
+
     const ticket = await ticketService.addDiagnosticNotes(id, notes, companyId);
     if (!ticket) {
       throw new NotFoundError("Ticket not found");
@@ -309,7 +291,7 @@ router.post(
     const companyId = req.companyId!;
     const { id } = req.params;
     const { notes } = req.body;
-    
+
     const ticket = await ticketService.addRepairNotes(id, notes, companyId);
     if (!ticket) {
       throw new NotFoundError("Ticket not found");
@@ -342,4 +324,3 @@ router.delete(
 );
 
 export default router;
-

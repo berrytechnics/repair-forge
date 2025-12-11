@@ -142,4 +142,3 @@ export const savePaymentIntegrationValidation = [
 export const testIntegrationValidation = [
   ...integrationTypeValidation,
 ];
-

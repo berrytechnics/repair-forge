@@ -17,7 +17,7 @@ router.get(
   "/pos",
   asyncHandler(async (req: Request, res: Response) => {
     const companyId = req.companyId;
-    
+
     if (!companyId) {
       res.status(400).json({
         success: false,
@@ -27,7 +27,7 @@ router.get(
     }
 
     const enabled = await companyService.getPosEnabled(companyId);
-    
+
     res.json({
       success: true,
       data: { enabled },
@@ -68,4 +68,3 @@ router.post(
 );
 
 export default router;
-

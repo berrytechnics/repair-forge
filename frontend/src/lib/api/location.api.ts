@@ -226,6 +226,3 @@ export const getCurrentUserLocations = async (): Promise<
     response.data.error?.message || "Failed to fetch current user locations"
   );
 };
-
-
-

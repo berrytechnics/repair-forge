@@ -102,5 +102,3 @@ export default function MaintenanceGuard({ children }: MaintenanceGuardProps) {
     </>
   );
 }
-
-

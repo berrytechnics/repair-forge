@@ -75,7 +75,7 @@ function toLocation(location: {
   const countyTax = Number(location.county_tax || 0);
   const cityTax = Number(location.city_tax || 0);
   const taxRate = stateTax + countyTax + cityTax;
-  
+
   return {
     id: location.id as unknown as string,
     company_id: location.company_id as unknown as string,
@@ -127,7 +127,7 @@ export class LocationService {
       .execute();
 
     let filteredLocations = locations.map(toLocation);
-    
+
     // Ensure the first location (by created_at) is always free
     if (filteredLocations.length > 0) {
       const firstLocation = filteredLocations[0];
@@ -152,7 +152,7 @@ export class LocationService {
       try {
         const billingService = (await import("./billing.service.js")).default;
         const subscription = await billingService.getSubscription(companyId);
-        
+
         // If subscription is past_due, only return free locations
         if (subscription && subscription.status === "past_due") {
           filteredLocations = filteredLocations.filter((loc) => loc.isFree);
@@ -204,7 +204,7 @@ export class LocationService {
       try {
         const billingService = (await import("./billing.service.js")).default;
         const subscription = await billingService.getSubscription(companyId);
-        
+
         // If subscription is past_due, restrict access to non-free locations
         if (subscription && subscription.status === "past_due") {
           return null;
@@ -228,7 +228,7 @@ export class LocationService {
       .executeTakeFirst();
 
     const isFirstLocation = Number(existingLocations?.count || 0) === 0;
-    
+
     // First location is always free; user cannot override this
     const isFree = isFirstLocation ? true : (data.isFree !== undefined ? data.isFree : false);
 
@@ -430,4 +430,3 @@ export class LocationService {
 }
 
 export default new LocationService();
-

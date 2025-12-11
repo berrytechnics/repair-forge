@@ -171,4 +171,3 @@ export class InventoryBrandService {
 }
 
 export default new InventoryBrandService();
-

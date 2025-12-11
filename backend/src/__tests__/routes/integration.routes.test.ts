@@ -174,7 +174,7 @@ describe('Integration Routes Integration Tests', () => {
       // Clear all mocks before each test
       jest.clearAllMocks();
       mockTestConnectionFn.mockReset();
-      
+
       await credentialService.saveIntegration(testCompanyId, 'email', {
         provider: 'sendgrid',
         enabled: true,
@@ -229,4 +229,3 @@ describe('Integration Routes Integration Tests', () => {
     });
   });
 });
-

@@ -72,7 +72,7 @@ export class UserService {
         .where("id", "=", userId)
         .where("company_id", "=", companyId)
         .executeTakeFirst();
-      
+
       if (user) {
         return [{ role: user.role as UserRole, isPrimary: true }];
       }
@@ -110,12 +110,12 @@ export class UserService {
     }
 
     const userWithoutPassword = toUserWithoutPassword(user);
-    
+
     // Get roles from user_roles table
     const userRoles = await this.getUserRoles(id, user.company_id as unknown as string);
     const roles = userRoles.map((ur) => ur.role);
     const primaryRole = userRoles.find((ur) => ur.isPrimary)?.role || user.role as UserRole;
-    
+
     return {
       ...userWithoutPassword,
       roles,
@@ -149,12 +149,12 @@ export class UserService {
     }
 
     const userWithoutPassword = toUserWithoutPassword(user);
-    
+
     // Get roles from user_roles table
     const userRoles = await this.getUserRoles(user.id, user.company_id as unknown as string);
     const roles = userRoles.map((ur) => ur.role);
     const primaryRole = userRoles.find((ur) => ur.isPrimary)?.role || user.role as UserRole;
-    
+
     return {
       ...userWithoutPassword,
       roles,
@@ -312,7 +312,7 @@ export class UserService {
         const userRoles = await this.getUserRoles(user.id, companyId);
         const roles = userRoles.map((ur) => ur.role);
         const primaryRole = userRoles.find((ur) => ur.isPrimary)?.role || user.role as UserRole;
-        
+
         return {
           ...userWithoutPassword,
           roles,
@@ -391,7 +391,7 @@ export class UserService {
         const userRoles = await this.getUserRoles(user.id, companyId);
         const roles = userRoles.map((ur) => ur.role);
         const primaryRole = userRoles.find((ur) => ur.isPrimary)?.role || user.role as UserRole;
-        
+
         return {
           ...userWithoutPassword,
           roles,
@@ -644,7 +644,7 @@ export class UserService {
       .where("company_id", "=", companyId)
       .where("deleted_at", "is", null)
       .executeTakeFirst();
-    
+
     if (!user) {
       return false;
     }
@@ -693,7 +693,7 @@ export class UserService {
       .where("company_id", "=", companyId)
       .where("deleted_at", "is", null)
       .executeTakeFirst();
-    
+
     if (!user) {
       return false;
     }
@@ -705,7 +705,7 @@ export class UserService {
     }
 
     const removedWasPrimary = currentRoles.find((r) => r.role === role)?.isPrimary;
-    
+
     const result = await db
       .deleteFrom("user_roles")
       .where("user_id", "=", userId)

@@ -66,7 +66,7 @@ export default function InventoryDetailPage({
 
   const handleDelete = async () => {
     if (!item) return;
-    
+
     if (!confirm("Are you sure you want to delete this inventory item? This can only be done when all location quantities are 0.")) {
       return;
     }
@@ -319,7 +319,7 @@ export default function InventoryDetailPage({
                   const location = locations.find((loc) => loc.id === lq.locationId);
                   const isLowStock = lq.quantity >= 0 && lq.quantity < item.reorderLevel;
                   const isBackordered = lq.quantity < 0;
-                  
+
                   return (
                     <tr key={lq.locationId}>
                       <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
@@ -364,5 +364,3 @@ export default function InventoryDetailPage({
     </div>
   );
 }
-
-

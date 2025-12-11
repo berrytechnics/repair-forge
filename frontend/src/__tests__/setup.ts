@@ -95,4 +95,3 @@ const sessionStorageMock = {
   key: jest.fn(),
 }
 global.sessionStorage = sessionStorageMock as unknown as Storage
-

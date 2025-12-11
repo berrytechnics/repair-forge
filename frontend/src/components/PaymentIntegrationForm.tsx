@@ -149,7 +149,7 @@ export default function PaymentIntegrationForm() {
       if (response.data) {
         setIntegration(response.data);
       }
-      
+
       setTestResult({
         success: true,
         message: "Connection test successful",
@@ -199,7 +199,7 @@ export default function PaymentIntegrationForm() {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to save integration. Please try again.";
       setSubmitError(errorMessage);
-      
+
       // If save fails due to test failure, reset the successful test flag
       if (errorMessage.includes("Connection test failed") || errorMessage.includes("test")) {
         setHasSuccessfulTest(false);
@@ -537,4 +537,3 @@ export default function PaymentIntegrationForm() {
     </div>
   );
 }
-

@@ -74,6 +74,12 @@ function toAsset(asset: {
 }
 
 export class AssetService {
+  /**
+   * Find all assets for a company, optionally filtered by customer
+   * @param companyId - Company ID to filter by
+   * @param customerId - Optional customer ID to filter by
+   * @returns Array of assets
+   */
   async findAll(
     companyId: string,
     customerId?: string
@@ -92,6 +98,12 @@ export class AssetService {
     return assets.map(toAsset);
   }
 
+  /**
+   * Find an asset by ID
+   * @param id - Asset ID
+   * @param companyId - Company ID to ensure multi-tenancy
+   * @returns Asset if found, null otherwise
+   */
   async findById(id: string, companyId: string): Promise<Asset | null> {
     const asset = await db
       .selectFrom("assets")
@@ -104,6 +116,14 @@ export class AssetService {
     return asset ? toAsset(asset) : null;
   }
 
+  /**
+   * Create a new asset
+   * @param data - Asset data to create
+   * @param companyId - Company ID for multi-tenancy
+   * @param customerId - Customer ID that owns the asset
+   * @returns Created asset
+   * @throws BadRequestError if customer not found or doesn't belong to company
+   */
   async create(
     data: CreateAssetDto,
     companyId: string,
@@ -143,6 +163,13 @@ export class AssetService {
     return toAsset(asset);
   }
 
+  /**
+   * Update an existing asset
+   * @param id - Asset ID to update
+   * @param data - Partial asset data to update
+   * @param companyId - Company ID to ensure multi-tenancy
+   * @returns Updated asset if found, null otherwise
+   */
   async update(
     id: string,
     data: UpdateAssetDto,
@@ -182,6 +209,12 @@ export class AssetService {
     return updated ? toAsset(updated) : null;
   }
 
+  /**
+   * Soft delete an asset
+   * @param id - Asset ID to delete
+   * @param companyId - Company ID to ensure multi-tenancy
+   * @returns True if asset was deleted, false otherwise
+   */
   async delete(id: string, companyId: string): Promise<boolean> {
     const result = await db
       .updateTable("assets")
@@ -200,6 +233,3 @@ export class AssetService {
 }
 
 export default new AssetService();
-
-
-

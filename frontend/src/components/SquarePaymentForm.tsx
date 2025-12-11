@@ -3,6 +3,7 @@
 import { payments } from "@square/web-sdk";
 import type { Card } from "@square/web-sdk";
 import { useEffect, useRef, useState } from "react";
+import { getErrorMessage } from "@/lib/api";
 import { getIntegration, IntegrationConfig } from "@/lib/api/integration.api";
 
 interface SquarePaymentFormProps {
@@ -149,11 +150,7 @@ export default function SquarePaymentForm({
       }
     } catch (error) {
       console.error("Error tokenizing card:", error);
-      onError(
-        error instanceof Error
-          ? error.message
-          : "Failed to process card. Please try again."
-      );
+      onError(getErrorMessage(error));
     }
   };
 

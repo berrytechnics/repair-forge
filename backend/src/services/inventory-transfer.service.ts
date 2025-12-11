@@ -452,4 +452,3 @@ export class InventoryTransferService {
 }
 
 export default new InventoryTransferService();
-

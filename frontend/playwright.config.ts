@@ -37,7 +37,7 @@ export default defineConfig({
 
     {
       name: 'webkit',
-      use: { 
+      use: {
         ...devices['Desktop Safari'],
         // WebKit-specific workarounds
         // Increase timeout for WebKit (it's slower and has stricter security)
@@ -55,8 +55,3 @@ export default defineConfig({
     timeout: 120 * 1000,
   },
 });
-
-
-
-
-

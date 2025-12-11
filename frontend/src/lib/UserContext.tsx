@@ -64,7 +64,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
   // Load impersonation state from storage on mount
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("impersonateCompanyId") || 
+      const stored = localStorage.getItem("impersonateCompanyId") ||
                      sessionStorage.getItem("impersonateCompanyId");
       if (stored) {
         setImpersonatedCompanyId(stored);
@@ -139,7 +139,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
       }
 
       // Only try to fetch user if there's a token (check both localStorage and sessionStorage)
-      const token = typeof window !== "undefined" 
+      const token = typeof window !== "undefined"
         ? (localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken"))
         : null;
       if (!token) {

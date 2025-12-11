@@ -123,4 +123,3 @@ export interface SubscriptionStatusResult {
     endDate?: string;
   };
 }
-

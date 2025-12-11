@@ -40,20 +40,20 @@ export default function PermissionsPage() {
       try {
         setLoading(true);
         setError(null);
-        
+
         // Fetch both the matrix and all available permissions in parallel
         const [matrixData, availablePermissions] = await Promise.all([
           getPermissionsMatrix(),
           getAllAvailablePermissions(),
         ]);
-        
+
         // Ensure all roles exist in the matrix (in case backend doesn't return empty arrays)
         const roles = ["admin", "manager", "technician", "frontdesk"];
         const normalizedMatrix: PermissionsMatrix = {};
         for (const role of roles) {
           normalizedMatrix[role] = matrixData[role] || [];
         }
-        
+
         setMatrix(normalizedMatrix);
         setEditedMatrix({ ...normalizedMatrix }); // Create a copy for editing
         setAllAvailablePermissions(availablePermissions);
@@ -95,8 +95,8 @@ export default function PermissionsPage() {
 
   // Use all available permissions from the backend config, not just what's in the matrix
   // This ensures we show all possible permissions, even if they're not assigned to any role yet
-  const allPermissions = allAvailablePermissions.length > 0 
-    ? allAvailablePermissions 
+  const allPermissions = allAvailablePermissions.length > 0
+    ? allAvailablePermissions
     : Array.from(new Set(Object.values(matrix).flat())).sort();
 
   // Handle checkbox change
@@ -140,7 +140,7 @@ export default function PermissionsPage() {
       // Update the original matrix
       setMatrix({ ...editedMatrix });
       setSuccessMessage("Permissions updated successfully!");
-      
+
       // Clear success message after 3 seconds
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err) {
@@ -277,4 +277,3 @@ export default function PermissionsPage() {
     </div>
   );
 }
-
