@@ -260,18 +260,19 @@ describe("Invoice Routes Integration Tests", () => {
       }
     });
 
-    it("should return 400 for missing required fields", async () => {
+    it("should return 400 for invalid customerId format", async () => {
       const response = await request(app)
         .post("/api/invoices")
         .set(getAuthHeader(managerToken))
         .send({
           subtotal: 100.0,
-          // missing customerId
+          customerId: "invalid-uuid-format", // invalid UUID format
         });
 
       expect(response.status).toBe(400);
       expect(response.body.success).toBe(false);
       expect(response.body.error.message).toBe("Validation failed");
+      expect(response.body.error.errors?.customerId).toBe("Customer ID must be a valid UUID");
     });
   });
 
